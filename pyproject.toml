@@ -1,0 +1,57 @@
+[build-system]
+requires = ["uv_build>=0.9.8,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "sdc-xsd-model"
+version = "0.1.0"
+description = "python modules based on the sdc schema files"
+readme = "README.rst"
+requires-python = ">=3.13"
+dependencies = [
+    "lxml>=6.0.2",
+]
+
+[dependency-groups]
+test = [
+    "hypothesis>=6.139.2",
+    "pytest>=8.4.2",
+    "pytest-html>=4.1.1",
+]
+dev = [
+    { include-group = "test" },
+    "lxml-stubs>=0.5.1",
+    "ruff>=0.14.5",
+    "ty>=0.0.1a26",
+]
+
+[tool.ruff]
+line-length = 120  # https://docs.astral.sh/ruff/settings/#line-length
+
+lint.extend-select = [# https://docs.astral.sh/ruff/settings/#extend-select
+    "ALL",
+]
+
+lint.extend-ignore = [# https://docs.astral.sh/ruff/settings/#extend-ignore
+    "D105", # undocumented-magic-method
+    "D107", # undocumented-public-init
+    "D203", # one-blank-line-before-class
+    "D213", # multi-line-summary-second-line
+    "COM812", # https://docs.astral.sh/ruff/rules/missing-trailing-comma/
+    "S101", # https://docs.astral.sh/ruff/rules/assert/
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D104"]
+"src/sdc_xsd_model/models/*.py" = [
+    "D101",
+    "D102"
+]
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 120 # https://docs.astral.sh/ruff/settings/#max-doc-length
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]

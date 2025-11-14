@@ -1,0 +1,221 @@
+"""Lxml models for WS-Discovery elements from https://docs.oasis-open.org/ws-dd/discovery/1.1/os/wsdd-discovery-1.1-spec-os.html."""
+
+from __future__ import annotations
+
+import typing
+
+import lxml.etree
+
+from sdc_xsd_model.models import addressing, common
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
+PREFIX: typing.Final[str] = "wsd"
+NAMESPACE: typing.Final[str] = "http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01"
+
+lxml.etree.register_namespace(PREFIX, NAMESPACE)
+
+
+class QNameListType(common.ElementBase):
+    @property
+    def q_names(self) -> Sequence[lxml.etree.QName]:
+        if self.text is None:
+            return []
+        q_names: list[lxml.etree.QName] = []
+        for raw_qname in self.text.split():
+            if "{" in raw_qname and "}" in raw_qname:
+                q_names.append(lxml.etree.QName(raw_qname))
+            elif ":" in raw_qname:
+                prefix, tag = raw_qname.split(":", 1)
+                namespace = self.nsmap.get(prefix)
+                q_names.append(lxml.etree.QName(namespace, tag))
+            else:
+                q_names.append(lxml.etree.QName(raw_qname))
+        return q_names
+
+
+class UriListType(common.ElementBase):
+    @property
+    def uris(self) -> Sequence[str]:
+        if self.text is None:
+            return []
+        return self.text.split()
+
+
+class Types(QNameListType):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Types"
+
+
+class Scopes(UriListType):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Scopes"
+
+    @property
+    def match_by(self) -> str | None:
+        return self.get("MatchBy")
+
+
+class XAddrs(UriListType):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}XAddrs"
+
+
+class MetadataVersion(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MetadataVersion"
+
+    @property
+    def version(self) -> int | None:
+        return int(self.text) if self.text is not None else None
+
+
+class Hello(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Hello"
+
+    @property
+    def endpoint_reference(self) -> addressing.EndpointReference | None:
+        return self.find_by_element(addressing.EndpointReference)
+
+    @property
+    def types(self) -> Types | None:
+        return self.find_by_element(Types)
+
+    @property
+    def scopes(self) -> Scopes | None:
+        return self.find_by_element(Scopes)
+
+    @property
+    def x_addrs(self) -> XAddrs | None:
+        return self.find_by_element(XAddrs)
+
+    @property
+    def metadata_version(self) -> MetadataVersion | None:
+        return self.find_by_element(MetadataVersion)
+
+
+class Bye(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Bye"
+
+    @property
+    def endpoint_reference(self) -> addressing.EndpointReference | None:
+        return self.find_by_element(addressing.EndpointReference)
+
+    @property
+    def types(self) -> Types | None:
+        return self.find_by_element(Types)
+
+    @property
+    def scopes(self) -> Scopes | None:
+        return self.find_by_element(Scopes)
+
+    @property
+    def x_addrs(self) -> XAddrs | None:
+        return self.find_by_element(XAddrs)
+
+    @property
+    def metadata_version(self) -> MetadataVersion | None:
+        return self.find_by_element(MetadataVersion)
+
+
+class Probe(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Probe"
+
+    @property
+    def types(self) -> Types | None:
+        return self.find_by_element(Types)
+
+    @property
+    def scopes(self) -> Scopes | None:
+        return self.find_by_element(Scopes)
+
+
+class ProbeMatch(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProbeMatch"
+
+    @property
+    def endpoint_reference(self) -> addressing.EndpointReference | None:
+        return self.find_by_element(addressing.EndpointReference)
+
+    @property
+    def types(self) -> Types | None:
+        return self.find_by_element(Types)
+
+    @property
+    def scopes(self) -> Scopes | None:
+        return self.find_by_element(Scopes)
+
+    @property
+    def x_addrs(self) -> XAddrs | None:
+        return self.find_by_element(XAddrs)
+
+    @property
+    def metadata_version(self) -> MetadataVersion | None:
+        return self.find_by_element(MetadataVersion)
+
+
+class ProbeMatches(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProbeMatches"
+
+    @property
+    def probe_match(self) -> Sequence[ProbeMatch]:
+        return self.findall_by_element(ProbeMatch)
+
+
+class Resolve(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Resolve"
+
+    @property
+    def endpoint_reference(self) -> addressing.EndpointReference | None:
+        return self.find_by_element(addressing.EndpointReference)
+
+
+class ResolveMatch(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ResolveMatch"
+
+    @property
+    def endpoint_reference(self) -> addressing.EndpointReference | None:
+        return self.find_by_element(addressing.EndpointReference)
+
+    @property
+    def types(self) -> Types | None:
+        return self.find_by_element(Types)
+
+    @property
+    def scopes(self) -> Scopes | None:
+        return self.find_by_element(Scopes)
+
+    @property
+    def x_addrs(self) -> XAddrs | None:
+        return self.find_by_element(XAddrs)
+
+    @property
+    def metadata_version(self) -> MetadataVersion | None:
+        return self.find_by_element(MetadataVersion)
+
+
+class ResolveMatches(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ResolveMatches"
+
+    @property
+    def resolve_match(self) -> Sequence[ResolveMatch]:
+        return self.findall_by_element(ResolveMatch)
+
+
+class AppSequence(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}AppSequence"
+
+    @property
+    def instance_id(self) -> int | None:
+        instance_id = self.get("InstanceId")
+        if instance_id is not None:
+            return int(instance_id)
+        return None
+
+    @property
+    def sequence_id(self) -> str | None:
+        return self.get("SequenceId")
+
+    @property
+    def message_number(self) -> int | None:
+        message_number = self.get("MessageNumber")
+        if message_number is not None:
+            return int(message_number)
+        return None
