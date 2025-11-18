@@ -137,7 +137,7 @@ The name "OASIS" is trademarks of OASIS, the owner and developer of this specifi
     </xs:sequence>
     <xs:anyAttribute namespace="##other" processContents="lax" />
   </xs:complexType>
-  
+
   <xs:element name="Hosted" type="tns:HostedServiceType" />
   <xs:complexType name="HostedServiceType" >
     <xs:sequence>

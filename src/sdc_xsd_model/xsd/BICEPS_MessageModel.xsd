@@ -175,7 +175,7 @@ Per convention any response MESSAGE ends up with "Response", whereas request MES
 			<xsd:element ref="ext:Extension" minOccurs="0"/>
 			<xsd:element name="OperationHandleRef" type="pm:HandleRef">
 				<xsd:annotation>
-					<xsd:documentation>Handle of the set operation to invoke. 
+					<xsd:documentation>Handle of the set operation to invoke.
 
 A SERVICE PROVIDER SHALL accept a set request only if at least the operation target HANDLE is valid and the operation is enabled according to the POC MEDICAL DEVICE's MDIB. A target HANDLE is valid if the operation to invoke can be applied on the object referenced by the target HANDLE. An operation can be considered as enabled if pm:AbstractOperationStateType/@OperatingMode equals "En".</xsd:documentation>
 				</xsd:annotation>
@@ -211,7 +211,7 @@ Per convention any response MESSAGE ends up with "Response", whereas request MES
 	</xsd:element>
 	<xsd:element name="GetMdibResponse">
 		<xsd:annotation>
-			<xsd:documentation>GetMdibResponse is the response to a msg:GetMdib MESSAGE It conveys the complete MDIB. 
+			<xsd:documentation>GetMdibResponse is the response to a msg:GetMdib MESSAGE It conveys the complete MDIB.
 
 Since contexts might include privacy-related information, a SERVICE PROVIDER MAY decide to leave the MDS contexts empty. To acquire context information, a client has to send a msg:GetContextStates request.</xsd:documentation>
 		</xsd:annotation>

@@ -40,7 +40,7 @@
     </xs:sequence>
     <xs:anyAttribute namespace="##other" processContents="lax"/>
   </xs:complexType>
-  
+
   <xs:element name="Body" type="tns:Body"/>
   <xs:complexType name="Body">
     <xs:sequence>
@@ -92,7 +92,7 @@
 	  </xs:extension>
 	</xs:simpleContent>
   </xs:complexType>
-  
+
   <xs:complexType name="faultcode">
     <xs:sequence>
       <xs:element name="Value" type="tns:faultcodeEnum"/>
@@ -121,7 +121,7 @@
     <xs:sequence>
       <xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
-    <xs:anyAttribute namespace="##other" processContents="lax"/> 
+    <xs:anyAttribute namespace="##other" processContents="lax"/>
   </xs:complexType>
 
   <!-- Global element declaration and complex type definition for header entry returned due to a mustUnderstand fault -->

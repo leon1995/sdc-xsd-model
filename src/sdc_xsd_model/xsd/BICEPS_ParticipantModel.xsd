@@ -110,7 +110,7 @@ The Domain Information model is subdivided into two parts, a static part (referr
 	<xsd:simpleType name="Timestamp">
 		<xsd:annotation>
 			<xsd:documentation>An unsigned 64-bit integer value that represents a timestamp.
-			
+
 __R5001: A timestamp SHALL count the milliseconds between the current time and midnight, January 1, 1970 UTC without leap seconds.__
 
 __R5002: Timestamps are an optional feature of the MDIB. If anywhere in the MDIB a timestamp is used, the SERVICE PROVIDER SHALL provide a pm:ClockDescriptor ELEMENT.__
@@ -304,7 +304,7 @@ Two CodedValue objects C1 and C2 are equivalent, if
 - C1/@CodingSystemVersion equals C2/@CodingSystemVersion
 - If there exists a CodedValue object T1 in C1/pm:Translation and a CodedValue object T2 in C2/pm:Translation such that T1 and T2 are equivalent, C1 and T2 are equivalent, or C2 and T1 are equivalent.
 
-NOTE 1—In case that ./@CodingSystem is not explicitly defined in CodedValue, it is replaced implicitly by a default identifier. The ./@CodingSystem ATTRIBUTE is then called "expanded". 
+NOTE 1—In case that ./@CodingSystem is not explicitly defined in CodedValue, it is replaced implicitly by a default identifier. The ./@CodingSystem ATTRIBUTE is then called "expanded".
 NOTE 2—As prescribed in ./@CodingSystemVersion, a version is set only if a unique version identification by ./@CodingSystem is not possible. Hence, there can be no implicit version mismatch.
 NOTE 3—Equivalence between CodedValue objects is not necessarily transitive.
 			</xsd:documentation>
@@ -376,8 +376,8 @@ Example: "20041215" for the ISO/IEC 11073-10101:2004, as it is the release date 
 			</xsd:annotation>
 		</xsd:attribute>
 	</xsd:complexType>
-	<!-- Instance Identifier & CodedValue 
-	see 			http://www.hl7.org/documentcenter/public_temp_50880C1B-1C23-BA17-0C922B819FE091A2/standards/V3/core_principles/infrastructure/coreprinciples/v3modelcoreprinciples.html#coreP_Identifying-ii-cd 
+	<!-- Instance Identifier & CodedValue
+	see 			http://www.hl7.org/documentcenter/public_temp_50880C1B-1C23-BA17-0C922B819FE091A2/standards/V3/core_principles/infrastructure/coreprinciples/v3modelcoreprinciples.html#coreP_Identifying-ii-cd
 -->
 	<xsd:complexType name="InstanceIdentifier">
 		<xsd:annotation>
@@ -410,7 +410,7 @@ NOTE—IdentifierName has no computational value and hence can never modify the 
 
 If ./@Extension is present, Root is the unique identifier for the "namespace" of the identifier in ./@Extension.
 
-In situations where ./@Extension is known, but Root is not known, the implied value of a non-existent Root SHALL match the value defined in R0135. 
+In situations where ./@Extension is known, but Root is not known, the implied value of a non-existent Root SHALL match the value defined in R0135.
 
 NOTE—Example: a POC MEDICAL DEVICE with an attached simple bar code scanner could create a new instance identifier with an unknown root and an extension that is set to the bar code number. Root is then applied later in time.</xsd:documentation>
 			</xsd:annotation>
@@ -1388,7 +1388,7 @@ NOTE—The priority is assigned through risk analysis.</xsd:documentation>
 	</xsd:simpleType>
 	<xsd:complexType name="AlertConditionDescriptor">
 		<xsd:annotation>
-			<xsd:documentation>An ALERT CONDITION contains the information about a potentially or actually HAZARDOUS SITUATION. 
+			<xsd:documentation>An ALERT CONDITION contains the information about a potentially or actually HAZARDOUS SITUATION.
 
 Examples: a physiological alarm limit has been exceeded or a sensor has been unplugged.</xsd:documentation>
 		</xsd:annotation>
@@ -1496,7 +1496,7 @@ NOTE—If the ATTRIBUTE pm:AlertConditionState/@ActualPriority is present, the p
 				</xsd:attribute>
 				<xsd:attribute name="ActualPriority" type="pm:AlertConditionPriority">
 					<xsd:annotation>
-						<xsd:documentation>The current priority of the ALERT CONDITION that has been modified by an escalation or de-escalation process. 
+						<xsd:documentation>The current priority of the ALERT CONDITION that has been modified by an escalation or de-escalation process.
 
 NOTE—If this ATTRIBUTE is present in an pm:AlertConditonState ELEMENT, the related pm:AlertConditionDescritptor/pm:Priority ELEMENT MAY NOT reflect the current severity of the potential or actual hazard that exists if this ALERT CONDITION is present.</xsd:documentation>
 					</xsd:annotation>
@@ -1566,7 +1566,7 @@ The unit of the limits in pm:Range SHALL be the unit of the referenced pm:AlertC
 			</xsd:enumeration>
 			<xsd:enumeration value="None">
 				<xsd:annotation>
-					<xsd:documentation>No alert limits are monitored. 
+					<xsd:documentation>No alert limits are monitored.
 
 NOTE—This flag is not equal to the activation state "Off" that pm:AlertConditionState/@ActivationState provides, although the result w.r.t. to alert signalization is the same.</xsd:documentation>
 				</xsd:annotation>
@@ -1951,9 +1951,9 @@ NOTE 2—If ./pmMetricQuality cannot be applied to all samples due to, e.g., som
 	<!--Sub-section: Base Metric Descriptor and State-->
 	<xsd:simpleType name="MetricCategory">
 		<xsd:annotation>
-			<xsd:documentation>The METRIC category makes it possible to distinguish between different manifestations of a METRIC like measurements, settings or recommendations. 
+			<xsd:documentation>The METRIC category makes it possible to distinguish between different manifestations of a METRIC like measurements, settings or recommendations.
 
-Example: if the respiratory rate can be adjusted and the ventilator is smart and provides a recommendation, there are likely be at least three METRICs with a type of "Respiratory Rate": 
+Example: if the respiratory rate can be adjusted and the ventilator is smart and provides a recommendation, there are likely be at least three METRICs with a type of "Respiratory Rate":
 
 - 1 METRIC with MetricCategory set to Measurement. This METRIC is the actual measured value.
 - 1 METRIC with MetricCategory set to Setting. This METRIC is the adjustable value.
@@ -2018,7 +2018,7 @@ Related settings MAY be defined by using pm:AbstractMetricDescriptor/pm:Relation
 		<xsd:restriction base="xsd:string">
 			<xsd:enumeration value="Intr">
 				<xsd:annotation>
-					<xsd:documentation>Intr = Intermittent. Stopping or ceasing for a time; alternately ceasing and beginning again. 
+					<xsd:documentation>Intr = Intermittent. Stopping or ceasing for a time; alternately ceasing and beginning again.
 
 Example: non-invasive blood pressure measurement.</xsd:documentation>
 				</xsd:annotation>
@@ -2152,8 +2152,8 @@ NOTE—By that a SERVICE PROVIDER can, e.g., group sets of recommendations or pr
 				</xsd:attribute>
 				<xsd:attribute name="MaxDelayTime" type="xsd:duration" use="optional">
 					<xsd:annotation>
-						<xsd:documentation>Maximum delay to real time. 
-For a measurement or calculation, the maximum delay to real time is the estimated or known maximum difference between the point in time when a physical variable value has been present and when the value has been computed and is ready for communication. This MAY include an averaging period, but it does not include the communication delay. 
+						<xsd:documentation>Maximum delay to real time.
+For a measurement or calculation, the maximum delay to real time is the estimated or known maximum difference between the point in time when a physical variable value has been present and when the value has been computed and is ready for communication. This MAY include an averaging period, but it does not include the communication delay.
 For a setting, the maximum delay to real time is the estimated or known maximum difference between the point in time when a setting has been confirmed to be applicable and the time when the setting becomes effective on the actuator. This does not include any communication delay.</xsd:documentation>
 					</xsd:annotation>
 				</xsd:attribute>
@@ -2562,7 +2562,7 @@ The implied value SHALL be "true".</xsd:documentation>
 				<xsd:attribute name="AccessLevel">
 					<xsd:annotation>
 						<xsd:documentation>AccessLevel defines a user group to whom access to the operation is granted. The implied value SHALL be "Usr".
-						
+
 __R5054: Access to the invocation of the operation SHALL be restricted to the defined user group by a SERVICE CONSUMER.__</xsd:documentation>
 					</xsd:annotation>
 					<xsd:simpleType>
@@ -2840,7 +2840,7 @@ Example: CST6CDT,M3.2.0/2:00:00,M11.1.0/2:00:00, which would effect a change to 
 				<xsd:sequence>
 					<xsd:element name="TimeProtocol" type="pm:CodedValue" minOccurs="0" maxOccurs="unbounded">
 						<xsd:annotation>
-							<xsd:documentation>OPTIONAL list of protocols that can be used to set the POC MEDICAL DEVICE's clock. An empty list implies that the clock cannot be set and is therefore uncalibrated and unsynchronized (e.g., equal to MDC:MDC_TIME_SYNC_NONE).   
+							<xsd:documentation>OPTIONAL list of protocols that can be used to set the POC MEDICAL DEVICE's clock. An empty list implies that the clock cannot be set and is therefore uncalibrated and unsynchronized (e.g., equal to MDC:MDC_TIME_SYNC_NONE).
 Example: {MDC:MDC_TIME_SYNC_EBWW, MDC:MDC_TIME_SYNC_SNTPV4, MDC:MDC_TIME_SYNC_NTPV3} if the clock supports synchronization using manually setting on the POC MEDICAL DEVICE, SNTP v4.0 (RFC 2030) and NTP v3.0 (RFC 1305).</xsd:documentation>
 						</xsd:annotation>
 					</xsd:element>
@@ -3271,7 +3271,7 @@ NOTE—BICEPS supports no special state removal flag. Therefore, a SERVICE CONSU
 	</xsd:complexType>
 	<xsd:simpleType name="Sex">
 		<xsd:annotation>
-			<xsd:documentation>Sex of a human. 
+			<xsd:documentation>Sex of a human.
 
 "Sex" refers to the biological and physiological characteristics that define men and women, while "Gender" refers to the socially constructed roles, behaviors, activities, and attributes that a given society considers appropriate for men and women. See http://www.who.int/gender/whatisgender/en/index.html.
 
@@ -3345,7 +3345,7 @@ NOTE—ISO/IEC 5218:2004 defines four CODEs that represent human sexes.</xsd:doc
 	<xsd:complexType name="PatientDemographicsCoreData">
 		<xsd:annotation>
 			<xsd:documentation>The patient demographics data as defined in ISO/IEEE 11073-10201:2004 (6.10.1 Patient Demographics object).
-			
+
 __R5012: If the POC MEDICAL DEVICE itself has patient-related observations (e.g., weight, height, etc.) as in- or output, these SHOULD be modelled as METRICs.__
 
 NOTE—In contrast to PatientDemographicsCoreData, METRICs provide a sophisticated observation description, e.g., regarding quality and time-related attributes.

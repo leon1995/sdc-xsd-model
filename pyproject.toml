@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "sdc-xsd-model"
 version = "0.1.0"
-description = "python modules based on the sdc schema files"
+description = "python classes based on the sdc schema files"
 readme = "README.rst"
 requires-python = ">=3.13"
 dependencies = [
