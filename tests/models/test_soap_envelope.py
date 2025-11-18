@@ -1,5 +1,6 @@
 """Tests for the SOAP envelope model classes."""
 
+import lxml.etree
 import pytest
 
 from sdc_xsd_model.models import common, soap_envelope
@@ -33,3 +34,11 @@ def test_default_tag(
 def test_default_namespace(clazz: type[common.ElementBase]) -> None:
     """Ensure SOAP envelope classes register the expected namespace."""
     assert clazz().nsmap[soap_envelope.PREFIX] == soap_envelope.NAMESPACE
+
+
+@pytest.mark.parametrize("clazz", [case[0] for case in SOAP_ENVELOPE_CASES])
+def test_class_lookup(clazz: type[common.ElementBase]) -> None:
+    """Ensure eventing classes can be serialized and deserialized correctly."""
+    xml = lxml.etree.tostring(clazz())
+    parsed_element = lxml.etree.fromstring(xml)
+    assert isinstance(parsed_element, clazz)

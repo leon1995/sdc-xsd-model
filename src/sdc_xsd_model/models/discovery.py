@@ -195,8 +195,8 @@ class ResolveMatches(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ResolveMatches"
 
     @property
-    def resolve_match(self) -> Sequence[ResolveMatch]:
-        return self.findall_by_element(ResolveMatch)
+    def resolve_match(self) -> ResolveMatch | None:
+        return self.find_by_element(ResolveMatch)
 
 
 class AppSequence(common.ElementBase):
@@ -219,3 +219,21 @@ class AppSequence(common.ElementBase):
         if message_number is not None:
             return int(message_number)
         return None
+
+
+def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
+    """Register discovery types in the given lookup."""
+    discovery_namespace = lookup.get_namespace(NAMESPACE)
+    discovery_namespace["Types"] = Types
+    discovery_namespace["Scopes"] = Scopes
+    discovery_namespace["XAddrs"] = XAddrs
+    discovery_namespace["Hello"] = Hello
+    discovery_namespace["Bye"] = Bye
+    discovery_namespace["Probe"] = Probe
+    discovery_namespace["ProbeMatch"] = ProbeMatch
+    discovery_namespace["ProbeMatches"] = ProbeMatches
+    discovery_namespace["Resolve"] = Resolve
+    discovery_namespace["ResolveMatch"] = ResolveMatch
+    discovery_namespace["ResolveMatches"] = ResolveMatches
+    discovery_namespace["AppSequence"] = AppSequence
+    discovery_namespace["MetadataVersion"] = MetadataVersion

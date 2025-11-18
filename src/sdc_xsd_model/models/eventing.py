@@ -165,3 +165,29 @@ class SubscriptionEnd(common.ElementBase):
     @property
     def reason(self) -> Sequence[Reason]:
         return self.findall_by_element(Reason)
+
+
+def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
+    """Register all Eventing elements in the given lookup."""
+    eventing_namespace = lookup.get_namespace(NAMESPACE)
+    eventing_namespace["NotifyTo"] = NotifyTo
+    eventing_namespace["EndTo"] = EndTo
+    eventing_namespace["SubscriptionManager"] = SubscriptionManager
+    eventing_namespace["Delivery"] = DeliveryType
+    eventing_namespace["Filter"] = FilterType
+    eventing_namespace["Identifier"] = Identifier
+    eventing_namespace["SupportedDeliveryMode"] = SupportedDeliveryMode
+    eventing_namespace["SupportedDialect"] = SupportedDialect
+    eventing_namespace["LanguageSpecificString"] = LanguageSpecificStringType
+    eventing_namespace["OpenSubscriptionEndCodeType"] = OpenSubscriptionEndCodeType
+    eventing_namespace["Status"] = Status
+    eventing_namespace["SubscriptionEnd"] = SubscriptionEnd
+    eventing_namespace["SubscribeResponse"] = SubscribeResponse
+    eventing_namespace["Subscribe"] = Subscribe
+    eventing_namespace["Unsubscribe"] = Unsubscribe
+    eventing_namespace["RenewResponse"] = RenewResponse
+    eventing_namespace["Renew"] = Renew
+    eventing_namespace["GetStatusResponse"] = GetStatusResponse
+    eventing_namespace["GetStatus"] = GetStatus
+    eventing_namespace["Expires"] = Expires
+    eventing_namespace["Reason"] = Reason

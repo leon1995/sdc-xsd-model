@@ -8,6 +8,7 @@ import lxml.etree
 from sdc_xsd_model.models import common
 
 PREFIX: typing.Final[str] = "wsa"
+# namespace has been changed in ws-discovery, therefore dont use "http://schemas.xmlsoap.org/ws/2004/08/addressing"
 NAMESPACE: typing.Final[str] = "http://www.w3.org/2005/08/addressing"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
@@ -75,3 +76,19 @@ class RelatesTo(AttributedURIType):
     @property
     def relationship_type(self) -> str | None:
         return self.get("RelationshipType")
+
+
+def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
+    """Register WS-Addressing elements in the given lookup."""
+    addressing_namespace = lookup.get_namespace(NAMESPACE)
+    addressing_namespace["Address"] = Address
+    addressing_namespace["EndpointReference"] = EndpointReference
+    addressing_namespace["ReferenceParameters"] = ReferenceParameters
+    addressing_namespace["Metadata"] = Metadata
+    addressing_namespace["To"] = To
+    addressing_namespace["From"] = From
+    addressing_namespace["ReplyTo"] = ReplyTo
+    addressing_namespace["FaultTo"] = FaultTo
+    addressing_namespace["Action"] = Action
+    addressing_namespace["MessageID"] = MessageID
+    addressing_namespace["RelatesTo"] = RelatesTo

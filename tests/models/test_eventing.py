@@ -1,5 +1,6 @@
 """Tests for the eventing model classes."""
 
+import lxml.etree
 import pytest
 
 from sdc_xsd_model.models import common, eventing
@@ -40,3 +41,11 @@ def test_default_tag(
 def test_default_namespace(clazz: type[common.ElementBase]) -> None:
     """Ensure eventing classes register the expected namespace."""
     assert clazz().nsmap[eventing.PREFIX] == eventing.NAMESPACE
+
+
+@pytest.mark.parametrize("clazz", [case[0] for case in EVENTING_CASES])
+def test_class_lookup(clazz: type[common.ElementBase]) -> None:
+    """Ensure eventing classes can be serialized and deserialized correctly."""
+    xml = lxml.etree.tostring(clazz())
+    parsed_element = lxml.etree.fromstring(xml)
+    assert isinstance(parsed_element, clazz)

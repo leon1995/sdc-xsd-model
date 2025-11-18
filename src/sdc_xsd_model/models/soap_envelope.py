@@ -135,3 +135,20 @@ class Fault(common.ElementBase):
     @property
     def detail(self) -> Detail | None:
         return self.find_by_element(Detail)
+
+
+def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
+    """Register SOAP elements in the given lookup."""
+    soap_namespace = lookup.get_namespace(NAMESPACE)
+    soap_namespace["Envelope"] = Envelope
+    soap_namespace["Header"] = Header
+    soap_namespace["Body"] = Body
+    soap_namespace["Text"] = FaultReasonText
+    soap_namespace["Reason"] = FaultReason
+    soap_namespace["Subcode"] = SubCode
+    soap_namespace["Code"] = FaultCode
+    soap_namespace["Detail"] = Detail
+    soap_namespace["Fault"] = Fault
+    soap_namespace["Value"] = Value
+    soap_namespace["Node"] = Node
+    soap_namespace["Role"] = Role

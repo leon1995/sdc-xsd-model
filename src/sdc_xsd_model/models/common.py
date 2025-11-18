@@ -27,6 +27,12 @@ class ElementBase(lxml.etree.ElementBase):
     def findall_by_element[E: ElementBase](self, element: type[E]) -> Sequence[E]:
         return typing.cast("Sequence[E]", self.findall(element.TAG))
 
+    def __str__(self) -> str:
+        return lxml.etree.tostring(self).decode()
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
 
 class AnyUri(ElementBase):
     pass

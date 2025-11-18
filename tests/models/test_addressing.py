@@ -1,5 +1,6 @@
 """Tests for the addressing model classes."""
 
+import lxml.etree
 import pytest
 
 from sdc_xsd_model.models import addressing, common
@@ -32,3 +33,11 @@ def test_default_tag(
 def test_default_namespace(clazz: type[common.ElementBase]) -> None:
     """Ensure addressing classes register the expected namespace."""
     assert clazz().nsmap[addressing.PREFIX] == addressing.NAMESPACE
+
+
+@pytest.mark.parametrize("clazz", [case[0] for case in ADDRESSING_CASES])
+def test_class_lookup(clazz: type[common.ElementBase]) -> None:
+    """Ensure addressing classes can be serialized and deserialized correctly."""
+    xml = lxml.etree.tostring(clazz())
+    parsed_element = lxml.etree.fromstring(xml)
+    assert isinstance(parsed_element, clazz)
