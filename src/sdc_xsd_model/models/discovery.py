@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+import pathlib
 import typing
 
 import lxml.etree
@@ -15,7 +17,8 @@ PREFIX: typing.Final[str] = "wsd"
 NAMESPACE: typing.Final[str] = "http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
-
+SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "wsdd-discovery-1.1-schema-os.xsd").absolute()
+SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
 
 class QNameListType(common.ElementBase):
     @property
@@ -71,7 +74,7 @@ class Hello(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Hello"
 
     @property
-    def endpoint_reference(self) -> addressing.EndpointReference | None:
+    def endpoint_reference(self) -> addressing.EndpointReference:
         return self.find_by_element(addressing.EndpointReference)
 
     @property
@@ -95,7 +98,7 @@ class Bye(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Bye"
 
     @property
-    def endpoint_reference(self) -> addressing.EndpointReference | None:
+    def endpoint_reference(self) -> addressing.EndpointReference:
         return self.find_by_element(addressing.EndpointReference)
 
     @property
@@ -163,7 +166,7 @@ class Resolve(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Resolve"
 
     @property
-    def endpoint_reference(self) -> addressing.EndpointReference | None:
+    def endpoint_reference(self) -> addressing.EndpointReference:
         return self.find_by_element(addressing.EndpointReference)
 
 
@@ -203,11 +206,9 @@ class AppSequence(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}AppSequence"
 
     @property
-    def instance_id(self) -> int | None:
+    def instance_id(self) -> int:
         instance_id = self.get("InstanceId")
-        if instance_id is not None:
-            return int(instance_id)
-        return None
+        return int(instance_id)
 
     @property
     def sequence_id(self) -> str | None:
@@ -237,3 +238,30 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     discovery_namespace["ResolveMatches"] = ResolveMatches
     discovery_namespace["AppSequence"] = AppSequence
     discovery_namespace["MetadataVersion"] = MetadataVersion
+
+
+@functools.cache
+def get_parser() -> lxml.etree.XMLParser:
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    set_lookup(lookup)
+    xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
+    xml_parser.set_element_class_lookup(lookup)
+    return xml_parser
+
+
+for cls in (
+    Types,
+    Scopes,
+    XAddrs,
+    Hello,
+    Bye,
+    Probe,
+    ProbeMatch,
+    ProbeMatches,
+    Resolve,
+    ResolveMatch,
+    ResolveMatches,
+    AppSequence,
+    MetadataVersion,
+):
+    cls.PARSER = get_parser()

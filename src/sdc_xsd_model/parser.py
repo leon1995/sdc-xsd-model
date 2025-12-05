@@ -32,4 +32,11 @@ def discovery_schema() -> lxml.etree.XMLSchema:
 
 def discovery_parser() -> lxml.etree.XMLParser:
     """Get an XML parser with registered SDC XSD models."""
-    return lxml.etree.XMLParser(schema=discovery_schema())
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    addressing.set_lookup(lookup)
+    discovery.set_lookup(lookup)
+    eventing.set_lookup(lookup)
+    soap_envelope.set_lookup(lookup)
+    parser = lxml.etree.XMLParser(schema=discovery_schema())
+    parser.set_element_class_lookup(lookup)
+    return parser

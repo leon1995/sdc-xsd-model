@@ -10,6 +10,7 @@ class ElementBase(lxml.etree.ElementBase):
     """https://lxml.de/api/lxml.etree.ElementBase-class.html."""
 
     TAG: str
+    PARSER: lxml.etree.XMLParser | None
 
     @property
     def text(self) -> str | None:
@@ -22,7 +23,7 @@ class ElementBase(lxml.etree.ElementBase):
         return super().nsmap
 
     def find_by_element[E: ElementBase](self, element: type[E]) -> E | None:
-        return typing.cast("E | None", self.find(element.TAG))
+        return typing.cast("type[E] | None", self.find(element.TAG))
 
     def findall_by_element[E: ElementBase](self, element: type[E]) -> Sequence[E]:
         return typing.cast("Sequence[E]", self.findall(element.TAG))

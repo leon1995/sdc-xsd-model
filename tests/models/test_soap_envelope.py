@@ -40,5 +40,5 @@ def test_default_namespace(clazz: type[common.ElementBase]) -> None:
 def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     """Ensure eventing classes can be serialized and deserialized correctly."""
     xml = lxml.etree.tostring(clazz())
-    parsed_element = lxml.etree.fromstring(xml)
+    parsed_element = lxml.etree.fromstring(xml, parser=clazz.PARSER)
     assert isinstance(parsed_element, clazz)

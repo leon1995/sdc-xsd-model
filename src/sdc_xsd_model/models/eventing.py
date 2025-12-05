@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import enum
+import functools
+import pathlib
 import typing
 
 import lxml.etree
@@ -12,11 +14,15 @@ from sdc_xsd_model.models import addressing, common
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from sdc_xsd_model.models.addressing import Address
+
 PREFIX: typing.Final[str] = "wse"
 NAMESPACE: typing.Final[str] = "http://schemas.xmlsoap.org/ws/2004/08/eventing"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
 
+SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "eventing.xsd").absolute()
+SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
 
 class NotifyTo(addressing.EndpointReference):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}NotifyTo"
@@ -128,7 +134,8 @@ class SubscribeResponse(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SubscribeResponse"
 
     @property
-    def subscription_manager(self) -> SubscriptionManager | None:
+    def subscription_manager(self) -> SubscriptionManager:
+        # schema enforces presence
         return self.find_by_element(SubscriptionManager)
 
     @property
@@ -155,7 +162,8 @@ class SubscriptionEnd(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SubscriptionEnd"
 
     @property
-    def subscription_manager(self) -> SubscriptionManager | None:
+    def subscription_manager(self) -> SubscriptionManager:
+        # schema enforces presence
         return self.find_by_element(SubscriptionManager)
 
     @property
@@ -191,3 +199,37 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     eventing_namespace["GetStatus"] = GetStatus
     eventing_namespace["Expires"] = Expires
     eventing_namespace["Reason"] = Reason
+
+
+@functools.cache
+def get_parser() -> lxml.etree.XMLParser:
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    set_lookup(lookup)
+    xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
+    xml_parser.set_element_class_lookup(lookup)
+    return xml_parser
+
+
+for cls in (
+    NotifyTo,
+    EndTo,
+    SubscriptionManager,
+    DeliveryType,
+    FilterType,
+    Identifier,
+    SupportedDeliveryMode,
+    SupportedDialect,
+    LanguageSpecificStringType,
+    Reason,
+    Expires,
+    GetStatus,
+    GetStatusResponse,
+    Renew,
+    RenewResponse,
+    Unsubscribe,
+    Subscribe,
+    SubscribeResponse,
+    Status,
+    SubscriptionEnd,
+):
+    cls.PARSER = get_parser()

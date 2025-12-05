@@ -1,5 +1,6 @@
 """Lxml models for WS-Addressing elements from https://www.w3.org/TR/2006/REC-ws-addr-core-20060509/."""
-
+import functools
+import pathlib
 import typing
 from collections.abc import Sequence
 
@@ -12,6 +13,9 @@ PREFIX: typing.Final[str] = "wsa"
 NAMESPACE: typing.Final[str] = "http://www.w3.org/2005/08/addressing"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
+
+SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "ws-addr.xsd").absolute()
+SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
 
 
 class AttributedURIType(common.AnyUri):
@@ -34,7 +38,8 @@ class EndpointReference(common.ElementBase):
     TAG: str = f"{{{NAMESPACE}}}EndpointReference"
 
     @property
-    def address(self) -> Address | None:
+    def address(self) -> Address:
+        # schema enforces presence
         return self.find_by_element(Address)
 
     @property
@@ -92,3 +97,28 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     addressing_namespace["Action"] = Action
     addressing_namespace["MessageID"] = MessageID
     addressing_namespace["RelatesTo"] = RelatesTo
+
+
+@functools.cache
+def get_parser() -> lxml.etree.XMLParser:
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    set_lookup(lookup)
+    xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
+    xml_parser.set_element_class_lookup(lookup)
+    return xml_parser
+
+for cls in (
+    AttributedURIType,
+    Address,
+    Metadata,
+    ReferenceParameters,
+    EndpointReference,
+    To,
+    From,
+    ReplyTo,
+    FaultTo,
+    Action,
+    MessageID,
+    RelatesTo,
+):
+    cls.PARSER = get_parser()
