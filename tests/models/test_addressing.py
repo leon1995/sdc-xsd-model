@@ -1,4 +1,5 @@
 """Tests for the addressing model classes."""
+import uuid
 
 import lxml.etree
 import pytest
@@ -38,6 +39,25 @@ def test_default_namespace(clazz: type[common.ElementBase]) -> None:
 @pytest.mark.parametrize("clazz", [case[0] for case in ADDRESSING_CASES])
 def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     """Ensure addressing classes can be serialized and deserialized correctly."""
-    xml = lxml.etree.tostring(clazz())
+    element, target_tag = _create_addressing_element(clazz)
+    xml = lxml.etree.tostring(element)
     parsed_element = lxml.etree.fromstring(xml, parser=clazz.PARSER)
+    if target_tag is not None:
+        parsed_element = parsed_element.find(target_tag)
     assert isinstance(parsed_element, clazz)
+
+
+def _create_addressing_element(
+    clazz: type[common.ElementBase],
+) -> tuple[common.ElementBase, str | None]:
+    if clazz is addressing.Address:
+        container = addressing.EndpointReference(addressing.Address.from_random_uri())
+        return container, addressing.Address.TAG
+    if issubclass(clazz, addressing.EndpointReference):
+        element = clazz(addressing.Address.from_random_uri())
+        return element, None
+    if issubclass(clazz, addressing.AttributedURIType):
+        if clazz is addressing.RelatesTo:
+            return clazz.from_random_uri(RelationshipType=f"{addressing.NAMESPACE}/reply"), None
+        return clazz.from_random_uri(), None
+    return clazz(), None

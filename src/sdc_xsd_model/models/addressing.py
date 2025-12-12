@@ -2,6 +2,7 @@
 import functools
 import pathlib
 import typing
+import uuid
 from collections.abc import Sequence
 
 import lxml.etree
@@ -19,7 +20,16 @@ SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PA
 
 
 class AttributedURIType(common.AnyUri):
-    pass
+
+    @classmethod
+    def from_uri(cls, uri: str | uuid.UUID, **kwargs: str | bytes) -> typing.Self:
+        """Create an AttributedURIType from a URI string or UUID."""
+        return cls(uri.urn if isinstance(uri, uuid.UUID) else uri, **kwargs)
+
+    @classmethod
+    def from_random_uri(cls, **kwargs: str | bytes) -> typing.Self:
+        """Create an AttributedURIType with a random UUID URN."""
+        return cls.from_uri(uuid.uuid4(), **kwargs)
 
 
 class Address(AttributedURIType):
@@ -49,6 +59,11 @@ class EndpointReference(common.ElementBase):
     @property
     def metadata(self) -> Sequence[Metadata]:
         return self.findall_by_element(Metadata)
+
+    @classmethod
+    def with_address(cls, address: str, **kwargs: str | bytes) -> typing.Self:
+        """Create an EndpointReference with the given address."""
+        return cls(Address.from_uri(address), **kwargs)
 
 
 class To(AttributedURIType):

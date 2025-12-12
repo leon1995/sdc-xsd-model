@@ -1,6 +1,7 @@
 """Common XML Schema Definition (XSD) elements and types."""
 
 import typing
+import uuid
 from collections.abc import Mapping, Sequence
 
 import lxml.etree
@@ -11,6 +12,16 @@ class ElementBase(lxml.etree.ElementBase):
 
     TAG: str
     PARSER: lxml.etree.XMLParser | None
+
+    if typing.TYPE_CHECKING:
+
+        def __init__(
+            self,
+            *children: "str | ElementBase",
+            attrib: Mapping[str, str | bytes] | None = None,
+            nsmap: Mapping[None | str, str] | None = None,
+            **_extra: str | bytes,
+        ) -> None: ...
 
     @property
     def text(self) -> str | None:
@@ -36,7 +47,15 @@ class ElementBase(lxml.etree.ElementBase):
 
 
 class AnyUri(ElementBase):
-    pass
+    @classmethod
+    def from_uri(cls, uri: str | uuid.UUID) -> typing.Self:
+        """Create an AttributedURIType from a URI string or UUID."""
+        return cls(uri.urn if isinstance(uri, uuid.UUID) else uri)
+
+    @classmethod
+    def from_random_uri(cls) -> typing.Self:
+        """Create an AttributedURIType with a random UUID URN."""
+        return cls.from_uri(uuid.uuid4())
 
 
 class QNameType(ElementBase):
