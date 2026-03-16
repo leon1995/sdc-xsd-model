@@ -2,12 +2,25 @@
 
 import lxml.etree
 
-from sdc_xsd_model.models import addressing, discovery, eventing, soap_envelope
+from sdc_xsd_model.models import (
+    addressing,
+    biceps_pm,
+    discovery,
+    dpws,
+    eventing,
+    extension,
+    metadata_exchange,
+    soap_envelope,
+)
 
 __LOOKUP__ = lxml.etree.ElementNamespaceClassLookup()
 addressing.set_lookup(__LOOKUP__)
+biceps_pm.set_lookup(__LOOKUP__)
 discovery.set_lookup(__LOOKUP__)
+dpws.set_lookup(__LOOKUP__)
 eventing.set_lookup(__LOOKUP__)
+extension.set_lookup(__LOOKUP__)
+metadata_exchange.set_lookup(__LOOKUP__)
 soap_envelope.set_lookup(__LOOKUP__)
 # Ensure that the namespace -> class lookup is initialized.
 #   Otherwise, when using e.g. .append() the appended element would lose its type information,

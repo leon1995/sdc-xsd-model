@@ -1,10 +1,14 @@
 """Common XML Schema Definition (XSD) elements and types."""
 
+from __future__ import annotations
+
 import typing
 import uuid
-from collections.abc import Mapping, Sequence
 
 import lxml.etree
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 
 class ElementBase(lxml.etree.ElementBase):
@@ -17,7 +21,7 @@ class ElementBase(lxml.etree.ElementBase):
 
         def __init__(
             self,
-            *children: "str | ElementBase",
+            *children: str | ElementBase,
             attrib: Mapping[str, str | bytes] | None = None,
             nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
             **_extra: str | bytes,
@@ -70,3 +74,21 @@ class QNameType(ElementBase):
             namespace = self.nsmap.get(prefix)
             return lxml.etree.QName(namespace, tag)
         return lxml.etree.QName(self.text)
+
+
+class QNameListType(ElementBase):
+    @property
+    def q_names(self) -> Sequence[lxml.etree.QName]:
+        if self.text is None:
+            return []
+        q_names: list[lxml.etree.QName] = []
+        for raw_qname in self.text.split():
+            if "{" in raw_qname and "}" in raw_qname:
+                q_names.append(lxml.etree.QName(raw_qname))
+            elif ":" in raw_qname:
+                prefix, tag = raw_qname.split(":", 1)
+                namespace = self.nsmap.get(prefix)
+                q_names.append(lxml.etree.QName(namespace, tag))
+            else:
+                q_names.append(lxml.etree.QName(raw_qname))
+        return q_names

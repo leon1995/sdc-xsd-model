@@ -1,14 +1,18 @@
 """Lxml models for WS-Addressing elements from https://www.w3.org/TR/2006/REC-ws-addr-core-20060509/."""
 
+from __future__ import annotations
+
 import functools
 import pathlib
 import typing
 import uuid
-from collections.abc import Mapping, Sequence
 
 import lxml.etree
 
 from sdc_xsd_model.models import common
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 PREFIX: typing.Final[str] = "wsa"
 # namespace has been changed in ws-discovery, therefore dont use "http://schemas.xmlsoap.org/ws/2004/08/addressing"

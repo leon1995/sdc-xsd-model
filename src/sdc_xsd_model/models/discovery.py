@@ -23,24 +23,6 @@ SCHEMA_PATH: typing.Final[pathlib.Path] = (
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
 
 
-class QNameListType(common.ElementBase):
-    @property
-    def q_names(self) -> Sequence[lxml.etree.QName]:
-        if self.text is None:
-            return []
-        q_names: list[lxml.etree.QName] = []
-        for raw_qname in self.text.split():
-            if "{" in raw_qname and "}" in raw_qname:
-                q_names.append(lxml.etree.QName(raw_qname))
-            elif ":" in raw_qname:
-                prefix, tag = raw_qname.split(":", 1)
-                namespace = self.nsmap.get(prefix)
-                q_names.append(lxml.etree.QName(namespace, tag))
-            else:
-                q_names.append(lxml.etree.QName(raw_qname))
-        return q_names
-
-
 class UriListType(common.ElementBase):
     @property
     def uris(self) -> Sequence[str]:
@@ -49,7 +31,7 @@ class UriListType(common.ElementBase):
         return self.text.split()
 
 
-class Types(QNameListType):
+class Types(common.QNameListType):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Types"
 
 

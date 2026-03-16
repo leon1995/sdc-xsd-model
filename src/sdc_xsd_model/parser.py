@@ -16,10 +16,10 @@ def discovery_schema() -> lxml.etree.XMLSchema:
         [
             '<?xml version="1.0" encoding="UTF-8"?>',
             '<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">\n',
-            f'<xsd:import namespace="{addressing.NAMESPACE}" schemaLocation="{xsd_dir.joinpath("ws-addr.xsd").as_uri()}"/>\n',  # noqa: E501
-            f'<xsd:import namespace="{discovery.NAMESPACE}" schemaLocation="{xsd_dir.joinpath("wsdd-discovery-1.1-schema-os.xsd").as_uri()}"/>\n',  # noqa: E501
-            f'<xsd:import namespace="{eventing.NAMESPACE}" schemaLocation="{xsd_dir.joinpath("eventing.xsd").as_uri()}"/>\n',  # noqa: E501
-            f'<xsd:import namespace="{soap_envelope.NAMESPACE}" schemaLocation="{xsd_dir.joinpath("soap-envelope.xsd").as_uri()}"/>\n',  # noqa: E501
+            f'<xsd:import namespace="{addressing.NAMESPACE}" schemaLocation="{addressing.SCHEMA_PATH.as_uri()}"/>\n',
+            f'<xsd:import namespace="{discovery.NAMESPACE}" schemaLocation="{discovery.SCHEMA_PATH.as_uri()}"/>\n',
+            f'<xsd:import namespace="{eventing.NAMESPACE}" schemaLocation="{eventing.SCHEMA_PATH.as_uri()}"/>\n',
+            f'<xsd:import namespace="{soap_envelope.NAMESPACE}" schemaLocation="{soap_envelope.SCHEMA_PATH.as_uri()}"/>\n',  # noqa: E501
             f'<xsd:import namespace="http://www.w3.org/XML/1998/namespace" schemaLocation="{xsd_dir.joinpath("xml.xsd").as_uri()}"/>\n',  # noqa: E501
             "</xsd:schema>",
         ]
@@ -31,7 +31,7 @@ def discovery_schema() -> lxml.etree.XMLSchema:
 
 
 def discovery_parser() -> lxml.etree.XMLParser:
-    """Get an XML parser with registered SDC XSD models."""
+    """Get an XML parser with registered SDC XSD models relevant for discovery."""
     lookup = lxml.etree.ElementNamespaceClassLookup()
     addressing.set_lookup(lookup)
     discovery.set_lookup(lookup)
