@@ -1,0 +1,1541 @@
+"""Lxml models for BICEPS ParticipantModel elements from IEEE 11073-10207-2017."""
+
+from __future__ import annotations
+
+import enum
+import functools
+import pathlib
+import typing
+
+import lxml.etree
+
+from sdc_xsd_model.models import common, extension
+from sdc_xsd_model.models.extension import Extension
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Sequence
+
+PREFIX: typing.Final[str] = "pm"
+NAMESPACE: typing.Final[str] = "http://standards.ieee.org/downloads/11073/11073-10207-2017/participant"
+
+lxml.etree.register_namespace(PREFIX, NAMESPACE)
+
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.parent.joinpath("xsd", "BICEPS_ParticipantModel.xsd").absolute()
+)
+SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
+
+# ── Simple type enums ──────────────────────────────────────────────────────────────────────────────
+
+
+class MeasurementValidity(enum.StrEnum):
+    VLD = "Vld"
+    VLDATED = "Vldated"
+    ONG = "Ong"
+    QST = "Qst"
+    CALIB = "Calib"
+    INV = "Inv"
+    OFLW = "Oflw"
+    UFLW = "Uflw"
+    NA = "NA"
+
+
+class SafetyClassification(enum.StrEnum):
+    INF = "Inf"
+    MED_A = "MedA"
+    MED_B = "MedB"
+    MED_C = "MedC"
+
+
+class ComponentActivation(enum.StrEnum):
+    ON = "On"
+    NOT_RDY = "NotRdy"
+    STND_BY = "StndBy"
+    OFF = "Off"
+    SHTDN = "Shtdn"
+    FAIL = "Fail"
+
+
+class CalibrationState(enum.StrEnum):
+    NO = "No"
+    REQ = "Req"
+    RUN = "Run"
+    CAL = "Cal"
+    OTH = "Oth"
+
+
+class CalibrationType(enum.StrEnum):
+    OFFSET = "Offset"
+    GAIN = "Gain"
+    TP = "TP"
+    UNSPEC = "Unspec"
+
+
+class MdsOperatingMode(enum.StrEnum):
+    NML = "Nml"
+    DMO = "Dmo"
+    SRV = "Srv"
+    MTN = "Mtn"
+
+
+class AlertActivation(enum.StrEnum):
+    ON = "On"
+    OFF = "Off"
+    PSD = "Psd"
+
+
+class AlertConditionKind(enum.StrEnum):
+    PHY = "Phy"
+    TEC = "Tec"
+    OTH = "Oth"
+
+
+class AlertConditionPriority(enum.StrEnum):
+    LO = "Lo"
+    ME = "Me"
+    HI = "Hi"
+    NONE = "None"
+
+
+class AlertSignalManifestation(enum.StrEnum):
+    AUD = "Aud"
+    VIS = "Vis"
+    TAN = "Tan"
+    OTH = "Oth"
+
+
+class AlertSignalPresence(enum.StrEnum):
+    ON = "On"
+    OFF = "Off"
+    LATCH = "Latch"
+    ACK = "Ack"
+
+
+class AlertSignalPrimaryLocation(enum.StrEnum):
+    LOC = "Loc"
+    REM = "Rem"
+
+
+class MetricCategory(enum.StrEnum):
+    UNSPEC = "Unspec"
+    MSRMT = "Msrmt"
+    CLC = "Clc"
+    SET = "Set"
+    PRESET = "Preset"
+    RCMM = "Rcmm"
+
+
+class DerivationMethod(enum.StrEnum):
+    AUTO = "Auto"
+    MAN = "Man"
+
+
+class MetricAvailability(enum.StrEnum):
+    INTR = "Intr"
+    CONT = "Cont"
+
+
+class GenerationMode(enum.StrEnum):
+    REAL = "Real"
+    TEST = "Test"
+    DEMO = "Demo"
+
+
+class Sex(enum.StrEnum):
+    UNSPEC = "Unspec"
+    M = "M"
+    F = "F"
+    UNKN = "Unkn"
+
+
+class PatientType(enum.StrEnum):
+    UNSPEC = "Unspec"
+    AD = "Ad"
+    ADO = "Ado"
+    PED = "Ped"
+    INF = "Inf"
+    NEO = "Neo"
+    OTH = "Oth"
+
+
+class ContextAssociation(enum.StrEnum):
+    NO = "No"
+    PRE = "Pre"
+    ASSOC = "Assoc"
+    DIS = "Dis"
+
+
+class AlertConditionMonitoredLimits(enum.StrEnum):
+    ALL = "All"
+    LO_OFF = "LoOff"
+    HI_OFF = "HiOff"
+    NONE = "None"
+
+
+class OperatingMode(enum.StrEnum):
+    DIS = "Dis"
+    EN = "En"
+    NA = "NA"
+
+
+class LocalizedTextWidth(enum.StrEnum):
+    XS = "xs"
+    S = "s"
+    M = "m"
+    L = "l"
+    XL = "xl"
+    XXL = "xxl"
+
+
+# ── Common complex types ──────────────────────────────────────────────────────────────────────────
+
+
+class LocalizedText(common.ElementBase):
+    """Bundled element for localized text references or content."""
+
+    @property
+    def ref(self) -> str | None:
+        return self.get("Ref")
+
+    @property
+    def lang(self) -> str | None:
+        return self.get("Lang")
+
+    @property
+    def version(self) -> str | None:
+        return self.get("Version")
+
+    @property
+    def text_width(self) -> str | None:
+        return self.get("TextWidth")
+
+
+class CodedValue(common.ElementBase):
+    """Nomenclature code representation."""
+
+    @property
+    def code(self) -> str:
+        value = self.get("Code")
+        assert value is not None
+        return value
+
+    @property
+    def coding_system(self) -> str | None:
+        return self.get("CodingSystem")
+
+    @property
+    def coding_system_version(self) -> str | None:
+        return self.get("CodingSystemVersion")
+
+    @property
+    def symbolic_code_name(self) -> str | None:
+        return self.get("SymbolicCodeName")
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+class InstanceIdentifier(common.ElementBase):
+    """Uniquely identifies a thing or object."""
+
+    @property
+    def root(self) -> str | None:
+        return self.get("Root")
+
+    @property
+    def extension_attr(self) -> str | None:
+        return self.get("Extension")
+
+
+class Range(common.ElementBase):
+    """A range of decimal values with lower/upper bounds and step width."""
+
+    @property
+    def lower(self) -> str | None:
+        return self.get("Lower")
+
+    @property
+    def upper(self) -> str | None:
+        return self.get("Upper")
+
+    @property
+    def step_width(self) -> str | None:
+        return self.get("StepWidth")
+
+    @property
+    def relative_accuracy(self) -> str | None:
+        return self.get("RelativeAccuracy")
+
+    @property
+    def absolute_accuracy(self) -> str | None:
+        return self.get("AbsoluteAccuracy")
+
+
+class Measurement(common.ElementBase):
+    """A measurement value with a unit."""
+
+    @property
+    def measured_value(self) -> str:
+        value = self.get("MeasuredValue")
+        assert value is not None
+        return value
+
+
+class PhysicalConnectorInfo(common.ElementBase):
+    """Physical connector information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}PhysicalConnector"
+
+    @property
+    def number(self) -> str | None:
+        return self.get("Number")
+
+
+class CalibrationInfo(common.ElementBase):
+    """Calibration information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CalibrationInfo"
+
+    @property
+    def component_calibration_state(self) -> str | None:
+        return self.get("ComponentCalibrationState")
+
+    @property
+    def calibration_type(self) -> str | None:
+        return self.get("Type")
+
+    @property
+    def time(self) -> str | None:
+        return self.get("Time")
+
+
+class ApprovedJurisdictions(common.ElementBase):
+    """List of regions in which a device component is approved."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ApprovedJurisdictions"
+
+
+class OperatingJurisdiction(InstanceIdentifier):
+    """Current region information configured for a component."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}OperatingJurisdiction"
+
+
+class SystemSignalActivation(common.ElementBase):
+    """Tuple of alert signal manifestation and activation."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}SystemSignalActivation"
+
+    @property
+    def manifestation(self) -> str:
+        value = self.get("Manifestation")
+        assert value is not None
+        return value
+
+    @property
+    def state(self) -> str:
+        value = self.get("State")
+        assert value is not None
+        return value
+
+
+# ── MDIB root types ───────────────────────────────────────────────────────────────────────────────
+
+
+class MdDescription(common.ElementBase):
+    """Root container for the descriptive part of the MDIB."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MdDescription"
+
+    @property
+    def description_version(self) -> str | None:
+        return self.get("DescriptionVersion")
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+class MdState(common.ElementBase):
+    """Root container for the state part of the MDIB."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MdState"
+
+    @property
+    def state_version(self) -> str | None:
+        return self.get("StateVersion")
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+class Mdib(common.ElementBase):
+    """Root object comprising MdDescription and MdState."""
+
+    @property
+    def md_description(self) -> MdDescription | None:
+        return self.find_by_element(MdDescription)
+
+    @property
+    def md_state(self) -> MdState | None:
+        return self.find_by_element(MdState)
+
+    @property
+    def mdib_version(self) -> str | None:
+        return self.get("MdibVersion")
+
+    @property
+    def sequence_id(self) -> str:
+        value = self.get("SequenceId")
+        assert value is not None
+        return value
+
+    @property
+    def instance_id(self) -> str | None:
+        return self.get("InstanceId")
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+# ── Abstract base classes ─────────────────────────────────────────────────────────────────────────
+
+
+class AbstractDescriptor(common.ElementBase):
+    """Base for all descriptor types."""
+
+    @property
+    def handle(self) -> str:
+        value = self.get("Handle")
+        assert value is not None
+        return value
+
+    @property
+    def descriptor_version(self) -> str | None:
+        return self.get("DescriptorVersion")
+
+    @property
+    def safety_classification(self) -> str | None:
+        return self.get("SafetyClassification")
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+class AbstractState(common.ElementBase):
+    """Base for all state types."""
+
+    @property
+    def state_version(self) -> str | None:
+        return self.get("StateVersion")
+
+    @property
+    def descriptor_handle(self) -> str:
+        value = self.get("DescriptorHandle")
+        assert value is not None
+        return value
+
+    @property
+    def descriptor_version(self) -> str | None:
+        return self.get("DescriptorVersion")
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+class AbstractMultiState(AbstractState):
+    """Base state with a handle for multi-state relationships."""
+
+    @property
+    def handle(self) -> str:
+        value = self.get("Handle")
+        assert value is not None
+        return value
+
+
+# ── Device component descriptors ──────────────────────────────────────────────────────────────────
+
+
+class AbstractDeviceComponentDescriptor(AbstractDescriptor):
+    """Base descriptor for device components."""
+
+
+class AbstractComplexDeviceComponentDescriptor(AbstractDeviceComponentDescriptor):
+    """Descriptor with optional alert system and SCO."""
+
+
+class MdsDescriptor(AbstractComplexDeviceComponentDescriptor):
+    """Descriptor for a Medical Device System."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Mds"
+
+
+class VmdDescriptor(AbstractComplexDeviceComponentDescriptor):
+    """Descriptor for a Virtual Medical Device."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Vmd"
+
+
+class ChannelDescriptor(AbstractDeviceComponentDescriptor):
+    """Descriptor for a channel grouping metrics."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Channel"
+
+
+class ClockDescriptor(AbstractDeviceComponentDescriptor):
+    """Descriptor for clock/time capabilities."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Clock"
+
+
+class BatteryDescriptor(AbstractDeviceComponentDescriptor):
+    """Descriptor for battery information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Battery"
+
+
+class ScoDescriptor(AbstractDeviceComponentDescriptor):
+    """Descriptor for Service Control Object."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Sco"
+
+
+# ── Device component states ───────────────────────────────────────────────────────────────────────
+
+
+class AbstractDeviceComponentState(AbstractState):
+    """Base state for device components."""
+
+    @property
+    def activation_state(self) -> str | None:
+        return self.get("ActivationState")
+
+    @property
+    def operating_hours(self) -> str | None:
+        return self.get("OperatingHours")
+
+    @property
+    def operating_cycles(self) -> str | None:
+        return self.get("OperatingCycles")
+
+    @property
+    def calibration_info(self) -> CalibrationInfo | None:
+        return self.find_by_element(CalibrationInfo)
+
+    @property
+    def next_calibration(self) -> CalibrationInfo | None:
+        return typing.cast("CalibrationInfo | None", self.find(f"{{{NAMESPACE}}}NextCalibration"))
+
+    @property
+    def physical_connector(self) -> PhysicalConnectorInfo | None:
+        return self.find_by_element(PhysicalConnectorInfo)
+
+
+class AbstractComplexDeviceComponentState(AbstractDeviceComponentState):
+    """Base state for complex device components."""
+
+
+class MdsState(AbstractComplexDeviceComponentState):
+    """State of an MDS."""
+
+    @property
+    def lang(self) -> str | None:
+        return self.get("Lang")
+
+    @property
+    def operating_mode(self) -> str | None:
+        return self.get("OperatingMode")
+
+    @property
+    def operating_jurisdiction(self) -> OperatingJurisdiction | None:
+        return self.find_by_element(OperatingJurisdiction)
+
+
+class VmdState(AbstractComplexDeviceComponentState):
+    """State of a VMD."""
+
+    @property
+    def operating_jurisdiction(self) -> OperatingJurisdiction | None:
+        return self.find_by_element(OperatingJurisdiction)
+
+
+class ChannelState(AbstractDeviceComponentState):
+    """State of a channel."""
+
+
+class ClockState(AbstractDeviceComponentState):
+    """State of a clock."""
+
+    @property
+    def remote_sync(self) -> str:
+        value = self.get("RemoteSync")
+        assert value is not None
+        return value
+
+    @property
+    def date_and_time(self) -> str | None:
+        return self.get("DateAndTime")
+
+    @property
+    def accuracy(self) -> str | None:
+        return self.get("Accuracy")
+
+    @property
+    def last_set(self) -> str | None:
+        return self.get("LastSet")
+
+    @property
+    def time_zone(self) -> str | None:
+        return self.get("TimeZone")
+
+    @property
+    def critical_use(self) -> str | None:
+        return self.get("CriticalUse")
+
+
+class BatteryState(AbstractDeviceComponentState):
+    """State of a battery."""
+
+    @property
+    def charge_status(self) -> str | None:
+        return self.get("ChargeStatus")
+
+    @property
+    def charge_cycles(self) -> str | None:
+        return self.get("ChargeCycles")
+
+
+class ScoState(AbstractDeviceComponentState):
+    """State of an SCO."""
+
+    @property
+    def invocation_requested(self) -> str | None:
+        return self.get("InvocationRequested")
+
+    @property
+    def invocation_required(self) -> str | None:
+        return self.get("InvocationRequired")
+
+
+class SystemContextState(AbstractDeviceComponentState):
+    """State of system context."""
+
+
+# ── Alert descriptors ─────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractAlertDescriptor(AbstractDescriptor):
+    """Base for alert descriptors."""
+
+
+class AlertSystemDescriptor(AbstractAlertDescriptor):
+    """Descriptor for an alert system."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertSystem"
+
+    @property
+    def max_physiological_parallel_alarms(self) -> str | None:
+        return self.get("MaxPhysiologicalParallelAlarms")
+
+    @property
+    def max_technical_parallel_alarms(self) -> str | None:
+        return self.get("MaxTechnicalParallelAlarms")
+
+    @property
+    def self_check_period(self) -> str | None:
+        return self.get("SelfCheckPeriod")
+
+
+class AlertConditionDescriptor(AbstractAlertDescriptor):
+    """Descriptor for an alert condition."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertCondition"
+
+    @property
+    def kind(self) -> str:
+        value = self.get("Kind")
+        assert value is not None
+        return value
+
+    @property
+    def priority(self) -> str:
+        value = self.get("Priority")
+        assert value is not None
+        return value
+
+    @property
+    def default_condition_generation_delay(self) -> str | None:
+        return self.get("DefaultConditionGenerationDelay")
+
+    @property
+    def can_escalate(self) -> str | None:
+        return self.get("CanEscalate")
+
+    @property
+    def can_deescalate(self) -> str | None:
+        return self.get("CanDeescalate")
+
+
+class LimitAlertConditionDescriptor(AlertConditionDescriptor):
+    """Descriptor for limit-based alert conditions."""
+
+    @property
+    def auto_limit_supported(self) -> str | None:
+        return self.get("AutoLimitSupported")
+
+
+class AlertSignalDescriptor(AbstractAlertDescriptor):
+    """Descriptor for an alert signal."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertSignal"
+
+    @property
+    def condition_signaled(self) -> str | None:
+        return self.get("ConditionSignaled")
+
+    @property
+    def manifestation(self) -> str:
+        value = self.get("Manifestation")
+        assert value is not None
+        return value
+
+    @property
+    def latching(self) -> str:
+        value = self.get("Latching")
+        assert value is not None
+        return value
+
+    @property
+    def default_signal_generation_delay(self) -> str | None:
+        return self.get("DefaultSignalGenerationDelay")
+
+    @property
+    def signal_delegation_supported(self) -> str | None:
+        return self.get("SignalDelegationSupported")
+
+    @property
+    def acknowledgement_supported(self) -> str | None:
+        return self.get("AcknowledgementSupported")
+
+    @property
+    def acknowledge_timeout(self) -> str | None:
+        return self.get("AcknowledgeTimeout")
+
+
+# ── Alert states ──────────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractAlertState(AbstractState):
+    """Base for alert states."""
+
+    @property
+    def activation_state(self) -> str:
+        value = self.get("ActivationState")
+        assert value is not None
+        return value
+
+
+class AlertSystemState(AbstractAlertState):
+    """State of an alert system."""
+
+    @property
+    def last_self_check(self) -> str | None:
+        return self.get("LastSelfCheck")
+
+    @property
+    def self_check_count(self) -> str | None:
+        return self.get("SelfCheckCount")
+
+    @property
+    def present_physiological_alarm_conditions(self) -> str | None:
+        return self.get("PresentPhysiologicalAlarmConditions")
+
+    @property
+    def present_technical_alarm_conditions(self) -> str | None:
+        return self.get("PresentTechnicalAlarmConditions")
+
+    @property
+    def system_signal_activations(self) -> Sequence[SystemSignalActivation]:
+        return self.findall_by_element(SystemSignalActivation)
+
+
+class AlertConditionState(AbstractAlertState):
+    """State of an alert condition."""
+
+    @property
+    def actual_condition_generation_delay(self) -> str | None:
+        return self.get("ActualConditionGenerationDelay")
+
+    @property
+    def actual_priority(self) -> str | None:
+        return self.get("ActualPriority")
+
+    @property
+    def rank(self) -> str | None:
+        return self.get("Rank")
+
+    @property
+    def presence(self) -> str | None:
+        return self.get("Presence")
+
+    @property
+    def determination_time(self) -> str | None:
+        return self.get("DeterminationTime")
+
+
+class LimitAlertConditionState(AlertConditionState):
+    """State of a limit alert condition."""
+
+    @property
+    def monitored_alert_limits(self) -> str:
+        value = self.get("MonitoredAlertLimits")
+        assert value is not None
+        return value
+
+    @property
+    def auto_limit_activation_state(self) -> str | None:
+        return self.get("AutoLimitActivationState")
+
+
+class AlertSignalState(AbstractAlertState):
+    """State of an alert signal."""
+
+    @property
+    def actual_signal_generation_delay(self) -> str | None:
+        return self.get("ActualSignalGenerationDelay")
+
+    @property
+    def presence(self) -> str | None:
+        return self.get("Presence")
+
+    @property
+    def location(self) -> str | None:
+        return self.get("Location")
+
+    @property
+    def slot(self) -> str | None:
+        return self.get("Slot")
+
+
+# ── Metric value types ────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractMetricValue(common.ElementBase):
+    """Abstract metric value."""
+
+    @property
+    def start_time(self) -> str | None:
+        return self.get("StartTime")
+
+    @property
+    def stop_time(self) -> str | None:
+        return self.get("StopTime")
+
+    @property
+    def determination_time(self) -> str | None:
+        return self.get("DeterminationTime")
+
+
+class NumericMetricValue(AbstractMetricValue):
+    """Numeric metric value."""
+
+    @property
+    def value(self) -> str | None:
+        return self.get("Value")
+
+
+class StringMetricValue(AbstractMetricValue):
+    """String metric value."""
+
+    @property
+    def value(self) -> str | None:
+        return self.get("Value")
+
+
+class SampleArrayValue(AbstractMetricValue):
+    """Sample array value for waveforms."""
+
+    @property
+    def samples(self) -> str | None:
+        return self.get("Samples")
+
+
+# ── Metric descriptors ────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractMetricDescriptor(AbstractDescriptor):
+    """Abstract descriptor for a metric."""
+
+    @property
+    def metric_category(self) -> str:
+        value = self.get("MetricCategory")
+        assert value is not None
+        return value
+
+    @property
+    def derivation_method(self) -> str | None:
+        return self.get("DerivationMethod")
+
+    @property
+    def metric_availability(self) -> str:
+        value = self.get("MetricAvailability")
+        assert value is not None
+        return value
+
+    @property
+    def max_measurement_time(self) -> str | None:
+        return self.get("MaxMeasurementTime")
+
+    @property
+    def max_delay_time(self) -> str | None:
+        return self.get("MaxDelayTime")
+
+    @property
+    def determination_period(self) -> str | None:
+        return self.get("DeterminationPeriod")
+
+    @property
+    def life_time_period(self) -> str | None:
+        return self.get("LifeTimePeriod")
+
+    @property
+    def activation_duration(self) -> str | None:
+        return self.get("ActivationDuration")
+
+
+class NumericMetricDescriptor(AbstractMetricDescriptor):
+    """Descriptor for a numeric metric."""
+
+    @property
+    def resolution(self) -> str:
+        value = self.get("Resolution")
+        assert value is not None
+        return value
+
+    @property
+    def averaging_period(self) -> str | None:
+        return self.get("AveragingPeriod")
+
+
+class StringMetricDescriptor(AbstractMetricDescriptor):
+    """Descriptor for a string metric."""
+
+
+class EnumStringMetricDescriptor(StringMetricDescriptor):
+    """Descriptor for an enumerated string metric."""
+
+
+class RealTimeSampleArrayMetricDescriptor(AbstractMetricDescriptor):
+    """Descriptor for a real-time sample array."""
+
+    @property
+    def resolution(self) -> str:
+        value = self.get("Resolution")
+        assert value is not None
+        return value
+
+    @property
+    def sample_period(self) -> str:
+        value = self.get("SamplePeriod")
+        assert value is not None
+        return value
+
+
+class DistributionSampleArrayMetricDescriptor(AbstractMetricDescriptor):
+    """Descriptor for a distribution sample array."""
+
+    @property
+    def resolution(self) -> str:
+        value = self.get("Resolution")
+        assert value is not None
+        return value
+
+
+# ── Metric states ─────────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractMetricState(AbstractState):
+    """Abstract state of a metric."""
+
+    @property
+    def activation_state(self) -> str | None:
+        return self.get("ActivationState")
+
+    @property
+    def active_determination_period(self) -> str | None:
+        return self.get("ActiveDeterminationPeriod")
+
+    @property
+    def life_time_period(self) -> str | None:
+        return self.get("LifeTimePeriod")
+
+    @property
+    def physical_connector(self) -> PhysicalConnectorInfo | None:
+        return self.find_by_element(PhysicalConnectorInfo)
+
+
+class NumericMetricState(AbstractMetricState):
+    """State of a numeric metric."""
+
+    @property
+    def active_averaging_period(self) -> str | None:
+        return self.get("ActiveAveragingPeriod")
+
+
+class StringMetricState(AbstractMetricState):
+    """State of a string metric."""
+
+
+class EnumStringMetricState(StringMetricState):
+    """State of an enumerated string metric."""
+
+
+class RealTimeSampleArrayMetricState(AbstractMetricState):
+    """State of a real-time sample array."""
+
+
+class DistributionSampleArrayMetricState(AbstractMetricState):
+    """State of a distribution sample array."""
+
+
+# ── Operation descriptors ─────────────────────────────────────────────────────────────────────────
+
+
+class AbstractOperationDescriptor(AbstractDescriptor):
+    """Abstract descriptor for an operation."""
+
+    @property
+    def operation_target(self) -> str:
+        value = self.get("OperationTarget")
+        assert value is not None
+        return value
+
+    @property
+    def max_time_to_finish(self) -> str | None:
+        return self.get("MaxTimeToFinish")
+
+    @property
+    def invocation_effective_timeout(self) -> str | None:
+        return self.get("InvocationEffectiveTimeout")
+
+    @property
+    def retriggerable(self) -> str | None:
+        return self.get("Retriggerable")
+
+    @property
+    def access_level(self) -> str | None:
+        return self.get("AccessLevel")
+
+
+class AbstractSetStateOperationDescriptor(AbstractOperationDescriptor):
+    """Abstract descriptor for set-state operations."""
+
+
+class SetValueOperationDescriptor(AbstractOperationDescriptor):
+    """Descriptor for a numeric set operation."""
+
+
+class SetStringOperationDescriptor(AbstractOperationDescriptor):
+    """Descriptor for a string set operation."""
+
+    @property
+    def max_length(self) -> str | None:
+        return self.get("MaxLength")
+
+
+class ActivateOperationDescriptor(AbstractSetStateOperationDescriptor):
+    """Descriptor for an activate operation."""
+
+
+class SetContextStateOperationDescriptor(AbstractSetStateOperationDescriptor):
+    """Descriptor for a context state set operation."""
+
+
+class SetMetricStateOperationDescriptor(AbstractSetStateOperationDescriptor):
+    """Descriptor for a metric state set operation."""
+
+
+class SetComponentStateOperationDescriptor(AbstractSetStateOperationDescriptor):
+    """Descriptor for a component state set operation."""
+
+
+class SetAlertStateOperationDescriptor(AbstractSetStateOperationDescriptor):
+    """Descriptor for an alert state set operation."""
+
+
+# ── Operation states ──────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractOperationState(AbstractState):
+    """Base state for operations."""
+
+    @property
+    def operating_mode(self) -> str:
+        value = self.get("OperatingMode")
+        assert value is not None
+        return value
+
+
+class SetValueOperationState(AbstractOperationState):
+    """State of a numeric set operation."""
+
+
+class SetStringOperationState(AbstractOperationState):
+    """State of a string set operation."""
+
+
+class ActivateOperationState(AbstractOperationState):
+    """State of an activate operation."""
+
+
+class SetContextStateOperationState(AbstractOperationState):
+    """State of a context state set operation."""
+
+
+class SetMetricStateOperationState(AbstractOperationState):
+    """State of a metric state set operation."""
+
+
+class SetComponentStateOperationState(AbstractOperationState):
+    """State of a component state set operation."""
+
+
+class SetAlertStateOperationState(AbstractOperationState):
+    """State of an alert state set operation."""
+
+
+# ── Context descriptors ───────────────────────────────────────────────────────────────────────────
+
+
+class SystemContextDescriptor(AbstractDeviceComponentDescriptor):
+    """Descriptor for system context."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}SystemContext"
+
+
+class AbstractContextDescriptor(AbstractDescriptor):
+    """Abstract base for context descriptors."""
+
+
+class PatientContextDescriptor(AbstractContextDescriptor):
+    """Context descriptor for patient-device association."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}PatientContext"
+
+
+class LocationContextDescriptor(AbstractContextDescriptor):
+    """Context descriptor for spatial position."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}LocationContext"
+
+
+class WorkflowContextDescriptor(AbstractContextDescriptor):
+    """Context descriptor for workflow information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}WorkflowContext"
+
+
+class OperatorContextDescriptor(AbstractContextDescriptor):
+    """Context descriptor for operator information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}OperatorContext"
+
+
+class MeansContextDescriptor(AbstractContextDescriptor):
+    """Context descriptor for utilized means."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MeansContext"
+
+
+class EnsembleContextDescriptor(AbstractContextDescriptor):
+    """Context descriptor for ensemble information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}EnsembleContext"
+
+
+# ── Context states ────────────────────────────────────────────────────────────────────────────────
+
+
+class AbstractContextState(AbstractMultiState):
+    """Base type for context states."""
+
+    @property
+    def context_association(self) -> str | None:
+        return self.get("ContextAssociation")
+
+    @property
+    def binding_mdib_version(self) -> str | None:
+        return self.get("BindingMdibVersion")
+
+    @property
+    def unbinding_mdib_version(self) -> str | None:
+        return self.get("UnbindingMdibVersion")
+
+    @property
+    def binding_start_time(self) -> str | None:
+        return self.get("BindingStartTime")
+
+    @property
+    def binding_end_time(self) -> str | None:
+        return self.get("BindingEndTime")
+
+
+class BaseDemographics(common.ElementBase):
+    """Basic demographic information."""
+
+
+class PersonReference(common.ElementBase):
+    """A reference to an identifiable person."""
+
+
+class PersonParticipation(PersonReference):
+    """A person participating in a role."""
+
+
+class LocationDetail(common.ElementBase):
+    """Details about a location."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}LocationDetail"
+
+    @property
+    def poc(self) -> str | None:
+        return self.get("PoC")
+
+    @property
+    def room(self) -> str | None:
+        return self.get("Room")
+
+    @property
+    def bed(self) -> str | None:
+        return self.get("Bed")
+
+    @property
+    def facility(self) -> str | None:
+        return self.get("Facility")
+
+    @property
+    def building(self) -> str | None:
+        return self.get("Building")
+
+    @property
+    def floor(self) -> str | None:
+        return self.get("Floor")
+
+
+class LocationReference(common.ElementBase):
+    """A reference to an identifiable location."""
+
+
+class PatientDemographicsCoreData(BaseDemographics):
+    """Patient demographics data."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CoreData"
+
+
+class NeonatalPatientDemographicsCoreData(PatientDemographicsCoreData):
+    """Patient demographics for neonates."""
+
+
+class PatientContextState(AbstractContextState):
+    """Patient context information."""
+
+    @property
+    def core_data(self) -> PatientDemographicsCoreData | None:
+        return self.find_by_element(PatientDemographicsCoreData)
+
+
+class LocationContextState(AbstractContextState):
+    """Location context information."""
+
+    @property
+    def location_detail(self) -> LocationDetail | None:
+        return self.find_by_element(LocationDetail)
+
+
+class WorkflowContextState(AbstractContextState):
+    """Workflow step context information."""
+
+
+class OperatorContextState(AbstractContextState):
+    """Operator context information."""
+
+
+class MeansContextState(AbstractContextState):
+    """Means context information."""
+
+
+class EnsembleContextState(AbstractContextState):
+    """Ensemble context information."""
+
+
+# ── Miscellaneous types ───────────────────────────────────────────────────────────────────────────
+
+
+class CauseInfo(common.ElementBase):
+    """Cause information for an alert condition."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CauseInfo"
+
+
+class RemedyInfo(common.ElementBase):
+    """Remedy information for a cause of an alert condition."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}RemedyInfo"
+
+
+class ClinicalInfo(common.ElementBase):
+    """Minimal clinical observation."""
+
+
+class ImagingProcedure(common.ElementBase):
+    """Identifiers for imaging procedures (DICOM/HL7)."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ImagingProcedure"
+
+
+class OrderDetail(common.ElementBase):
+    """Details of an order."""
+
+
+class ContainmentTree(common.ElementBase):
+    """Containment tree of an MDS."""
+
+    @property
+    def handle_ref(self) -> str | None:
+        return self.get("HandleRef")
+
+    @property
+    def parent_handle_ref(self) -> str | None:
+        return self.get("ParentHandleRef")
+
+    @property
+    def entry_type(self) -> str | None:
+        return self.get("EntryType")
+
+    @property
+    def children_count(self) -> str | None:
+        return self.get("ChildrenCount")
+
+
+class ContainmentTreeEntry(common.ElementBase):
+    """An entry in a containment tree."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Entry"
+
+    @property
+    def handle_ref(self) -> str | None:
+        return self.get("HandleRef")
+
+    @property
+    def parent_handle_ref(self) -> str | None:
+        return self.get("ParentHandleRef")
+
+    @property
+    def entry_type(self) -> str | None:
+        return self.get("EntryType")
+
+    @property
+    def children_count(self) -> str | None:
+        return self.get("ChildrenCount")
+
+
+# ── Namespace lookup registration ─────────────────────────────────────────────────────────────────
+
+
+def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
+    """Register BICEPS ParticipantModel elements in the given lookup."""
+    ns = lookup.get_namespace(NAMESPACE)
+    _register_structural_elements(ns)
+    _register_common_elements(ns)
+    _register_specific_elements(ns)
+
+
+def _register_structural_elements(ns: lxml.etree._NamespaceRegistry) -> None:
+    # MDIB root
+    ns["MdDescription"] = MdDescription
+    ns["MdState"] = MdState
+    # Device component descriptors
+    ns["Mds"] = MdsDescriptor
+    ns["Vmd"] = VmdDescriptor
+    ns["Channel"] = ChannelDescriptor
+    ns["Clock"] = ClockDescriptor
+    ns["Battery"] = BatteryDescriptor
+    ns["Sco"] = ScoDescriptor
+    ns["AlertSystem"] = AlertSystemDescriptor
+    ns["AlertCondition"] = AlertConditionDescriptor
+    ns["AlertSignal"] = AlertSignalDescriptor
+    ns["Metric"] = AbstractMetricDescriptor
+    ns["Operation"] = AbstractOperationDescriptor
+    ns["State"] = AbstractState
+    # Context descriptors
+    ns["SystemContext"] = SystemContextDescriptor
+    ns["PatientContext"] = PatientContextDescriptor
+    ns["LocationContext"] = LocationContextDescriptor
+    ns["EnsembleContext"] = EnsembleContextDescriptor
+    ns["OperatorContext"] = OperatorContextDescriptor
+    ns["WorkflowContext"] = WorkflowContextDescriptor
+    ns["MeansContext"] = MeansContextDescriptor
+
+
+def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
+    # Common elements → CodedValue
+    for name in (
+        "Type",
+        "Unit",
+        "BodySite",
+        "Race",
+        "DomainUnit",
+        "DangerCode",
+        "Service",
+        "Modality",
+        "ProtocolCode",
+        "TimeProtocol",
+        "ActiveSyncProtocol",
+        "SpecType",
+        "Code",
+        "ArgName",
+        "Role",
+        "Meaning",
+        "MeasurementUnit",
+        "Category",
+    ):
+        ns[name] = CodedValue
+    # Common elements → LocalizedText
+    for name in (
+        "CodingSystemName",
+        "ConceptDescription",
+        "Label",
+        "Description",
+        "Documentation",
+        "Manufacturer",
+        "ModelName",
+    ):
+        ns[name] = LocalizedText
+    # Common elements → InstanceIdentifier
+    for name in (
+        "Identification",
+        "Validator",
+        "ComponentId",
+        "Issuer",
+        "Jurisdiction",
+        "AccessionIdentifier",
+        "RequestedProcedureId",
+        "StudyInstanceUid",
+        "ScheduledProcedureStepId",
+        "VisitNumber",
+        "PlacerOrderNumber",
+        "FillerOrderNumber",
+        "ApprovedJurisdiction",
+    ):
+        ns[name] = InstanceIdentifier
+    # Common elements → Range
+    for name in (
+        "TechnicalRange",
+        "PhysiologicalRange",
+        "MaxLimits",
+        "Limits",
+        "AllowedRange",
+        "DistributionRange",
+        "Range",
+    ):
+        ns[name] = Range
+    # Common elements → Measurement
+    for name in (
+        "Height",
+        "Weight",
+        "GestationalAge",
+        "BirthLength",
+        "BirthWeight",
+        "HeadCircumference",
+        "CapacityFullCharge",
+        "CapacitySpecified",
+        "VoltageSpecified",
+        "CapacityRemaining",
+        "Voltage",
+        "Current",
+        "Temperature",
+        "RemainingBatteryTime",
+        "Characteristic",
+    ):
+        ns[name] = Measurement
+
+
+def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:
+    ns["PhysicalConnector"] = PhysicalConnectorInfo
+    ns["CalibrationInfo"] = CalibrationInfo
+    ns["NextCalibration"] = CalibrationInfo
+    ns["ApprovedJurisdictions"] = ApprovedJurisdictions
+    ns["OperatingJurisdiction"] = OperatingJurisdiction
+    ns["SystemSignalActivation"] = SystemSignalActivation
+    ns["CauseInfo"] = CauseInfo
+    ns["RemedyInfo"] = RemedyInfo
+    ns["ImagingProcedure"] = ImagingProcedure
+    ns["LocationDetail"] = LocationDetail
+    ns["CoreData"] = PatientDemographicsCoreData
+    ns["OperatorDetails"] = BaseDemographics
+    ns["Name"] = BaseDemographics
+    ns["Entry"] = ContainmentTreeEntry
+    # Person/Location references
+    ns["Patient"] = PersonReference
+    ns["Mother"] = PersonReference
+    ns["ReferringPhysician"] = PersonReference
+    ns["RequestingPhysician"] = PersonReference
+    ns["Performer"] = PersonParticipation
+    ns["AssignedLocation"] = LocationReference
+    # Metric values (polymorphic — base class)
+    ns["MetricValue"] = AbstractMetricValue
+    # Source element in AlertConditionDescriptor (HandleRef text element)
+    ns["Source"] = common.ElementBase
+
+
+@functools.cache
+def get_parser() -> lxml.etree.XMLParser:
+    """Get BICEPS ParticipantModel parser."""
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    extension.set_lookup(lookup)
+    set_lookup(lookup)
+    xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
+    xml_parser.set_element_class_lookup(lookup)
+    return xml_parser
+
+
+_TAGGED_CLASSES: typing.Final[tuple[type[common.ElementBase], ...]] = (
+    MdDescription,
+    MdState,
+    MdsDescriptor,
+    VmdDescriptor,
+    ChannelDescriptor,
+    ClockDescriptor,
+    BatteryDescriptor,
+    ScoDescriptor,
+    AlertSystemDescriptor,
+    AlertConditionDescriptor,
+    AlertSignalDescriptor,
+    SystemContextDescriptor,
+    PatientContextDescriptor,
+    LocationContextDescriptor,
+    WorkflowContextDescriptor,
+    OperatorContextDescriptor,
+    MeansContextDescriptor,
+    EnsembleContextDescriptor,
+    PhysicalConnectorInfo,
+    CalibrationInfo,
+    ApprovedJurisdictions,
+    OperatingJurisdiction,
+    SystemSignalActivation,
+    CauseInfo,
+    RemedyInfo,
+    ImagingProcedure,
+    LocationDetail,
+    PatientDemographicsCoreData,
+    ContainmentTreeEntry,
+)
+
+for cls in _TAGGED_CLASSES:
+    cls.PARSER = get_parser()
