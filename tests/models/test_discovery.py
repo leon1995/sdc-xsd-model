@@ -50,7 +50,7 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def _create_discovery_element(
+def _create_discovery_element(  # noqa: C901, PLR0911
     clazz: type[common.ElementBase],
 ) -> tuple[common.ElementBase, str | None]:
     if clazz is discovery.Types:

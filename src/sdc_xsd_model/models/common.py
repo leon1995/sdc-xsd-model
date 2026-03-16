@@ -19,7 +19,7 @@ class ElementBase(lxml.etree.ElementBase):
             self,
             *children: "str | ElementBase",
             attrib: Mapping[str, str | bytes] | None = None,
-            nsmap: Mapping[None | str, str] | None = None,
+            nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
             **_extra: str | bytes,
         ) -> None: ...
 
@@ -34,7 +34,7 @@ class ElementBase(lxml.etree.ElementBase):
         return super().nsmap
 
     def find_by_element[E: ElementBase](self, element: type[E]) -> E | None:
-        return typing.cast("type[E] | None", self.find(element.TAG))
+        return typing.cast("E | None", self.find(element.TAG))
 
     def findall_by_element[E: ElementBase](self, element: type[E]) -> Sequence[E]:
         return typing.cast("Sequence[E]", self.findall(element.TAG))

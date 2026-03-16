@@ -1,9 +1,10 @@
 """Lxml models for WS-Addressing elements from https://www.w3.org/TR/2006/REC-ws-addr-core-20060509/."""
+
 import functools
 import pathlib
 import typing
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import lxml.etree
 
@@ -20,16 +21,26 @@ SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PA
 
 
 class AttributedURIType(common.AnyUri):
-
     @classmethod
-    def from_uri(cls, uri: str | uuid.UUID, **kwargs: str | bytes) -> typing.Self:
+    def from_uri(
+        cls,
+        uri: str | uuid.UUID,
+        *children: str | typing.Self,
+        attrib: Mapping[str, str | bytes] | None = None,
+        nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
+    ) -> typing.Self:
         """Create an AttributedURIType from a URI string or UUID."""
-        return cls(uri.urn if isinstance(uri, uuid.UUID) else uri, **kwargs)
+        return cls(uri.urn if isinstance(uri, uuid.UUID) else uri, *children, attrib=attrib, nsmap=nsmap)
 
     @classmethod
-    def from_random_uri(cls, **kwargs: str | bytes) -> typing.Self:
+    def from_random_uri(
+        cls,
+        *children: str | typing.Self,
+        attrib: Mapping[str, str | bytes] | None = None,
+        nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
+    ) -> typing.Self:
         """Create an AttributedURIType with a random UUID URN."""
-        return cls.from_uri(uuid.uuid4(), **kwargs)
+        return cls.from_uri(uuid.uuid4(), *children, attrib=attrib, nsmap=nsmap)
 
 
 class Address(AttributedURIType):
@@ -49,8 +60,10 @@ class EndpointReference(common.ElementBase):
 
     @property
     def address(self) -> Address:
+        value = self.find_by_element(Address)
         # schema enforces presence
-        return self.find_by_element(Address)
+        assert value is not None
+        return value
 
     @property
     def reference_parameters(self) -> Sequence[ReferenceParameters]:
@@ -61,9 +74,15 @@ class EndpointReference(common.ElementBase):
         return self.findall_by_element(Metadata)
 
     @classmethod
-    def with_address(cls, address: str, **kwargs: str | bytes) -> typing.Self:
+    def with_address(
+        cls,
+        address: str,
+        *children: str | typing.Self,
+        attrib: Mapping[str, str | bytes] | None = None,
+        nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
+    ) -> typing.Self:
         """Create an EndpointReference with the given address."""
-        return cls(Address.from_uri(address), **kwargs)
+        return cls(Address.from_uri(address), *children, attrib=attrib, nsmap=nsmap)
 
 
 class To(AttributedURIType):
@@ -116,11 +135,13 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 
 @functools.cache
 def get_parser() -> lxml.etree.XMLParser:
+    """Get addressing parser."""
     lookup = lxml.etree.ElementNamespaceClassLookup()
     set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
     xml_parser.set_element_class_lookup(lookup)
     return xml_parser
+
 
 for cls in (
     AttributedURIType,

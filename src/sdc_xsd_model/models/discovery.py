@@ -17,8 +17,11 @@ PREFIX: typing.Final[str] = "wsd"
 NAMESPACE: typing.Final[str] = "http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
-SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "wsdd-discovery-1.1-schema-os.xsd").absolute()
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.parent.joinpath("xsd", "wsdd-discovery-1.1-schema-os.xsd").absolute()
+)
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
 
 class QNameListType(common.ElementBase):
     @property
@@ -75,7 +78,10 @@ class Hello(common.ElementBase):
 
     @property
     def endpoint_reference(self) -> addressing.EndpointReference:
-        return self.find_by_element(addressing.EndpointReference)
+        value = self.find_by_element(addressing.EndpointReference)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def types(self) -> Types | None:
@@ -99,7 +105,10 @@ class Bye(common.ElementBase):
 
     @property
     def endpoint_reference(self) -> addressing.EndpointReference:
-        return self.find_by_element(addressing.EndpointReference)
+        value = self.find_by_element(addressing.EndpointReference)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def types(self) -> Types | None:
@@ -167,7 +176,10 @@ class Resolve(common.ElementBase):
 
     @property
     def endpoint_reference(self) -> addressing.EndpointReference:
-        return self.find_by_element(addressing.EndpointReference)
+        value = self.find_by_element(addressing.EndpointReference)
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class ResolveMatch(common.ElementBase):
@@ -208,6 +220,8 @@ class AppSequence(common.ElementBase):
     @property
     def instance_id(self) -> int:
         instance_id = self.get("InstanceId")
+        # schema enforces presence
+        assert instance_id is not None
         return int(instance_id)
 
     @property
@@ -215,11 +229,11 @@ class AppSequence(common.ElementBase):
         return self.get("SequenceId")
 
     @property
-    def message_number(self) -> int | None:
-        message_number = self.get("MessageNumber")
-        if message_number is not None:
-            return int(message_number)
-        return None
+    def message_number(self) -> int:
+        value = self.get("MessageNumber")
+        # schema enforces presence
+        assert value is not None
+        return int(value)
 
 
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
@@ -242,6 +256,7 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 
 @functools.cache
 def get_parser() -> lxml.etree.XMLParser:
+    """Get discovery parser."""
     lookup = lxml.etree.ElementNamespaceClassLookup()
     set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)

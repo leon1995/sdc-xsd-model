@@ -1,4 +1,5 @@
 """Tests for the eventing model classes."""
+
 import uuid
 
 import lxml.etree
@@ -57,7 +58,7 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def _create_eventing_element(
+def _create_eventing_element(  # noqa: C901, PLR0911, PLR0912
     clazz: type[common.ElementBase],
 ) -> tuple[common.ElementBase, str | None]:
     if clazz is eventing.NotifyTo:

@@ -1,4 +1,5 @@
 """Lxml models for SOAP elements from https://www.w3.org/TR/soap12-part1/ and https://www.w3.org/TR/soap12-part2/."""
+
 import functools
 import pathlib
 import typing
@@ -13,8 +14,11 @@ NAMESPACE: typing.Final[str] = "http://www.w3.org/2003/05/soap-envelope"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
 
-SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "soap-envelope.xsd").absolute()
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.parent.joinpath("xsd", "soap-envelope.xsd").absolute()
+)
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
 
 class Header(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Header"
@@ -121,8 +125,10 @@ class Fault(common.ElementBase):
 
     @property
     def code(self) -> FaultCode:
+        value = self.find_by_element(FaultCode)
         # schema enforces presence
-        return self.find_by_element(FaultCode)
+        assert value is not None
+        return value
 
     @property
     def reason(self) -> FaultReason | None:
@@ -160,6 +166,7 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 
 @functools.cache
 def get_parser() -> lxml.etree.XMLParser:
+    """Get soap envelope parser."""
     lookup = lxml.etree.ElementNamespaceClassLookup()
     set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)

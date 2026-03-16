@@ -1,5 +1,7 @@
 """Tests for the SOAP envelope model classes."""
 
+from collections.abc import Mapping
+
 import lxml.etree
 import pytest
 
@@ -53,7 +55,7 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def _create_envelope_element(
+def _create_envelope_element(  # noqa: C901, PLR0911
     clazz: type[common.ElementBase],
 ) -> tuple[common.ElementBase, str | None]:
     if clazz is soap_envelope.Header:
@@ -99,10 +101,10 @@ def _make_body() -> soap_envelope.Body:
 
 def _make_fault_value(
     qname: str = f"{soap_envelope.PREFIX}:Receiver",
-    nsmap: dict[str, str] | None = None,
+    nsmap: Mapping[str | None, str] | None = None,
 ) -> soap_envelope.Value:
     if nsmap is None:
-        nsmap = {soap_envelope.PREFIX: soap_envelope.NAMESPACE}
+        nsmap: Mapping[str, str] = {soap_envelope.PREFIX: soap_envelope.NAMESPACE}
     return soap_envelope.Value(qname, nsmap=nsmap)
 
 

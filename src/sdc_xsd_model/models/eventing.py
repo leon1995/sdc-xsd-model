@@ -14,15 +14,17 @@ from sdc_xsd_model.models import addressing, common
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from sdc_xsd_model.models.addressing import Address
 
 PREFIX: typing.Final[str] = "wse"
 NAMESPACE: typing.Final[str] = "http://schemas.xmlsoap.org/ws/2004/08/eventing"
 
 lxml.etree.register_namespace(PREFIX, NAMESPACE)
 
-SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "eventing.xsd").absolute()
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.parent.joinpath("xsd", "eventing.xsd").absolute()
+)
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
 
 class NotifyTo(addressing.EndpointReference):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}NotifyTo"
@@ -135,8 +137,10 @@ class SubscribeResponse(common.ElementBase):
 
     @property
     def subscription_manager(self) -> SubscriptionManager:
+        value = self.find_by_element(SubscriptionManager)
         # schema enforces presence
-        return self.find_by_element(SubscriptionManager)
+        assert value is not None
+        return value
 
     @property
     def expires(self) -> Expires | None:
@@ -163,8 +167,10 @@ class SubscriptionEnd(common.ElementBase):
 
     @property
     def subscription_manager(self) -> SubscriptionManager:
+        value = self.find_by_element(SubscriptionManager)
         # schema enforces presence
-        return self.find_by_element(SubscriptionManager)
+        assert value is not None
+        return value
 
     @property
     def status(self) -> Status | None:
@@ -203,6 +209,7 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 
 @functools.cache
 def get_parser() -> lxml.etree.XMLParser:
+    """Get eventing parser."""
     lookup = lxml.etree.ElementNamespaceClassLookup()
     set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
