@@ -57,6 +57,6 @@ def _create_addressing_element(
         return element, None
     if issubclass(clazz, addressing.AttributedURIType):
         if clazz is addressing.RelatesTo:
-            return clazz.from_random_uri(RelationshipType=f"{addressing.NAMESPACE}/reply"), None  # ty: ignore[unknown-argument]
+            return clazz.from_random_uri(attrib={"RelationshipType": f"{addressing.NAMESPACE}/reply"}), None
         return clazz.from_random_uri(), None
     return clazz(), None
