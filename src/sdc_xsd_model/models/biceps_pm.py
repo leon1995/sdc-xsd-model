@@ -191,6 +191,17 @@ class LocalizedTextWidth(enum.StrEnum):
 # ── Common complex types ──────────────────────────────────────────────────────────────────────────
 
 
+class Handle(str):
+    """A HANDLE is used to efficiently identify an object in the MDIB."""
+
+
+class HandleRef(str):
+    """HandleRef describes a HANDLE reference. It is used to form logical connections to ELEMENTs that possess a pm:Handle ATTRIBUTE.
+
+    Example: a METRIC state is associated with a METRIC descriptor (pm:AbstractDescriptor/@Handle) by means of an ATTRIBUTE of type pm:HandleRef (see pm:AbstractState/@DescriptorHandle).
+    """
+
+
 class LocalizedText(common.ElementBase):
     """Bundled element for localized text references or content."""
 
@@ -240,13 +251,15 @@ class CodedValue(common.ElementBase):
 class InstanceIdentifier(common.ElementBase):
     """Uniquely identifies a thing or object."""
 
+    TAG = f"{{{NAMESPACE}}}Identification"
+
     @property
     def root(self) -> str | None:
         return self.get("Root")
 
     @property
-    def extension_attr(self) -> str | None:
-        return self.get("Extension")
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
 
 
 class Range(common.ElementBase):
@@ -409,10 +422,10 @@ class AbstractDescriptor(common.ElementBase):
     """Base for all descriptor types."""
 
     @property
-    def handle(self) -> str:
+    def handle(self) -> HandleRef:
         value = self.get("Handle")
         assert value is not None
-        return value
+        return HandleRef(value)
 
     @property
     def descriptor_version(self) -> str | None:
@@ -435,10 +448,10 @@ class AbstractState(common.ElementBase):
         return self.get("StateVersion")
 
     @property
-    def descriptor_handle(self) -> str:
+    def descriptor_handle(self) -> HandleRef:
         value = self.get("DescriptorHandle")
         assert value is not None
-        return value
+        return HandleRef(value)
 
     @property
     def descriptor_version(self) -> str | None:
@@ -453,10 +466,10 @@ class AbstractMultiState(AbstractState):
     """Base state with a handle for multi-state relationships."""
 
     @property
-    def handle(self) -> str:
+    def handle(self) -> Handle:
         value = self.get("Handle")
         assert value is not None
-        return value
+        return Handle(value)
 
 
 # ── Device component descriptors ──────────────────────────────────────────────────────────────────
@@ -544,6 +557,8 @@ class AbstractComplexDeviceComponentState(AbstractDeviceComponentState):
 class MdsState(AbstractComplexDeviceComponentState):
     """State of an MDS."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MdsState"
+
     @property
     def lang(self) -> str | None:
         return self.get("Lang")
@@ -560,6 +575,8 @@ class MdsState(AbstractComplexDeviceComponentState):
 class VmdState(AbstractComplexDeviceComponentState):
     """State of a VMD."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}VmdState"
+
     @property
     def operating_jurisdiction(self) -> OperatingJurisdiction | None:
         return self.find_by_element(OperatingJurisdiction)
@@ -568,9 +585,13 @@ class VmdState(AbstractComplexDeviceComponentState):
 class ChannelState(AbstractDeviceComponentState):
     """State of a channel."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ChannelState"
+
 
 class ClockState(AbstractDeviceComponentState):
     """State of a clock."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ClockState"
 
     @property
     def remote_sync(self) -> str:
@@ -602,6 +623,8 @@ class ClockState(AbstractDeviceComponentState):
 class BatteryState(AbstractDeviceComponentState):
     """State of a battery."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}BatteryState"
+
     @property
     def charge_status(self) -> str | None:
         return self.get("ChargeStatus")
@@ -614,6 +637,8 @@ class BatteryState(AbstractDeviceComponentState):
 class ScoState(AbstractDeviceComponentState):
     """State of an SCO."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ScoState"
+
     @property
     def invocation_requested(self) -> str | None:
         return self.get("InvocationRequested")
@@ -625,6 +650,8 @@ class ScoState(AbstractDeviceComponentState):
 
 class SystemContextState(AbstractDeviceComponentState):
     """State of system context."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}SystemContextState"
 
 
 # ── Alert descriptors ─────────────────────────────────────────────────────────────────────────────
@@ -983,6 +1010,8 @@ class AbstractMetricState(AbstractState):
 class NumericMetricState(AbstractMetricState):
     """State of a numeric metric."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}NumericMetricState"
+
     @property
     def active_averaging_period(self) -> str | None:
         return self.get("ActiveAveragingPeriod")
@@ -991,17 +1020,25 @@ class NumericMetricState(AbstractMetricState):
 class StringMetricState(AbstractMetricState):
     """State of a string metric."""
 
+    TAG: str = f"{{{NAMESPACE}}}StringMetricState"
+
 
 class EnumStringMetricState(StringMetricState):
     """State of an enumerated string metric."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}EnumStringMetricState"
 
 
 class RealTimeSampleArrayMetricState(AbstractMetricState):
     """State of a real-time sample array."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}RealTimeSampleArrayMetricState"
+
 
 class DistributionSampleArrayMetricState(AbstractMetricState):
     """State of a distribution sample array."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}DistributionSampleArrayMetricState"
 
 
 # ── Operation descriptors ─────────────────────────────────────────────────────────────────────────
@@ -1245,6 +1282,8 @@ class NeonatalPatientDemographicsCoreData(PatientDemographicsCoreData):
 class PatientContextState(AbstractContextState):
     """Patient context information."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}PatientContextState"
+
     @property
     def core_data(self) -> PatientDemographicsCoreData | None:
         return self.find_by_element(PatientDemographicsCoreData)
@@ -1252,6 +1291,8 @@ class PatientContextState(AbstractContextState):
 
 class LocationContextState(AbstractContextState):
     """Location context information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}LocationContextState"
 
     @property
     def location_detail(self) -> LocationDetail | None:
@@ -1261,17 +1302,25 @@ class LocationContextState(AbstractContextState):
 class WorkflowContextState(AbstractContextState):
     """Workflow step context information."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}WorkflowContextState"
+
 
 class OperatorContextState(AbstractContextState):
     """Operator context information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}OperatorContextState"
 
 
 class MeansContextState(AbstractContextState):
     """Means context information."""
 
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MeansContextState"
+
 
 class EnsembleContextState(AbstractContextState):
     """Ensemble context information."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}EnsembleContextState"
 
 
 # ── Miscellaneous types ───────────────────────────────────────────────────────────────────────────
@@ -1305,6 +1354,8 @@ class OrderDetail(common.ElementBase):
 
 class ContainmentTree(common.ElementBase):
     """Containment tree of an MDS."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ContainmentTree"
 
     @property
     def handle_ref(self) -> str | None:
@@ -1455,9 +1506,9 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "HeadCircumference",
         "CapacityFullCharge",
         "CapacitySpecified",
-        "VoltageSpecified",
+        "VolTAGeSpecified",
         "CapacityRemaining",
-        "Voltage",
+        "VolTAGe",
         "Current",
         "Temperature",
         "RemainingBatteryTime",
@@ -1492,6 +1543,75 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["MetricValue"] = AbstractMetricValue
     # Source element in AlertConditionDescriptor (HandleRef text element)
     ns["Source"] = common.ElementBase
+    # ── xsi:type dispatch registrations ──────────────────────────────────────────
+    # XSD type names differ from element names (e.g. element "Mds" has type "MdsDescriptor").
+    # The _XsiTypeLookup resolves xsi:type="dom:MdsDescriptor" by looking up "MdsDescriptor"
+    # in the pm namespace registry, so all concrete types must be registered here.
+    #
+    # Descriptor types
+    ns["MdsDescriptor"] = MdsDescriptor
+    ns["VmdDescriptor"] = VmdDescriptor
+    ns["ChannelDescriptor"] = ChannelDescriptor
+    ns["ClockDescriptor"] = ClockDescriptor
+    ns["BatteryDescriptor"] = BatteryDescriptor
+    ns["ScoDescriptor"] = ScoDescriptor
+    ns["SystemContextDescriptor"] = SystemContextDescriptor
+    ns["PatientContextDescriptor"] = PatientContextDescriptor
+    ns["LocationContextDescriptor"] = LocationContextDescriptor
+    ns["WorkflowContextDescriptor"] = WorkflowContextDescriptor
+    ns["OperatorContextDescriptor"] = OperatorContextDescriptor
+    ns["MeansContextDescriptor"] = MeansContextDescriptor
+    ns["EnsembleContextDescriptor"] = EnsembleContextDescriptor
+    ns["AlertSystemDescriptor"] = AlertSystemDescriptor
+    ns["AlertConditionDescriptor"] = AlertConditionDescriptor
+    ns["LimitAlertConditionDescriptor"] = LimitAlertConditionDescriptor
+    ns["AlertSignalDescriptor"] = AlertSignalDescriptor
+    ns["NumericMetricDescriptor"] = NumericMetricDescriptor
+    ns["StringMetricDescriptor"] = StringMetricDescriptor
+    ns["EnumStringMetricDescriptor"] = EnumStringMetricDescriptor
+    ns["RealTimeSampleArrayMetricDescriptor"] = RealTimeSampleArrayMetricDescriptor
+    ns["DistributionSampleArrayMetricDescriptor"] = DistributionSampleArrayMetricDescriptor
+    ns["SetValueOperationDescriptor"] = SetValueOperationDescriptor
+    ns["SetStringOperationDescriptor"] = SetStringOperationDescriptor
+    ns["ActivateOperationDescriptor"] = ActivateOperationDescriptor
+    ns["SetContextStateOperationDescriptor"] = SetContextStateOperationDescriptor
+    ns["SetMetricStateOperationDescriptor"] = SetMetricStateOperationDescriptor
+    ns["SetComponentStateOperationDescriptor"] = SetComponentStateOperationDescriptor
+    ns["SetAlertStateOperationDescriptor"] = SetAlertStateOperationDescriptor
+    # Device component states
+    ns["MdsState"] = MdsState
+    ns["VmdState"] = VmdState
+    ns["ChannelState"] = ChannelState
+    ns["ClockState"] = ClockState
+    ns["BatteryState"] = BatteryState
+    ns["ScoState"] = ScoState
+    ns["SystemContextState"] = SystemContextState
+    # Alert states
+    ns["AlertSystemState"] = AlertSystemState
+    ns["AlertConditionState"] = AlertConditionState
+    ns["LimitAlertConditionState"] = LimitAlertConditionState
+    ns["AlertSignalState"] = AlertSignalState
+    # Metric states
+    ns["NumericMetricState"] = NumericMetricState
+    ns["StringMetricState"] = StringMetricState
+    ns["EnumStringMetricState"] = EnumStringMetricState
+    ns["RealTimeSampleArrayMetricState"] = RealTimeSampleArrayMetricState
+    ns["DistributionSampleArrayMetricState"] = DistributionSampleArrayMetricState
+    # Operation states
+    ns["SetValueOperationState"] = SetValueOperationState
+    ns["SetStringOperationState"] = SetStringOperationState
+    ns["ActivateOperationState"] = ActivateOperationState
+    ns["SetContextStateOperationState"] = SetContextStateOperationState
+    ns["SetMetricStateOperationState"] = SetMetricStateOperationState
+    ns["SetComponentStateOperationState"] = SetComponentStateOperationState
+    ns["SetAlertStateOperationState"] = SetAlertStateOperationState
+    # Context states
+    ns["LocationContextState"] = LocationContextState
+    ns["PatientContextState"] = PatientContextState
+    ns["WorkflowContextState"] = WorkflowContextState
+    ns["OperatorContextState"] = OperatorContextState
+    ns["MeansContextState"] = MeansContextState
+    ns["EnsembleContextState"] = EnsembleContextState
 
 
 @functools.cache
@@ -1539,3 +1659,94 @@ _TAGGED_CLASSES: typing.Final[tuple[type[common.ElementBase], ...]] = (
 
 for cls in _TAGGED_CLASSES:
     cls.PARSER = get_parser()
+
+
+type ABSTRACT_DEVICE_COMPONENT_DESCRIPTOR = (
+    MdsDescriptor
+    | VmdDescriptor
+    | ChannelDescriptor
+    | ClockDescriptor
+    | BatteryDescriptor
+    | ScoDescriptor
+    | SystemContextDescriptor
+)
+
+type ABSTRACT_ALERT_DESCRIPTOR = AlertSystemDescriptor | AlertConditionDescriptor | AlertSignalDescriptor
+
+type ABSTRACT_CONTEXT_DESCRIPTOR = (
+    PatientContextDescriptor
+    | LocationContextDescriptor
+    | WorkflowContextDescriptor
+    | OperatorContextDescriptor
+    | MeansContextDescriptor
+    | EnsembleContextDescriptor
+)
+
+type ABSTRACT_METRIC_DESCRIPTOR = (
+    NumericMetricDescriptor
+    | StringMetricDescriptor
+    | EnumStringMetricDescriptor
+    | RealTimeSampleArrayMetricDescriptor
+    | DistributionSampleArrayMetricDescriptor
+)
+
+type ABSTRACT_OPERATION_DESCRIPTOR = (
+    SetValueOperationDescriptor
+    | SetStringOperationDescriptor
+    | ActivateOperationDescriptor
+    | SetContextStateOperationDescriptor
+    | SetMetricStateOperationDescriptor
+    | SetComponentStateOperationDescriptor
+    | SetAlertStateOperationDescriptor
+)
+
+type ABSTRACT_DESCRIPTOR = (
+    ABSTRACT_DEVICE_COMPONENT_DESCRIPTOR
+    | ABSTRACT_ALERT_DESCRIPTOR
+    | ABSTRACT_CONTEXT_DESCRIPTOR
+    | ABSTRACT_METRIC_DESCRIPTOR
+    | ABSTRACT_OPERATION_DESCRIPTOR
+)
+
+type ABSTRACT_CONTEXT_STATE = (
+    PatientContextState
+    | LocationContextState
+    | WorkflowContextState
+    | OperatorContextState
+    | MeansContextState
+    | EnsembleContextState
+)
+
+type ABSTRACT_METRIC_STATE = (
+    NumericMetricState
+    | StringMetricState
+    | EnumStringMetricState
+    | RealTimeSampleArrayMetricState
+    | DistributionSampleArrayMetricState
+)
+
+type ABSTRACT_DEVICE_COMPONENT_STATE = (
+    MdsState | VmdState | ChannelState | ClockState | BatteryState | ScoState | SystemContextState
+)
+
+
+type ABSTRACT_ALERT_STATE = AlertSystemState | AlertConditionState | LimitAlertConditionState | AlertSignalState
+
+
+type ABSTRACT_OPERATION_STATE = (
+    SetValueOperationState
+    | SetStringOperationState
+    | ActivateOperationState
+    | SetContextStateOperationState
+    | SetMetricStateOperationState
+    | SetComponentStateOperationState
+    | SetAlertStateOperationState
+)
+
+type ABSTRACT_STATE = (
+    ABSTRACT_CONTEXT_STATE
+    | ABSTRACT_ALERT_STATE
+    | ABSTRACT_METRIC_STATE
+    | ABSTRACT_OPERATION_STATE
+    | ABSTRACT_DEVICE_COMPONENT_STATE
+)

@@ -2,6 +2,7 @@
 
 from sdc_xsd_model.models import (
     addressing,
+    biceps_msg,
     biceps_pm,
     discovery,
     dpws,
@@ -13,6 +14,7 @@ from sdc_xsd_model.models import (
 
 __all__ = [
     "addressing",
+    "biceps_msg",
     "biceps_pm",
     "discovery",
     "dpws",
