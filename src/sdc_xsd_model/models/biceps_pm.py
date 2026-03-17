@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import decimal
 import enum
 import functools
 import pathlib
@@ -188,18 +189,31 @@ class LocalizedTextWidth(enum.StrEnum):
     XXL = "xxl"
 
 
+class MetricRelationKind(enum.StrEnum):
+    RCM = "Rcm"
+    PS = "PS"
+    SST = "SST"
+    ECE = "ECE"
+    DCE = "DCE"
+    OTH = "Oth"
+
+
 # ── Common complex types ──────────────────────────────────────────────────────────────────────────
 
 
 class Handle(str):
     """A HANDLE is used to efficiently identify an object in the MDIB."""
 
+    __slots__ = ()
+
 
 class HandleRef(str):
-    """HandleRef describes a HANDLE reference. It is used to form logical connections to ELEMENTs that possess a pm:Handle ATTRIBUTE.
+    """HandleRef describes a HANDLE reference.
 
-    Example: a METRIC state is associated with a METRIC descriptor (pm:AbstractDescriptor/@Handle) by means of an ATTRIBUTE of type pm:HandleRef (see pm:AbstractState/@DescriptorHandle).
+    It is used to form logical connections to ELEMENTs that possess a pm:Handle ATTRIBUTE.
     """
+
+    __slots__ = ()
 
 
 class LocalizedText(common.ElementBase):
@@ -261,6 +275,18 @@ class InstanceIdentifier(common.ElementBase):
     def extension(self) -> Extension | None:
         return self.find_by_element(Extension)
 
+    @property
+    def extension_attr(self) -> str | None:
+        return self.get("Extension")
+
+    @property
+    def identifier_names(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}IdentifierName"))
+
+    @property
+    def type(self) -> CodedValue | None:
+        return typing.cast("CodedValue", self.find(f"{{{NAMESPACE}}}Type"))
+
 
 class Range(common.ElementBase):
     """A range of decimal values with lower/upper bounds and step width."""
@@ -290,10 +316,18 @@ class Measurement(common.ElementBase):
     """A measurement value with a unit."""
 
     @property
-    def measured_value(self) -> str:
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def measured_value(self) -> decimal.Decimal:
         value = self.get("MeasuredValue")
         assert value is not None
-        return value
+        return decimal.Decimal(value)
+
+    @property
+    def measurement_unit(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}MeasurementUnit"))
 
 
 class PhysicalConnectorInfo(common.ElementBase):
@@ -354,6 +388,32 @@ class SystemSignalActivation(common.ElementBase):
         return value
 
 
+class MetricRelation(common.ElementBase):
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def code(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Code"))
+
+    @property
+    def identification(self) -> InstanceIdentifier | None:
+        return self.find_by_element(InstanceIdentifier)
+
+    @property
+    def kind(self) -> MetricRelationKind:
+        value = self.get("Kind")
+        assert value is not None
+        return MetricRelationKind(value)
+
+    @property
+    def entries(self) -> Sequence[HandleRef]:
+        entries = self.find(f"{{{NAMESPACE}}}Entries")
+        assert entries is not None
+        return [HandleRef(text) for text in entries.text.split()] if entries.text is not None else []
+
+
 # ── MDIB root types ───────────────────────────────────────────────────────────────────────────────
 
 
@@ -387,6 +447,8 @@ class MdState(common.ElementBase):
 
 class Mdib(common.ElementBase):
     """Root object comprising MdDescription and MdState."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Mdib"
 
     @property
     def md_description(self) -> MdDescription | None:
@@ -428,16 +490,29 @@ class AbstractDescriptor(common.ElementBase):
         return HandleRef(value)
 
     @property
-    def descriptor_version(self) -> str | None:
-        return self.get("DescriptorVersion")
+    def descriptor_version(self) -> int | None:
+        value = self.get("DescriptorVersion")
+        return int(value) if value is not None else None
 
     @property
-    def safety_classification(self) -> str | None:
-        return self.get("SafetyClassification")
+    def safety_classification(self) -> SafetyClassification | None:
+        value = self.get("SafetyClassification")
+        return SafetyClassification(value) if value is not None else None
 
     @property
     def extension(self) -> Extension | None:
         return self.find_by_element(Extension)
+
+    @property
+    def xsi_type(self) -> str:
+        # TODO: return qname here?  # noqa: FIX002, TD002, TD003
+        value = self.get("{http://www.w3.org/2001/XMLSchema-instance}type")
+        assert value is not None
+        return value
+
+    @property
+    def type(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
 
 
 class AbstractState(common.ElementBase):
@@ -460,6 +535,13 @@ class AbstractState(common.ElementBase):
     @property
     def extension(self) -> Extension | None:
         return self.find_by_element(Extension)
+
+    @property
+    def xsi_type(self) -> str:
+        # TODO: return qname here?  # noqa: FIX002, TD002, TD003
+        value = self.get("{http://www.w3.org/2001/XMLSchema-instance}type")
+        assert value is not None
+        return value
 
 
 class AbstractMultiState(AbstractState):
@@ -526,16 +608,19 @@ class AbstractDeviceComponentState(AbstractState):
     """Base state for device components."""
 
     @property
-    def activation_state(self) -> str | None:
-        return self.get("ActivationState")
+    def activation_state(self) -> ComponentActivation | None:
+        value = self.get("ActivationState")
+        return ComponentActivation(value) if value is not None else None
 
     @property
-    def operating_hours(self) -> str | None:
-        return self.get("OperatingHours")
+    def operating_hours(self) -> int | None:
+        value = self.get("OperatingHours")
+        return int(value) if value is not None else None
 
     @property
-    def operating_cycles(self) -> str | None:
-        return self.get("OperatingCycles")
+    def operating_cycles(self) -> int | None:
+        value = self.get("OperatingCycles")
+        return int(value) if value is not None else None
 
     @property
     def calibration_info(self) -> CalibrationInfo | None:
@@ -900,39 +985,57 @@ class AbstractMetricDescriptor(AbstractDescriptor):
     """Abstract descriptor for a metric."""
 
     @property
-    def metric_category(self) -> str:
+    def unit(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Unit"))
+
+    @property
+    def body_site(self) -> Sequence[CodedValue]:
+        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}BodySite"))
+
+    @property
+    def relation(self) -> Sequence[MetricRelation]:
+        return typing.cast("Sequence[MetricRelation]", self.findall(f"{{{NAMESPACE}}}Relation"))
+
+    @property
+    def metric_category(self) -> MetricCategory:
         value = self.get("MetricCategory")
         assert value is not None
-        return value
+        return MetricCategory(value)
 
     @property
     def derivation_method(self) -> str | None:
-        return self.get("DerivationMethod")
+        value = self.get("DerivationMethod")
+        return DerivationMethod(value) if value is not None else None
 
     @property
-    def metric_availability(self) -> str:
+    def metric_availability(self) -> MetricAvailability:
         value = self.get("MetricAvailability")
         assert value is not None
-        return value
+        return MetricAvailability(value)
 
     @property
     def max_measurement_time(self) -> str | None:
+        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
         return self.get("MaxMeasurementTime")
 
     @property
     def max_delay_time(self) -> str | None:
+        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
         return self.get("MaxDelayTime")
 
     @property
     def determination_period(self) -> str | None:
+        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
         return self.get("DeterminationPeriod")
 
     @property
     def life_time_period(self) -> str | None:
+        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
         return self.get("LifeTimePeriod")
 
     @property
     def activation_duration(self) -> str | None:
+        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
         return self.get("ActivationDuration")
 
 
@@ -1203,36 +1306,93 @@ class AbstractContextState(AbstractMultiState):
     """Base type for context states."""
 
     @property
-    def context_association(self) -> str | None:
-        return self.get("ContextAssociation")
+    def validator(self) -> Sequence[InstanceIdentifier]:
+        return typing.cast("Sequence[InstanceIdentifier]", self.findall(f"{{{NAMESPACE}}}Validator"))
 
     @property
-    def binding_mdib_version(self) -> str | None:
-        return self.get("BindingMdibVersion")
+    def identification(self) -> Sequence[InstanceIdentifier]:
+        return typing.cast("Sequence[InstanceIdentifier]", self.findall(f"{{{NAMESPACE}}}Identification"))
 
     @property
-    def unbinding_mdib_version(self) -> str | None:
-        return self.get("UnbindingMdibVersion")
+    def context_association(self) -> ContextAssociation | None:
+        value = self.get("ContextAssociation")
+        return ContextAssociation(value) if value is not None else None
 
     @property
-    def binding_start_time(self) -> str | None:
-        return self.get("BindingStartTime")
+    def binding_mdib_version(self) -> int | None:
+        value = self.get("BindingMdibVersion")
+        return int(value) if value is not None else None
 
     @property
-    def binding_end_time(self) -> str | None:
-        return self.get("BindingEndTime")
+    def unbinding_mdib_version(self) -> int | None:
+        value = self.get("UnbindingMdibVersion")
+        return int(value) if value is not None else None
+
+    @property
+    def binding_start_time(self) -> int | None:
+        value = self.get("BindingStartTime")
+        return int(value) if value is not None else None
+
+    @property
+    def binding_end_time(self) -> int | None:
+        value = self.get("BindingEndTime")
+        return int(value) if value is not None else None
 
 
 class BaseDemographics(common.ElementBase):
     """Basic demographic information."""
 
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def given_name(self) -> str | None:
+        node = self.find(f"{{{NAMESPACE}}}Givenname")
+        return node.text if node is not None else None
+
+    @property
+    def middle_names(self) -> Sequence[str]:
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Middlename") if node.text is not None]
+
+    @property
+    def family_name(self) -> str | None:
+        node = self.find(f"{{{NAMESPACE}}}Familyname")
+        return node.text if node is not None else None
+
+    @property
+    def birth_name(self) -> str | None:
+        node = self.find(f"{{{NAMESPACE}}}Birthname")
+        return node.text if node is not None else None
+
+    @property
+    def title(self) -> str | None:
+        node = self.find(f"{{{NAMESPACE}}}Title")
+        return node.text if node is not None else None
+
 
 class PersonReference(common.ElementBase):
     """A reference to an identifiable person."""
 
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def identification(self) -> Sequence[InstanceIdentifier]:
+        return self.findall_by_element(InstanceIdentifier)
+
+    @property
+    def name(self) -> BaseDemographics | None:
+        return typing.cast("BaseDemographics | None", self.find(f"{{{NAMESPACE}}}Name"))
+
 
 class PersonParticipation(PersonReference):
     """A person participating in a role."""
+
+    @property
+    def roles(self) -> Sequence[CodedValue]:
+        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}Role"))
 
 
 class LocationDetail(common.ElementBase):
@@ -1268,15 +1428,75 @@ class LocationDetail(common.ElementBase):
 class LocationReference(common.ElementBase):
     """A reference to an identifiable location."""
 
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def identification(self) -> Sequence[InstanceIdentifier]:
+        return self.findall_by_element(InstanceIdentifier)
+
+    @property
+    def location_detail(self) -> LocationDetail | None:
+        return self.find_by_element(LocationDetail)
+
 
 class PatientDemographicsCoreData(BaseDemographics):
     """Patient demographics data."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}CoreData"
 
+    @property
+    def sex(self) -> Sex | None:
+        node = self.find(f"{{{NAMESPACE}}}Sex")
+        return Sex(node.text) if node is not None else None
+
+    @property
+    def patient_type(self) -> PatientType | None:
+        node = self.find(f"{{{NAMESPACE}}}PatientType")
+        return PatientType(node.text) if node is not None else None
+
+    @property
+    def date_of_birth(self) -> str | None:
+        # TODO: parse date here?  # noqa: FIX002, TD002, TD003
+        node = self.find(f"{{{NAMESPACE}}}DateOfBirth")
+        return node.text if node is not None else None
+
+    @property
+    def height(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Height"))
+
+    @property
+    def weigth(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Weight"))
+
+    @property
+    def race(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Race"))
+
 
 class NeonatalPatientDemographicsCoreData(PatientDemographicsCoreData):
     """Patient demographics for neonates."""
+
+    @property
+    def gestational_age(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}GestationalAge"))
+
+    @property
+    def birth_length(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}BirthLength"))
+
+    @property
+    def birth_weight(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}BirthWeight"))
+
+    @property
+    def head_circumference(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}HeadCircumference"))
+
+    @property
+    def mother(self) -> PersonReference | None:
+        return typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}Mother"))
 
 
 class PatientContextState(AbstractContextState):
@@ -1409,6 +1629,7 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 
 def _register_structural_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     # MDIB root
+    ns["Mdib"] = Mdib
     ns["MdDescription"] = MdDescription
     ns["MdState"] = MdState
     # Device component descriptors
@@ -1517,10 +1738,11 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         ns[name] = Measurement
 
 
-def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:
+def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # noqa: PLR0915
     ns["PhysicalConnector"] = PhysicalConnectorInfo
     ns["CalibrationInfo"] = CalibrationInfo
     ns["NextCalibration"] = CalibrationInfo
+    ns["Relation"] = MetricRelation
     ns["ApprovedJurisdictions"] = ApprovedJurisdictions
     ns["OperatingJurisdiction"] = OperatingJurisdiction
     ns["SystemSignalActivation"] = SystemSignalActivation
@@ -1539,8 +1761,11 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["RequestingPhysician"] = PersonReference
     ns["Performer"] = PersonParticipation
     ns["AssignedLocation"] = LocationReference
-    # Metric values (polymorphic — base class)
+    # Metric values (polymorphic — base class + xsi:type dispatch)
     ns["MetricValue"] = AbstractMetricValue
+    ns["NumericMetricValue"] = NumericMetricValue
+    ns["StringMetricValue"] = StringMetricValue
+    ns["SampleArrayValue"] = SampleArrayValue
     # Source element in AlertConditionDescriptor (HandleRef text element)
     ns["Source"] = common.ElementBase
     # ── xsi:type dispatch registrations ──────────────────────────────────────────
@@ -1612,6 +1837,8 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["OperatorContextState"] = OperatorContextState
     ns["MeansContextState"] = MeansContextState
     ns["EnsembleContextState"] = EnsembleContextState
+    # Polymorphic demographic data
+    ns["NeonatalPatientDemographicsCoreData"] = NeonatalPatientDemographicsCoreData
 
 
 @functools.cache

@@ -148,8 +148,9 @@ class AbstractReport(common.ElementBase):
         return self.find_by_element(Extension)
 
     @property
-    def mdib_version(self) -> str | None:
-        return self.get("MdibVersion")
+    def mdib_version(self) -> int | None:
+        value = self.get("MdibVersion")
+        return int(value) if value is not None else None
 
     @property
     def sequence_id(self) -> str:
@@ -158,8 +159,9 @@ class AbstractReport(common.ElementBase):
         return value
 
     @property
-    def instance_id(self) -> str | None:
-        return self.get("InstanceId")
+    def instance_id(self) -> int | None:
+        value = self.get("InstanceId")
+        return int(value) if value is not None else None
 
 
 class AbstractSet(common.ElementBase):
@@ -306,8 +308,8 @@ class ReportPart(AbstractReportPart):
         return typing.cast("Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]", self.findall(f"{{{NAMESPACE}}}Descriptor"))
 
     @property
-    def states(self) -> Sequence[biceps_pm.AbstractState]:
-        return typing.cast("Sequence[biceps_pm.AbstractState]", self.findall(f"{{{NAMESPACE}}}State"))
+    def states(self) -> Sequence[biceps_pm.ABSTRACT_STATE]:
+        return typing.cast("Sequence[biceps_pm.ABSTRACT_STATE]", self.findall(f"{{{NAMESPACE}}}State"))
 
     @property
     def error_code(self) -> biceps_pm.CodedValue | None:
@@ -330,8 +332,9 @@ class ReportPart(AbstractReportPart):
         return self.get("ParentDescriptor")
 
     @property
-    def modification_type(self) -> str | None:
-        return self.get("ModificationType")
+    def modification_type(self) -> DescriptionModificationType | None:
+        value = self.get("ModificationType")
+        return DescriptionModificationType(value) if value is not None else None
 
 
 # ── Abstract report subtypes ──────────────────────────────────────────────────────────────────────
@@ -924,6 +927,14 @@ def _register_child_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["ProposedComponentState"] = biceps_pm.AbstractDeviceComponentState
     ns["ProposedMetricState"] = biceps_pm.AbstractMetricState
     # Child elements that are simple text/type wrappers
+    # msg-namespace child elements with known types
+    ns["DescriptorRevisions"] = VersionFrame
+    ns["StateRevisions"] = VersionFrame
+    ns["TimeFrame"] = TimeFrame
+    ns["ErrorCode"] = biceps_pm.CodedValue
+    ns["ErrorInfo"] = biceps_pm.LocalizedText
+    ns["InvocationSource"] = biceps_pm.InstanceIdentifier
+    # Child elements that are simple text/type wrappers
     for name in (
         "TransactionId",
         "InvocationState",
@@ -941,19 +952,8 @@ def _register_child_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "RequestedNumericValue",
         "RequestedStringValue",
         "Handle",
-        "DescriptorRevisions",
-        "StateRevisions",
-        "TimeFrame",
-        "ErrorCode",
-        "ErrorInfo",
         "ArgValue",
-        "ContainmentTree",
-        "Mdib",
-        "MdDescription",
-        "MdState",
-        "InvocationSource",
         "Value",
-        "Identification",
         "Argument",
     ):
         # Only register if not already registered as a specific class

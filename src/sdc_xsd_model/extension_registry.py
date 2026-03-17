@@ -22,14 +22,14 @@ from __future__ import annotations
 import dataclasses
 import re
 import typing
-from collections.abc import Sequence
 
 import lxml.etree
 
-from sdc_xsd_model.models import common
-
 if typing.TYPE_CHECKING:
     import pathlib
+    from collections.abc import Sequence
+
+    from sdc_xsd_model.models import common
 
 _TAG_RE = re.compile(r"\{(?P<ns>[^}]+)\}(?P<local>.+)")
 

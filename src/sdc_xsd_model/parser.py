@@ -44,7 +44,7 @@ class _XsiTypeLookup(lxml.etree.PythonElementClassLookup):
         if ns is None:
             return None
         try:
-            return self._ns_lookup.get_namespace(ns)[local]  # type: ignore[return-value]
+            return self._ns_lookup.get_namespace(ns)[local]
         except KeyError:
             return None
 
@@ -84,6 +84,7 @@ def discovery_parser() -> lxml.etree.XMLParser:
 
 
 def biceps_schema() -> lxml.etree.XMLSchema:
+    """Get an XML schema with all SDC XSD models relevant for BICEPS messages included."""
     xsd_dir = pathlib.Path(__file__).parent.joinpath("xsd").absolute()
     tmp = io.StringIO()
     tmp.writelines(
@@ -109,6 +110,7 @@ def biceps_schema() -> lxml.etree.XMLSchema:
 
 
 def biceps_parser() -> lxml.etree.XMLParser:
+    """Get an XML parser with registered SDC XSD models relevant for BICEPS messages."""
     ns_lookup = lxml.etree.ElementNamespaceClassLookup()
     addressing.set_lookup(ns_lookup)
     discovery.set_lookup(ns_lookup)
