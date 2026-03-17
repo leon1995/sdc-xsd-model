@@ -70,6 +70,9 @@ def _register_class(
     if schema_path is not None:
         info.schema_path = schema_path.absolute() if not schema_path.is_absolute() else schema_path
 
+    if local_name in info.classes:
+        msg = f"Local name: {local_name!r} already registered"
+        raise RuntimeError(msg)
     info.classes[local_name] = cls
     return cls
 
