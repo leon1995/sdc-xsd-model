@@ -3,7 +3,7 @@
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import biceps_msg, biceps_pm, common, extension
+from sdc_xsd_model.core import biceps_msg, biceps_pm, common, extension
 
 
 def _get_lookup_parser() -> lxml.etree.XMLParser:

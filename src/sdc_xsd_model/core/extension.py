@@ -8,7 +8,7 @@ import typing
 
 import lxml.etree
 
-from sdc_xsd_model.models import common
+from sdc_xsd_model.core import common
 
 PREFIX: typing.Final[str] = "ext"
 NAMESPACE: typing.Final[str] = "http://standards.ieee.org/downloads/11073/11073-10207-2017/extension"

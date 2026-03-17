@@ -9,10 +9,10 @@ import typing
 import lxml.etree
 
 from sdc_xsd_model import extension_registry
-from sdc_xsd_model.models import addressing, biceps_msg, biceps_pm, discovery, eventing, extension, soap_envelope
+from sdc_xsd_model.core import addressing, biceps_msg, biceps_pm, discovery, eventing, extension, soap_envelope
 
 if typing.TYPE_CHECKING:
-    from sdc_xsd_model.models import common
+    from sdc_xsd_model.core import common
 
 _XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
 

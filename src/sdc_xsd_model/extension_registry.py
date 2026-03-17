@@ -29,7 +29,7 @@ if typing.TYPE_CHECKING:
     import pathlib
     from collections.abc import Sequence
 
-    from sdc_xsd_model.models import common
+    from sdc_xsd_model.core import common
 
 _TAG_RE = re.compile(r"\{(?P<ns>[^}]+)\}(?P<local>.+)")
 

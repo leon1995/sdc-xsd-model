@@ -3,7 +3,7 @@
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import common, extension
+from sdc_xsd_model.core import common, extension
 
 EXTENSION_CASES = [
     (extension.Extension, "Extension"),

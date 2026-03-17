@@ -9,7 +9,7 @@ import typing
 
 import lxml.etree
 
-from sdc_xsd_model.models import addressing, common
+from sdc_xsd_model.core import addressing, common
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence

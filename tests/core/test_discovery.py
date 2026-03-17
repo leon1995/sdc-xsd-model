@@ -3,7 +3,7 @@
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import addressing, common, discovery
+from sdc_xsd_model.core import addressing, common, discovery
 
 XMLNS: str = "http://www.w3.org/2000/xmlns/"
 

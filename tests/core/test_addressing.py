@@ -3,7 +3,7 @@
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import addressing, common
+from sdc_xsd_model.core import addressing, common
 
 ADDRESSING_CASES = [
     (addressing.Address, "Address"),

@@ -43,7 +43,7 @@ lint.extend-ignore = [# https://docs.astral.sh/ruff/settings/#extend-ignore
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["D104"]
-"src/sdc_xsd_model/models/*.py" = [
+"src/sdc_xsd_model/core/*.py" = [
     "D101",
     "D102"
 ]

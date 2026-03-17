@@ -3,7 +3,7 @@
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import addressing, common, metadata_exchange
+from sdc_xsd_model.core import addressing, common, metadata_exchange
 
 METADATA_EXCHANGE_CASES = [
     (metadata_exchange.Dialect, "Dialect"),

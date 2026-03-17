@@ -5,7 +5,7 @@ from collections.abc import Mapping
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import addressing, common, discovery, soap_envelope
+from sdc_xsd_model.core import addressing, common, discovery, soap_envelope
 
 XMLNS: str = "http://www.w3.org/2000/xmlns/"
 XML_LANG: str = "http://www.w3.org/XML/1998/namespace"

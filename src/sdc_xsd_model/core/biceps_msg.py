@@ -10,8 +10,8 @@ import typing
 
 import lxml.etree
 
-from sdc_xsd_model.models import biceps_pm, common, extension
-from sdc_xsd_model.models.extension import Extension
+from sdc_xsd_model.core import biceps_pm, common, extension
+from sdc_xsd_model.core.extension import Extension
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence

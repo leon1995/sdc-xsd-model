@@ -3,7 +3,7 @@
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import addressing, common, dpws
+from sdc_xsd_model.core import addressing, common, dpws
 
 DPWS_CASES = [
     (dpws.Manufacturer, "Manufacturer"),

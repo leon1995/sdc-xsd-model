@@ -5,7 +5,7 @@ import uuid
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.models import addressing, common, eventing
+from sdc_xsd_model.core import addressing, common, eventing
 
 XML_LANG: str = "http://www.w3.org/XML/1998/namespace"
 

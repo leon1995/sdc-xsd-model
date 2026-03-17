@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 import lxml.etree
 
-from sdc_xsd_model.models import addressing, common, discovery
+from sdc_xsd_model.core import addressing, common, discovery
 
 PREFIX: typing.Final[str] = "s12"
 NAMESPACE: typing.Final[str] = "http://www.w3.org/2003/05/soap-envelope"
