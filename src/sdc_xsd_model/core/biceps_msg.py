@@ -908,10 +908,10 @@ def _register_set_report_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     # Retrievability section
     ns["Retrievability"] = Retrievability
 
-    ns["Text"] = biceps_pm.LocalizedText
-
 
 def _register_child_elements(ns: lxml.etree._NamespaceRegistry) -> None:
+    ns["Mdib"] = biceps_pm.Mdib
+    ns["Text"] = biceps_pm.LocalizedText
     ns["ReportPart"] = ReportPart
     ns["InvocationInfo"] = InvocationInfo
     ns["By"] = RetrievabilityInfo
