@@ -47,6 +47,10 @@ lint.extend-ignore = [# https://docs.astral.sh/ruff/settings/#extend-ignore
     "D101",
     "D102"
 ]
+"src/sdc_xsd_model/extensions/*.py" = [
+    "D101",
+    "D102"
+]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 120 # https://docs.astral.sh/ruff/settings/#max-doc-length

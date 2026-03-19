@@ -10,6 +10,7 @@ import typing
 
 import lxml.etree
 
+from sdc_xsd_model import element_class_lookup
 from sdc_xsd_model.core import common, extension
 from sdc_xsd_model.core.extension import Extension
 
@@ -229,6 +230,10 @@ class SymbolicCodeName(str):
     """
 
     __slots__ = ()
+
+
+class Timestamp(int):
+    """An unsigned 64-bit integer value that represents a timestamp."""
 
 
 class LocalizedText(common.ElementBase):
@@ -617,6 +622,88 @@ class AbstractMultiState(AbstractState):
 # ── Device component descriptors ──────────────────────────────────────────────────────────────────
 
 
+class UDI(common.ElementBase):
+    """UDI fragment as defined by the FDA."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Udi"
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def device_identifier(self) -> str:
+        node = self.find(f"{{{NAMESPACE}}}DeviceIdentifier")
+        assert node is not None
+        assert node.text is not None
+        return node.text
+
+    @property
+    def human_readable_form(self) -> str:
+        node = self.find(f"{{{NAMESPACE}}}HumanReadableForm")
+        assert node is not None
+        assert node.text is not None
+        return node.text
+
+    @property
+    def issuer(self) -> InstanceIdentifier:
+        node = self.find(f"{{{NAMESPACE}}}Issuer")
+        assert isinstance(node, InstanceIdentifier)
+        return node
+
+    @property
+    def jurisdiction(self) -> InstanceIdentifier | None:
+        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}Jurisdiction"))
+
+
+class MetaData(common.ElementBase):
+    """Describes POC MEDICAL DEVICE meta data."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MetaData"
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def udis(self) -> Sequence[UDI]:
+        return typing.cast("Sequence[UDI]", self.findall(f"{{{NAMESPACE}}}Udi"))
+
+    @property
+    def lot_number(self) -> str | None:
+        node = self.find(f"{{{NAMESPACE}}}LotNumber")
+        return node.text if node is not None else None
+
+    @property
+    def manufacturers(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Manufacturer"))
+
+    @property
+    def manufacture_date(self) -> str | None:
+        # TODO: convert to xsd:datetime  # noqa: FIX002, TD002, TD003
+        node = self.find(f"{{{NAMESPACE}}}ManufacturedDate")
+        return node.text if node is not None else None
+
+    @property
+    def expiration_date(self) -> str | None:
+        # TODO: convert to xsd:datetime  # noqa: FIX002, TD002, TD003
+        node = self.find(f"{{{NAMESPACE}}}ExpirationDate")
+        return node.text if node is not None else None
+
+    @property
+    def model_names(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}ModelName"))
+
+    @property
+    def model_number(self) -> str | None:
+        node = self.find("ModelNumber")
+        return node.text if node is not None else None
+
+    @property
+    def serial_numbers(self) -> Sequence[str]:
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}SerialNumber") if node.text is not None]
+
+
 class AbstractDeviceComponentDescriptor(AbstractDescriptor):
     """Base descriptor for device components."""
 
@@ -629,6 +716,30 @@ class MdsDescriptor(AbstractComplexDeviceComponentDescriptor):
     """Descriptor for a Medical Device System."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Mds"
+
+    @property
+    def meta_data(self) -> MetaData | None:
+        return self.find_by_element(MetaData)
+
+    @property
+    def system_context(self) -> SystemContextDescriptor | None:
+        return self.find_by_element(SystemContextDescriptor)
+
+    @property
+    def clock(self) -> ClockDescriptor | None:
+        return self.find_by_element(ClockDescriptor)
+
+    @property
+    def battery(self) -> BatteryDescriptor | None:
+        return self.find_by_element(BatteryDescriptor)
+
+    @property
+    def approved_jurisdictions(self) -> ApprovedJurisdictions | None:
+        return self.find_by_element(ApprovedJurisdictions)
+
+    @property
+    def vmd(self) -> Sequence[VmdDescriptor]:
+        return self.findall_by_element(VmdDescriptor)
 
 
 class VmdDescriptor(AbstractComplexDeviceComponentDescriptor):
@@ -2007,11 +2118,12 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # n
 @functools.cache
 def get_parser() -> lxml.etree.XMLParser:
     """Get BICEPS ParticipantModel parser."""
-    lookup = lxml.etree.ElementNamespaceClassLookup()
-    extension.set_lookup(lookup)
-    set_lookup(lookup)
+    ns_lookup = lxml.etree.ElementNamespaceClassLookup()
+    extension.set_lookup(ns_lookup)
+    set_lookup(ns_lookup)
+    custom_lookup = element_class_lookup.BicepsElementClassLookup(ns_lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
-    xml_parser.set_element_class_lookup(lookup)
+    xml_parser.set_element_class_lookup(custom_lookup)
     return xml_parser
 
 

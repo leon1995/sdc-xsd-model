@@ -29,6 +29,12 @@ class Extension(common.ElementBase):
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Extension"
 
+    @property
+    def must_understand(self) -> bool | None:
+        """Return the optional ext:MustUnderstand attribute."""
+        raw = self.get(MUST_UNDERSTAND_ATTR_TAG)
+        return raw.lower() == "true" if raw is not None else None
+
 
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     """Register Extension Point elements in the given lookup."""
