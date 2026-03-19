@@ -487,8 +487,6 @@ class MdDescription(common.ElementBase):
         return self.get("DescriptionVersion")
 
 
-
-
 class MdState(common.ElementBase):
     """Root container for the state part of the MDIB."""
 
@@ -1797,7 +1795,6 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
 
 
 def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # noqa: PLR0915
-    ns["Mdib"] = Mdib
     ns["PhysicalConnector"] = PhysicalConnectorInfo
     ns["CalibrationInfo"] = CalibrationInfo
     ns["NextCalibration"] = CalibrationInfo
