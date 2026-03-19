@@ -493,12 +493,16 @@ class MdState(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}MdState"
 
     @property
-    def state_version(self) -> str | None:
-        return self.get("StateVersion")
-
-    @property
     def extension(self) -> Extension | None:
         return self.find_by_element(Extension)
+
+    @property
+    def states(self) -> Sequence[ABSTRACT_STATE]:
+        return typing.cast("Sequence[ABSTRACT_STATE]", self.findall(f"{{{NAMESPACE}}}State"))
+
+    @property
+    def state_version(self) -> str | None:
+        return self.get("StateVersion")
 
 
 class Mdib(common.ElementBase):
@@ -1014,8 +1018,9 @@ class NumericMetricValue(AbstractMetricValue):
     """Numeric metric value."""
 
     @property
-    def value(self) -> str | None:
-        return self.get("Value")
+    def value(self) -> decimal.Decimal | None:
+        value = self.get("Value")
+        return decimal.Decimal(value) if value else None
 
 
 class StringMetricValue(AbstractMetricValue):
@@ -1026,8 +1031,34 @@ class StringMetricValue(AbstractMetricValue):
         return self.get("Value")
 
 
+class ApplyAnnotation(common.ElementBase):
+    """Annotations MAY only apply to specific values in the real-time sample array.
+
+    The ApplyAnnotation set relates annotations to sample indices.
+    If no ApplyAnnotation ELEMENT is provided all annotations are valid for all values in the context.
+    """
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ApplyAnnotation"
+
+    @property
+    def annotation_index(self) -> int:
+        value = self.get("AnnotationIndex")
+        assert value is not None
+        return int(value)
+
+    @property
+    def sample_index(self) -> int:
+        value = self.get("SampleIndex")
+        assert value is not None
+        return int(value)
+
+
 class SampleArrayValue(AbstractMetricValue):
     """Sample array value for waveforms."""
+
+    @property
+    def apply_annotations(self) -> Sequence[ApplyAnnotation]:
+        return self.findall_by_element(ApplyAnnotation)
 
     @property
     def samples(self) -> str | None:
@@ -1113,21 +1144,53 @@ class StringMetricDescriptor(AbstractMetricDescriptor):
     """Descriptor for a string metric."""
 
 
+class AllowedValue(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}AllowedValue"
+
+    @property
+    def value(self) -> str:
+        node = self.find(f"{{{NAMESPACE}}}Value")
+        assert node is not None
+        assert node.text is not None
+        return node.text
+
+    @property
+    def type(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+
+    @property
+    def identification(self) -> InstanceIdentifier | None:
+        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}Identification"))
+
+    @property
+    def characteristic(self) -> Measurement | None:
+        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Characteristic"))
+
+
 class EnumStringMetricDescriptor(StringMetricDescriptor):
     """Descriptor for an enumerated string metric."""
+
+    @property
+    def allowed_values(self) -> Sequence[AllowedValue]:
+        return self.findall_by_element(AllowedValue)
 
 
 class RealTimeSampleArrayMetricDescriptor(AbstractMetricDescriptor):
     """Descriptor for a real-time sample array."""
 
     @property
-    def resolution(self) -> str:
+    def technical_ranges(self) -> Sequence[Range]:
+        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}TechnicalRange"))
+
+    @property
+    def resolution(self) -> decimal.Decimal:
         value = self.get("Resolution")
         assert value is not None
-        return value
+        return decimal.Decimal(value)
 
     @property
     def sample_period(self) -> str:
+        # TODO: convert to duration  # noqa: FIX002, TD002, TD003
         value = self.get("SamplePeriod")
         assert value is not None
         return value
@@ -1137,10 +1200,26 @@ class DistributionSampleArrayMetricDescriptor(AbstractMetricDescriptor):
     """Descriptor for a distribution sample array."""
 
     @property
-    def resolution(self) -> str:
+    def technical_ranges(self) -> Sequence[Range]:
+        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}TechnicalRange"))
+
+    @property
+    def domain_unit(self) -> CodedValue:
+        node = self.find(f"{{{NAMESPACE}}}DomainUnit")
+        assert isinstance(node, CodedValue)
+        return node
+
+    @property
+    def distribution_range(self) -> Range:
+        node = self.find(f"{{{NAMESPACE}}}DistributionRange")
+        assert isinstance(node, Range)
+        return node
+
+    @property
+    def resolution(self) -> decimal.Decimal:
         value = self.get("Resolution")
         assert value is not None
-        return value
+        return decimal.Decimal(value)
 
 
 # ── Metric states ─────────────────────────────────────────────────────────────────────────────────
@@ -1172,6 +1251,14 @@ class NumericMetricState(AbstractMetricState):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}NumericMetricState"
 
     @property
+    def metric_value(self) -> NumericMetricValue | None:
+        return typing.cast("NumericMetricValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+
+    @property
+    def physiological_range(self) -> Sequence[Range]:
+        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
+
+    @property
     def active_averaging_period(self) -> str | None:
         return self.get("ActiveAveragingPeriod")
 
@@ -1180,6 +1267,10 @@ class StringMetricState(AbstractMetricState):
     """State of a string metric."""
 
     TAG: str = f"{{{NAMESPACE}}}StringMetricState"
+
+    @property
+    def metric_value(self) -> StringMetricValue | None:
+        return typing.cast("StringMetricValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
 
 
 class EnumStringMetricState(StringMetricState):
@@ -1193,11 +1284,27 @@ class RealTimeSampleArrayMetricState(AbstractMetricState):
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}RealTimeSampleArrayMetricState"
 
+    @property
+    def metric_value(self) -> SampleArrayValue | None:
+        return typing.cast("SampleArrayValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+
+    @property
+    def physiological_range(self) -> Sequence[Range]:
+        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
+
 
 class DistributionSampleArrayMetricState(AbstractMetricState):
     """State of a distribution sample array."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}DistributionSampleArrayMetricState"
+
+    @property
+    def metric_value(self) -> SampleArrayValue | None:
+        return typing.cast("SampleArrayValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+
+    @property
+    def physiological_range(self) -> Sequence[Range]:
+        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
 
 
 # ── Operation descriptors ─────────────────────────────────────────────────────────────────────────
