@@ -1,0 +1,1 @@
+Schemas are taken from https://profiles.ihe.net/DEV/SDPi/#vol3_appendix_a_xml_schemas
