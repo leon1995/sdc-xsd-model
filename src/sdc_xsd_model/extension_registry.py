@@ -53,11 +53,11 @@ def _parse_tag(tag: str) -> tuple[str, str]:
     return m.group("ns"), m.group("local")
 
 
-def _register_class(
-    cls: type[common.ElementBase],
+def _register_class[T: common.ElementBase](
+    cls: type[T],
     prefix: str | None = None,
     schema_path: pathlib.Path | None = None,
-) -> type[common.ElementBase]:
+) -> type[T]:
     ns, local_name = _parse_tag(cls.TAG)
 
     if ns not in _registry:
@@ -78,24 +78,24 @@ def _register_class(
 
 
 @typing.overload
-def register_extension(cls: type[common.ElementBase], /) -> type[common.ElementBase]: ...
+def register_extension[T: common.ElementBase](cls: type[T], /) -> type[T]: ...
 
 
 @typing.overload
-def register_extension(
+def register_extension[T: common.ElementBase](
     *,
     prefix: str | None = None,
     schema_path: pathlib.Path | None = None,
-) -> typing.Callable[[type[common.ElementBase]], type[common.ElementBase]]: ...
+) -> typing.Callable[[type[T]], type[T]]: ...
 
 
-def register_extension(
-    cls: type[common.ElementBase] | None = None,
+def register_extension[T: common.ElementBase](
+    cls: type[T] | None = None,
     /,
     *,
     prefix: str | None = None,
     schema_path: pathlib.Path | None = None,
-) -> type[common.ElementBase] | typing.Callable[[type[common.ElementBase]], type[common.ElementBase]]:
+) -> type[T] | typing.Callable[[type[T]], type[T]]:
     """Register an ``ElementBase`` subclass for automatic namespace class lookup.
 
     Can be used as a bare decorator (``@register_extension``) or with arguments
@@ -106,7 +106,7 @@ def register_extension(
         return _register_class(cls, prefix=prefix, schema_path=schema_path)
 
     # Called with arguments — return the real decorator
-    def decorator(cls: type[common.ElementBase]) -> type[common.ElementBase]:
+    def decorator(cls: type[T]) -> type[T]:
         return _register_class(cls, prefix=prefix, schema_path=schema_path)
 
     return decorator

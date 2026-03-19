@@ -216,6 +216,21 @@ class HandleRef(str):
     __slots__ = ()
 
 
+class CodeIdentifier(str):
+    """CodeIdentifier defines an arbitrary CODE identifier with a minimum length of 1 character."""
+
+    __slots__ = ()
+
+
+class SymbolicCodeName(str):
+    """SymbolicCodeName is a symbolic, programmatic form of a pm:CodeIdentifier term.
+
+    NOTE—SymbolicCodeName is the equivalent of the Reference ID attribute that is defined in IEEE 11073-10101.
+    """
+
+    __slots__ = ()
+
+
 class LocalizedText(common.ElementBase):
     """Bundled element for localized text references or content."""
 
@@ -236,17 +251,53 @@ class LocalizedText(common.ElementBase):
         return self.get("TextWidth")
 
 
+class Translation(common.ElementBase):
+    """Set of alternative or equivalent representations."""
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def code(self) -> CodeIdentifier:
+        value = self.get("Code")
+        assert value is not None
+        return CodeIdentifier(value)
+
+    @property
+    def coding_system(self) -> str | None:
+        # TODO: return xsd:anyUri?  # noqa: FIX002, TD002, TD003
+        return self.get("CodingSystem")
+
+    @property
+    def coding_system_version(self) -> str | None:
+        return self.get("CodingSystemVersion")
+
+
 class CodedValue(common.ElementBase):
     """Nomenclature code representation."""
 
     @property
-    def code(self) -> str:
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def coding_system_names(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}CodingSystemName"))
+
+    @property
+    def concept_descriptions(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}ConceptDescription"))
+
+    @property
+    def code(self) -> CodeIdentifier:
         value = self.get("Code")
         assert value is not None
-        return value
+        return CodeIdentifier(value)
 
     @property
     def coding_system(self) -> str | None:
+        # TODO: return xsd:anyUri?  # noqa: FIX002, TD002, TD003
         return self.get("CodingSystem")
 
     @property
@@ -254,12 +305,13 @@ class CodedValue(common.ElementBase):
         return self.get("CodingSystemVersion")
 
     @property
-    def symbolic_code_name(self) -> str | None:
-        return self.get("SymbolicCodeName")
+    def symbolic_code_name(self) -> SymbolicCodeName | None:
+        value = self.get("SymbolicCodeName")
+        return SymbolicCodeName(value) if value is not None else None
 
     @property
-    def extension(self) -> Extension | None:
-        return self.find_by_element(Extension)
+    def translations(self) -> Sequence[Translation]:
+        return typing.cast("Sequence[Translation]", self.findall(f"{{{NAMESPACE}}}Translation"))
 
 
 class InstanceIdentifier(common.ElementBase):
@@ -423,12 +475,18 @@ class MdDescription(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}MdDescription"
 
     @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def mds(self) -> Sequence[MdsDescriptor]:
+        return self.findall_by_element(MdsDescriptor)
+
+    @property
     def description_version(self) -> str | None:
         return self.get("DescriptionVersion")
 
-    @property
-    def extension(self) -> Extension | None:
-        return self.find_by_element(Extension)
+
 
 
 class MdState(common.ElementBase):
@@ -1739,6 +1797,7 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
 
 
 def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # noqa: PLR0915
+    ns["Mdib"] = Mdib
     ns["PhysicalConnector"] = PhysicalConnectorInfo
     ns["CalibrationInfo"] = CalibrationInfo
     ns["NextCalibration"] = CalibrationInfo

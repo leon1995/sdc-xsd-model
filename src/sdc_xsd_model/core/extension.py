@@ -21,6 +21,9 @@ SCHEMA_PATH: typing.Final[pathlib.Path] = (
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
 
 
+MUST_UNDERSTAND_ATTR_TAG: typing.Final[str] = f"{{{NAMESPACE}}}MustUnderstand"
+
+
 class Extension(common.ElementBase):
     """ExtensionType element allowing arbitrary extension children."""
 

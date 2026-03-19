@@ -391,8 +391,10 @@ class GetMdibResponse(AbstractGetResponse):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}GetMdibResponse"
 
     @property
-    def mdib(self) -> biceps_pm.Mdib | None:
-        return self.find_by_element(biceps_pm.Mdib)
+    def mdib(self) -> biceps_pm.Mdib:
+        mdib = typing.cast("biceps_pm.Mdib", self.find(f"{{{NAMESPACE}}}Mdib"))
+        assert mdib is not None
+        return mdib
 
 
 class GetMdDescription(AbstractGet):
