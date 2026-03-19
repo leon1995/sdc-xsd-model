@@ -41,7 +41,7 @@ class _NamespaceInfo:
     classes: dict[str, type[common.ElementBase]] = dataclasses.field(default_factory=dict)
 
 
-_registry: dict[str, _NamespaceInfo] = {}
+__REGISTRY__: dict[str, _NamespaceInfo] = {}
 
 
 def _parse_tag(tag: str) -> tuple[str, str]:
@@ -60,9 +60,9 @@ def _register_class[T: common.ElementBase](
 ) -> type[T]:
     ns, local_name = _parse_tag(cls.TAG)
 
-    if ns not in _registry:
-        _registry[ns] = _NamespaceInfo()
-    info = _registry[ns]
+    if ns not in __REGISTRY__:
+        __REGISTRY__[ns] = _NamespaceInfo()
+    info = __REGISTRY__[ns]
 
     if prefix is not None:
         info.prefix = prefix
@@ -114,7 +114,7 @@ def register_extension[T: common.ElementBase](
 
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     """Register all custom extension classes from the registry into *lookup*."""
-    for ns, info in _registry.items():
+    for ns, info in __REGISTRY__.items():
         ns_registry = lookup.get_namespace(ns)
         for local_name, cls in info.classes.items():
             ns_registry[local_name] = cls
@@ -124,11 +124,11 @@ def get_schema_lines() -> Sequence[str]:
     """Return a lines of XML schema declarations of registered extensions referencing a schema."""
     return [
         f'<xsd:import namespace="{ns}" schemaLocation="{info.schema_path.as_uri()}"/>'
-        for ns, info in _registry.items()
+        for ns, info in __REGISTRY__.items()
         if info.schema_path is not None
     ]
 
 
 def clear_registry() -> None:
     """Remove all registered extension classes. Useful for test isolation."""
-    _registry.clear()
+    __REGISTRY__.clear()

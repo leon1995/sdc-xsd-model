@@ -84,6 +84,7 @@ class TestExampleXml:
 
     @pytest.fixture
     def coded_string(self, tree: biceps_msg.GetMdibResponse) -> CodedStringAttribute:
+        """Get the CodedStringAttribute as fixture."""
         attribute = tree[0][0][0][0][0][0]
         assert isinstance(attribute, CodedStringAttribute)
         return attribute

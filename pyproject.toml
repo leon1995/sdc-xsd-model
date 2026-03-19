@@ -51,6 +51,9 @@ lint.extend-ignore = [# https://docs.astral.sh/ruff/settings/#extend-ignore
     "D101",
     "D102"
 ]
+"tests/extensions/sdpi/*.py" = [
+    "PLR2004",
+]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 120 # https://docs.astral.sh/ruff/settings/#max-doc-length

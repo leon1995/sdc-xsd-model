@@ -1,8 +1,8 @@
 """Tests for the SDPi Timestamp Epoch Version extension models."""
 
 from __future__ import annotations
-import decimal
 
+import decimal
 import pathlib
 import typing
 
@@ -89,6 +89,7 @@ class TestExampleXml:
 
     @pytest.fixture
     def clock_descriptor(self, tree: biceps_msg.GetMdibResponse) -> biceps_pm.ClockDescriptor:
+        """Get the ClockDescriptor as fixture."""
         mds = tree.mdib.md_description.mds[0]  # ty:ignore[unresolved-attribute]
         clock = mds.clock
         assert isinstance(clock, biceps_pm.ClockDescriptor)
@@ -96,6 +97,7 @@ class TestExampleXml:
 
     @pytest.fixture
     def clock_state(self, tree: biceps_msg.GetMdibResponse) -> biceps_pm.ClockState:
+        """Get the ClockState as fixture."""
         md_state = tree.mdib.md_state
         assert md_state is not None
         states = md_state.states
@@ -105,6 +107,7 @@ class TestExampleXml:
 
     @pytest.fixture
     def numeric_metric_state(self, tree: biceps_msg.GetMdibResponse) -> biceps_pm.NumericMetricState:
+        """Get the first NumericMetricState as fixture."""
         md_state = tree.mdib.md_state
         assert md_state is not None
         numeric_metric_state = md_state.states[1]
