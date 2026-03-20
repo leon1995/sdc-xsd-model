@@ -11,6 +11,7 @@ import pytest
 
 from sdc_xsd_model import extension_registry
 from sdc_xsd_model.core import biceps_msg, biceps_pm, extension
+from sdc_xsd_model.extensions import sdpi
 from sdc_xsd_model.extensions.sdpi.timestamp_epoch_version_models import (
     NAMESPACE,
     AbstractContextStateEpoch,
@@ -36,6 +37,7 @@ TEV_CASES = [
 ]
 
 EXAMPLE_XML = pathlib.Path(__file__).parent / "timestamp_epoch_version_example.xml"
+sdpi.register_timestamp_epoch_version()
 
 
 @pytest.fixture

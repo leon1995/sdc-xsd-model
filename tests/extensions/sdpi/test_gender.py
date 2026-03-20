@@ -10,6 +10,7 @@ import pytest
 
 from sdc_xsd_model import extension_registry
 from sdc_xsd_model.core import biceps_msg, biceps_pm, extension
+from sdc_xsd_model.extensions import sdpi
 from sdc_xsd_model.extensions.sdpi.gender_models import (
     NAMESPACE,
     Gender,
@@ -24,6 +25,7 @@ GENDER_CASES = [
 ]
 
 EXAMPLE_XML = pathlib.Path(__file__).parent / "gender_example.xml"
+sdpi.register_gender()
 
 
 @pytest.fixture

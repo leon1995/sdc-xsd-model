@@ -7,7 +7,6 @@ import pathlib
 import typing
 
 from sdc_xsd_model.core import biceps_pm, common
-from sdc_xsd_model.extension_registry import register_extension
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
@@ -17,7 +16,6 @@ NAMESPACE: typing.Final[str] = "urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1"
 SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.joinpath("coded_attributes.xsd").absolute()
 
 
-@register_extension(prefix=PREFIX, schema_path=SCHEMA_PATH)
 class CodedAttributes(common.ElementBase):
     """Container for coded attribute children."""
 
@@ -39,7 +37,6 @@ class CodedAttributes(common.ElementBase):
         return self.findall_by_element(CodedDecimalAttribute)
 
 
-@register_extension
 class CodedStringAttribute(common.ElementBase):
     """A key value pair to include string attributes of the IEEE 11073 classic domain information model that are not available from the BICEPS participant model."""  # noqa: E501, W505
 
@@ -61,7 +58,6 @@ class CodedStringAttribute(common.ElementBase):
         return node.text
 
 
-@register_extension
 class CodedIntegerAttribute(common.ElementBase):
     """A key value pair to include integer attributes of the IEEE 11073 classic domain information model that are not available from the BICEPS participant model."""  # noqa: E501, W505
 
@@ -83,7 +79,6 @@ class CodedIntegerAttribute(common.ElementBase):
         return int(elem.text)
 
 
-@register_extension
 class CodedDecimalAttribute(common.ElementBase):
     """A key value pair to include decimal attributes of the IEEE 11073 classic domain information model that are not available from the BICEPS participant model."""  # noqa: E501, W505
 
@@ -105,7 +100,6 @@ class CodedDecimalAttribute(common.ElementBase):
         return decimal.Decimal(elem.text)
 
 
-@register_extension
 class MdcAttribute(common.ElementBase):
     """Specifies the concept of the key in a key value pair as laid out by coded attributes."""
 

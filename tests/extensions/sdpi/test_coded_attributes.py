@@ -10,6 +10,7 @@ import pytest
 
 from sdc_xsd_model import extension_registry
 from sdc_xsd_model.core import biceps_msg, biceps_pm, extension
+from sdc_xsd_model.extensions import sdpi
 from sdc_xsd_model.extensions.sdpi.coded_attributes_models import (
     NAMESPACE,
     CodedAttributes,
@@ -31,6 +32,8 @@ CODED_ATTR_CASES = [
 ]
 
 EXAMPLE_XML = pathlib.Path(__file__).parent / "coded_attribute_example.xml"
+
+sdpi.register_coded_attributes()
 
 
 @pytest.fixture

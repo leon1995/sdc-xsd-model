@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
+import pathlib
 import typing
 
 from sdc_xsd_model.core import biceps_pm, common, extension
-from sdc_xsd_model.extension_registry import register_extension
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence
 
-
+PREFIX: typing.Final[str] = "sdpi"
 NAMESPACE: typing.Final[str] = "urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1"
-_EPOCH_TAG = f"{{{NAMESPACE}}}Epoch"
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.joinpath("timestamp_epoch_version_schema.xsd").absolute()
+)
 
 
-@register_extension
 class EpochSupport(common.ElementBase):
     """Indicates the MDIB may include versioned timestamps.
 
@@ -43,7 +44,6 @@ class EpochVersion(int):
     """Time-stamp epoch version. The default version for any timestamp not versioned is the current epoch version."""
 
 
-@register_extension
 class Epoch(common.ElementBase):
     """Type defining a transition between epochs.
 
@@ -84,7 +84,6 @@ class Epoch(common.ElementBase):
         return value
 
 
-@register_extension
 class Epochs(common.ElementBase):
     """Container for epoch transition entries.
 
@@ -106,7 +105,6 @@ class Epochs(common.ElementBase):
         return EpochVersion(raw)
 
 
-@register_extension
 class MetricEpoch(common.ElementBase):
     """Epoch versioning for pm:AbstractMetricValue timestamps."""
 
@@ -136,7 +134,6 @@ class MetricEpoch(common.ElementBase):
         return EpochVersion(raw) if raw is not None else None
 
 
-@register_extension
 class CalibrationInfoEpoch(common.ElementBase):
     """Epoch versioning for pm:CalibrationInfo timestamps."""
 
@@ -155,7 +152,6 @@ class CalibrationInfoEpoch(common.ElementBase):
         return EpochVersion(raw) if raw is not None else None
 
 
-@register_extension
 class AlertSystemStateEpoch(common.ElementBase):
     """Epoch versioning for pm:AlertSystemState timestamps."""
 
@@ -174,7 +170,6 @@ class AlertSystemStateEpoch(common.ElementBase):
         return EpochVersion(raw) if raw is not None else None
 
 
-@register_extension
 class AlertConditionStateEpoch(common.ElementBase):
     """Epoch versioning for pm:AlertConditionState timestamps."""
 
@@ -193,7 +188,6 @@ class AlertConditionStateEpoch(common.ElementBase):
         return EpochVersion(raw) if raw is not None else None
 
 
-@register_extension
 class AbstractContextStateEpoch(common.ElementBase):
     """Epoch versioning for pm:AbstractContextState timestamps."""
 

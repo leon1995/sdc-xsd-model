@@ -1,32 +1,39 @@
 """Simplified registration API for custom BICEPS extension classes.
 
-Provides a decorator-based API to register custom ``ElementBase`` subclasses
+Provides a factory-based API to register custom ``ElementBase`` subclasses
 for arbitrary XML namespaces and obtain a composite parser that includes both
 built-in SDC modules and user-defined extensions.
 
 Example::
 
-    from sdc_xsd_model.registry import register_extension, get_extension_parser
+    from sdc_xsd_model.extension_registry import register_extension
 
-    @register_extension(prefix="myext", schema_path=Path("custom.xsd"))
+    sdpi = register_extension(
+        namespace="urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1",
+        prefix="sdpi",
+        schema=Path("custom.xsd"),
+    )
+
+    @sdpi
     class MyData(common.ElementBase):
-        TAG = "{http://example.com/myext}MyData"
+        TAG = "{urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1}MyData"
         ...
 
-    parser = get_extension_parser()
-    parsed = lxml.etree.fromstring(xml_bytes, parser=parser)
+    # Classes can also be registered at runtime:
+    sdpi.register_classes(MyDynamicClass)
 """
 
 from __future__ import annotations
 
 import dataclasses
+import pathlib
 import re
 import typing
 
 import lxml.etree
 
 if typing.TYPE_CHECKING:
-    import pathlib
+    import os
     from collections.abc import Sequence
 
     from sdc_xsd_model.core import common
@@ -37,11 +44,11 @@ _TAG_RE = re.compile(r"\{(?P<ns>[^}]+)\}(?P<local>.+)")
 @dataclasses.dataclass
 class _NamespaceInfo:
     prefix: str | None = None
-    schema_path: pathlib.Path | None = None
+    schemas: set[pathlib.Path] = dataclasses.field(default_factory=set)
     classes: dict[str, type[common.ElementBase]] = dataclasses.field(default_factory=dict)
 
 
-__REGISTRY__: dict[str, _NamespaceInfo] = {}
+__REGISTRY__: typing.Final[dict[str, _NamespaceInfo]] = {}
 
 
 def _parse_tag(tag: str) -> tuple[str, str]:
@@ -53,66 +60,91 @@ def _parse_tag(tag: str) -> tuple[str, str]:
     return m.group("ns"), m.group("local")
 
 
-def _register_class[T: common.ElementBase](
-    cls: type[T],
-    prefix: str | None = None,
-    schema_path: pathlib.Path | None = None,
-) -> type[T]:
-    ns, local_name = _parse_tag(cls.TAG)
+class _NamespaceDecorator:
+    """Reusable decorator returned by :func:`register_extension`."""
 
-    if ns not in __REGISTRY__:
-        __REGISTRY__[ns] = _NamespaceInfo()
-    info = __REGISTRY__[ns]
+    __slots__ = ("_info", "_namespace")
+
+    def __init__(self, namespace: str, info: _NamespaceInfo) -> None:
+        self._namespace = namespace
+        self._info = info
+
+    @typing.overload
+    def __call__[T: common.ElementBase](self, cls: type[T], /) -> type[T]: ...
+
+    @typing.overload
+    def __call__[T: common.ElementBase](self) -> typing.Callable[[type[T]], type[T]]: ...
+
+    def __call__[T: common.ElementBase](
+        self,
+        cls: type[T] | None = None,
+    ) -> type[T] | typing.Callable[[type[T]], type[T]]:
+        if cls is not None:
+            return self._register(cls)
+
+        def decorator(cls: type[T]) -> type[T]:
+            return self._register(cls)
+
+        return decorator
+
+    def _register[T: common.ElementBase](self, cls: type[T]) -> type[T]:
+        ns, local_name = _parse_tag(cls.TAG)
+
+        if ns != self._namespace:
+            msg = f"TAG namespace {ns!r} does not match factory namespace {self._namespace!r}"
+            raise ValueError(msg)
+
+        if local_name in self._info.classes:
+            msg = f"{cls.TAG} already registered"
+            raise RuntimeError(msg)
+
+        self._info.classes[local_name] = cls
+        return cls
+
+    def register_classes(self, *classes: type[common.ElementBase]) -> None:
+        """Register multiple classes at once."""
+        for cls in classes:
+            self._register(cls)
+
+
+def register_extension(
+    namespace: str,
+    *,
+    prefix: str | None = None,
+    schema: str | os.PathLike[str] | None = None,
+) -> _NamespaceDecorator:
+    """Create a decorator that registers ``ElementBase`` subclasses under *namespace*.
+
+    Returns a reusable decorator — call it once per module and apply it to every
+    class in that namespace.  Classes can also be registered at runtime via
+    :meth:`_NamespaceDecorator.register_classes`::
+
+        sdpi = register_extension("urn:...", prefix="sdpi", schema=Path("..."))
+
+        @sdpi
+        class Foo(ElementBase):
+            TAG = "{urn:...}Foo"
+
+        # conditional / runtime registration
+        sdpi.register_classes(DynamicClass)
+    """
+    if namespace not in __REGISTRY__:
+        __REGISTRY__[namespace] = _NamespaceInfo()
+    info = __REGISTRY__[namespace]
 
     if prefix is not None:
-        if info.prefix:
-            msg = f"Namespace {ns} already has a registered prefix: {info.prefix}"
+        if info.prefix is not None and info.prefix != prefix:
+            msg = (
+                f"Namespace {namespace!r} already registered with prefix {info.prefix!r}, "
+                f"cannot re-register with {prefix!r}"
+            )
             raise ValueError(msg)
         info.prefix = prefix
-        lxml.etree.register_namespace(prefix, ns)
-    if schema_path is not None:
-        info.schema_path = schema_path.absolute() if not schema_path.is_absolute() else schema_path
+        lxml.etree.register_namespace(prefix, namespace)
+    if schema is not None:
+        info.schemas.add(pathlib.Path(schema).absolute())
 
-    if local_name in info.classes:
-        msg = f"{cls.TAG} already registered"
-        raise RuntimeError(msg)
-    info.classes[local_name] = cls
-    return cls
-
-
-@typing.overload
-def register_extension[T: common.ElementBase](cls: type[T], /) -> type[T]: ...
-
-
-@typing.overload
-def register_extension[T: common.ElementBase](
-    *,
-    prefix: str | None = None,
-    schema_path: pathlib.Path | None = None,
-) -> typing.Callable[[type[T]], type[T]]: ...
-
-
-def register_extension[T: common.ElementBase](
-    cls: type[T] | None = None,
-    /,
-    *,
-    prefix: str | None = None,
-    schema_path: pathlib.Path | None = None,
-) -> type[T] | typing.Callable[[type[T]], type[T]]:
-    """Register an ``ElementBase`` subclass for automatic namespace class lookup.
-
-    Can be used as a bare decorator (``@register_extension``) or with arguments
-    (``@register_extension(prefix="myext", schema_path=Path("custom.xsd"))``).
-    """
-    if cls is not None:
-        # Bare @register_extension (no parentheses)
-        return _register_class(cls, prefix=prefix, schema_path=schema_path)
-
-    # Called with arguments — return the real decorator
-    def decorator(cls: type[T]) -> type[T]:
-        return _register_class(cls, prefix=prefix, schema_path=schema_path)
-
-    return decorator
+    return _NamespaceDecorator(namespace, info)
 
 
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
@@ -126,7 +158,7 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 def get_schema_lines() -> Sequence[str]:
     """Return a lines of XML schema declarations of registered extensions referencing a schema."""
     return [
-        f'<xsd:import namespace="{ns}" schemaLocation="{info.schema_path.as_uri()}"/>'
+        f'<xsd:import namespace="{ns}" schemaLocation="{schema.as_uri()}"/>'
         for ns, info in __REGISTRY__.items()
-        if info.schema_path is not None
+        for schema in info.schemas
     ]

@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import pathlib
 import typing
 
 from sdc_xsd_model.core import common, extension
-from sdc_xsd_model.extension_registry import register_extension
 
+PREFIX: typing.Final[str] = "sdpi"
 NAMESPACE: typing.Final[str] = "urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1"
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.joinpath("equipment_identifier_schema.xsd").absolute()
+)
 
 
-@register_extension
 class EquipmentIdentifier(common.AnyUri):
     """Equipment identifier for SOMDS Provider descriptors.
 

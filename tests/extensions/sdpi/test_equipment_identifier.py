@@ -10,6 +10,7 @@ import pytest
 
 from sdc_xsd_model import extension_registry
 from sdc_xsd_model.core import biceps_msg, biceps_pm, extension
+from sdc_xsd_model.extensions import sdpi
 from sdc_xsd_model.extensions.sdpi.equipment_identifier_models import (
     NAMESPACE,
     EquipmentIdentifier,
@@ -23,6 +24,7 @@ EQUIP_CASES = [
 ]
 
 EXAMPLE_XML = pathlib.Path(__file__).parent / "equipment_identifier_example.xml"
+sdpi.register_equipment_identifier()
 
 
 @pytest.fixture
