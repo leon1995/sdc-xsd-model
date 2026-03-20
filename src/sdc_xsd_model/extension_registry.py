@@ -65,13 +65,16 @@ def _register_class[T: common.ElementBase](
     info = __REGISTRY__[ns]
 
     if prefix is not None:
+        if info.prefix:
+            msg = f"Namespace {ns} already has a registered prefix: {info.prefix}"
+            raise ValueError(msg)
         info.prefix = prefix
         lxml.etree.register_namespace(prefix, ns)
     if schema_path is not None:
         info.schema_path = schema_path.absolute() if not schema_path.is_absolute() else schema_path
 
     if local_name in info.classes:
-        msg = f"Local name: {local_name!r} already registered"
+        msg = f"{cls.TAG} already registered"
         raise RuntimeError(msg)
     info.classes[local_name] = cls
     return cls
@@ -127,8 +130,3 @@ def get_schema_lines() -> Sequence[str]:
         for ns, info in __REGISTRY__.items()
         if info.schema_path is not None
     ]
-
-
-def clear_registry() -> None:
-    """Remove all registered extension classes. Useful for test isolation."""
-    __REGISTRY__.clear()
