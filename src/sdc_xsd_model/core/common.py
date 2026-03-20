@@ -92,3 +92,19 @@ class QNameListType(ElementBase):
             else:
                 q_names.append(lxml.etree.QName(raw_qname))
         return q_names
+
+
+def _all_subclasses(cls: type[ElementBase]) -> set[type[ElementBase]]:
+    """Recursively collect all subclasses of *cls*."""
+    result: set[type[ElementBase]] = set()
+    for sub in cls.__subclasses__():
+        result.add(sub)
+        result.update(_all_subclasses(sub))
+    return result
+
+
+def set_parser_on_subclasses(module_name: str, parser: lxml.etree.XMLParser) -> None:
+    """Set ``PARSER`` on every ``ElementBase`` subclass defined in *module_name*."""
+    for cls in _all_subclasses(ElementBase):
+        if cls.__module__ == module_name:
+            cls.PARSER = parser

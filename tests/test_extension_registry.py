@@ -93,7 +93,7 @@ def test_register_without_prefix(local_part: str) -> None:
         class Bar(common.ElementBase):
             TAG = f"{{{TEST_NS}}}{local_part}"
 
-        assert Bar.__name__ in __REGISTRY__[TEST_NS].classes
+        assert local_part in __REGISTRY__[TEST_NS].classes
         assert __REGISTRY__[TEST_NS].classes[local_part] is Bar
 
 
@@ -152,7 +152,7 @@ def test_tag_namespace_mismatch_raises() -> None:
         decorator = register_extension(namespace=TEST_NS)
         with pytest.raises(
             ValueError,
-            match=f"TAG namesapce http://wrong.example.com does not match factory namespace {TEST_NS}",
+            match=f"TAG namespace 'http://wrong.example.com' does not match factory namespace {TEST_NS!r}",
         ):
 
             @decorator

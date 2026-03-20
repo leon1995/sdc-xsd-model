@@ -147,18 +147,4 @@ def get_parser() -> lxml.etree.XMLParser:
     return xml_parser
 
 
-for cls in (
-    AttributedURIType,
-    Address,
-    Metadata,
-    ReferenceParameters,
-    EndpointReference,
-    To,
-    From,
-    ReplyTo,
-    FaultTo,
-    Action,
-    MessageID,
-    RelatesTo,
-):
-    cls.PARSER = get_parser()
+common.set_parser_on_subclasses(__name__, get_parser())

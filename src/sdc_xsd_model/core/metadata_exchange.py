@@ -102,13 +102,4 @@ def get_parser() -> lxml.etree.XMLParser:
     return xml_parser
 
 
-for cls in (
-    Dialect,
-    Identifier,
-    GetMetadata,
-    Location,
-    MetadataReference,
-    MetadataSection,
-    Metadata,
-):
-    cls.PARSER = get_parser()
+common.set_parser_on_subclasses(__name__, get_parser())

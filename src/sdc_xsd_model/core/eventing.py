@@ -217,26 +217,4 @@ def get_parser() -> lxml.etree.XMLParser:
     return xml_parser
 
 
-for cls in (
-    NotifyTo,
-    EndTo,
-    SubscriptionManager,
-    DeliveryType,
-    FilterType,
-    Identifier,
-    SupportedDeliveryMode,
-    SupportedDialect,
-    LanguageSpecificStringType,
-    Reason,
-    Expires,
-    GetStatus,
-    GetStatusResponse,
-    Renew,
-    RenewResponse,
-    Unsubscribe,
-    Subscribe,
-    SubscribeResponse,
-    Status,
-    SubscriptionEnd,
-):
-    cls.PARSER = get_parser()
+common.set_parser_on_subclasses(__name__, get_parser())

@@ -198,23 +198,4 @@ def get_parser() -> lxml.etree.XMLParser:
     return xml_parser
 
 
-for cls in (
-    Manufacturer,
-    ManufacturerUrl,
-    ModelName,
-    ModelNumber,
-    ModelUrl,
-    PresentationUrl,
-    ThisModel,
-    FriendlyName,
-    FirmwareVersion,
-    SerialNumber,
-    ThisDevice,
-    Relationship,
-    Types,
-    ServiceId,
-    Host,
-    Hosted,
-    Profile,
-):
-    cls.PARSER = get_parser()
+common.set_parser_on_subclasses(__name__, get_parser())

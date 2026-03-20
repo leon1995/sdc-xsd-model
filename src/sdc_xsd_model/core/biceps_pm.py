@@ -2127,40 +2127,7 @@ def get_parser() -> lxml.etree.XMLParser:
     return xml_parser
 
 
-_TAGGED_CLASSES: typing.Final[tuple[type[common.ElementBase], ...]] = (
-    MdDescription,
-    MdState,
-    MdsDescriptor,
-    VmdDescriptor,
-    ChannelDescriptor,
-    ClockDescriptor,
-    BatteryDescriptor,
-    ScoDescriptor,
-    AlertSystemDescriptor,
-    AlertConditionDescriptor,
-    AlertSignalDescriptor,
-    SystemContextDescriptor,
-    PatientContextDescriptor,
-    LocationContextDescriptor,
-    WorkflowContextDescriptor,
-    OperatorContextDescriptor,
-    MeansContextDescriptor,
-    EnsembleContextDescriptor,
-    PhysicalConnectorInfo,
-    CalibrationInfo,
-    ApprovedJurisdictions,
-    OperatingJurisdiction,
-    SystemSignalActivation,
-    CauseInfo,
-    RemedyInfo,
-    ImagingProcedure,
-    LocationDetail,
-    PatientDemographicsCoreData,
-    ContainmentTreeEntry,
-)
-
-for cls in _TAGGED_CLASSES:
-    cls.PARSER = get_parser()
+common.set_parser_on_subclasses(__name__, get_parser())
 
 
 type ABSTRACT_DEVICE_COMPONENT_DESCRIPTOR = (
