@@ -9,8 +9,8 @@ import typing
 import lxml.etree
 import pytest
 
-from sdc_xsd_model import extension_registry
 from sdc_xsd_model.core import biceps_msg, biceps_pm, extension
+from sdc_xsd_model.extension_registry import ExtensionRegistry
 from sdc_xsd_model.extensions import sdpi
 from sdc_xsd_model.extensions.sdpi.timestamp_epoch_version_models import (
     NAMESPACE,
@@ -37,14 +37,15 @@ TEV_CASES = [
 ]
 
 EXAMPLE_XML = pathlib.Path(__file__).parent / "timestamp_epoch_version_example.xml"
-sdpi.register_timestamp_epoch_version()
 
 
 @pytest.fixture
 def parser() -> lxml.etree.XMLParser:
     """Build a parser with the sdpi namespace class lookup."""
     lookup = lxml.etree.ElementNamespaceClassLookup()
-    extension_registry.set_lookup(lookup)
+    _registry = ExtensionRegistry()
+    sdpi.register_timestamp_epoch_version(_registry)
+    _registry.set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser()
     xml_parser.set_element_class_lookup(lookup)
     return xml_parser
@@ -55,7 +56,9 @@ def biceps_parser() -> lxml.etree.XMLParser:
     """Build a full BICEPS parser with schema validation and all namespace lookups."""
     from sdc_xsd_model.parser import biceps_parser  # noqa: PLC0415
 
-    return biceps_parser()
+    _registry = ExtensionRegistry()
+    sdpi.register_timestamp_epoch_version(_registry)
+    return biceps_parser(_registry)
 
 
 @pytest.mark.parametrize(("clazz", "local_name"), TEV_CASES)

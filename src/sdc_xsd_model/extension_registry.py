@@ -6,9 +6,10 @@ built-in SDC modules and user-defined extensions.
 
 Example::
 
-    from sdc_xsd_model.extension_registry import register_extension
+    from sdc_xsd_model.extension_registry import ExtensionRegistry
 
-    sdpi = register_extension(
+    registry = ExtensionRegistry()
+    sdpi = registry.register_extension(
         namespace="urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1",
         prefix="sdpi",
         schema=Path("custom.xsd"),
@@ -48,9 +49,6 @@ class _NamespaceInfo:
     classes: dict[str, type[common.ElementBase]] = dataclasses.field(default_factory=dict)
 
 
-__REGISTRY__: typing.Final[dict[str, _NamespaceInfo]] = {}
-
-
 def _parse_tag(tag: str) -> tuple[str, str]:
     """Extract ``(namespace, local_name)`` from a Clark-notation TAG string."""
     m = _TAG_RE.match(tag)
@@ -61,7 +59,7 @@ def _parse_tag(tag: str) -> tuple[str, str]:
 
 
 class _NamespaceDecorator:
-    """Reusable decorator returned by :func:`register_extension`."""
+    """Reusable decorator returned by :meth:`ExtensionRegistry.register_extension`."""
 
     __slots__ = ("_info", "_namespace")
 
@@ -107,58 +105,53 @@ class _NamespaceDecorator:
             self._register(cls)
 
 
-def register_extension(
-    namespace: str,
-    *,
-    prefix: str | None = None,
-    schema: str | os.PathLike[str] | None = None,
-) -> _NamespaceDecorator:
-    """Create a decorator that registers ``ElementBase`` subclasses under *namespace*.
+class ExtensionRegistry:
+    """Injectable registry for custom BICEPS extension classes.
 
-    Returns a reusable decorator — call it once per module and apply it to every
-    class in that namespace.  Classes can also be registered at runtime via
-    :meth:`_NamespaceDecorator.register_classes`::
-
-        sdpi = register_extension("urn:...", prefix="sdpi", schema=Path("..."))
-
-        @sdpi
-        class Foo(ElementBase):
-            TAG = "{urn:...}Foo"
-
-        # conditional / runtime registration
-        sdpi.register_classes(DynamicClass)
+    Each instance maintains its own isolated namespace->class mapping,
+    enabling test isolation without global-state mutation.
     """
-    if namespace not in __REGISTRY__:
-        __REGISTRY__[namespace] = _NamespaceInfo()
-    info = __REGISTRY__[namespace]
 
-    if prefix is not None:
-        if info.prefix is not None and info.prefix != prefix:
-            msg = (
-                f"Namespace {namespace!r} already registered with prefix {info.prefix!r}, "
-                f"cannot re-register with {prefix!r}"
-            )
-            raise ValueError(msg)
-        info.prefix = prefix
-        lxml.etree.register_namespace(prefix, namespace)
-    if schema is not None:
-        info.schemas.add(pathlib.Path(schema).absolute())
+    def __init__(self) -> None:
+        self._namespaces: dict[str, _NamespaceInfo] = {}
 
-    return _NamespaceDecorator(namespace, info)
+    def register_extension(
+        self,
+        namespace: str,
+        *,
+        prefix: str | None = None,
+        schema: str | os.PathLike[str] | None = None,
+    ) -> _NamespaceDecorator:
+        """Create a decorator that registers ``ElementBase`` subclasses under *namespace*."""
+        if namespace not in self._namespaces:
+            self._namespaces[namespace] = _NamespaceInfo()
+        info = self._namespaces[namespace]
 
+        if prefix is not None:
+            if info.prefix is not None and info.prefix != prefix:
+                msg = (
+                    f"Namespace {namespace!r} already registered with prefix {info.prefix!r}, "
+                    f"cannot re-register with {prefix!r}"
+                )
+                raise ValueError(msg)
+            info.prefix = prefix
+            lxml.etree.register_namespace(prefix, namespace)
+        if schema is not None:
+            info.schemas.add(pathlib.Path(schema).absolute())
 
-def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
-    """Register all custom extension classes from the registry into *lookup*."""
-    for ns, info in __REGISTRY__.items():
-        ns_registry = lookup.get_namespace(ns)
-        for local_name, cls in info.classes.items():
-            ns_registry[local_name] = cls
+        return _NamespaceDecorator(namespace, info)
 
+    def set_lookup(self, lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
+        """Register all custom extension classes from the registry into *lookup*."""
+        for ns, info in self._namespaces.items():
+            ns_registry = lookup.get_namespace(ns)
+            for local_name, cls in info.classes.items():
+                ns_registry[local_name] = cls
 
-def get_schema_lines() -> Sequence[str]:
-    """Return a lines of XML schema declarations of registered extensions referencing a schema."""
-    return [
-        f'<xsd:import namespace="{ns}" schemaLocation="{schema.as_uri()}"/>'
-        for ns, info in __REGISTRY__.items()
-        for schema in info.schemas
-    ]
+    def get_schema_lines(self) -> Sequence[str]:
+        """Return lines of XML schema declarations of registered extensions referencing a schema."""
+        return [
+            f'<xsd:import namespace="{ns}" schemaLocation="{schema.as_uri()}"/>'
+            for ns, info in self._namespaces.items()
+            for schema in info.schemas
+        ]

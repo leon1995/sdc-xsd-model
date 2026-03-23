@@ -95,7 +95,11 @@ class Epochs(common.ElementBase):
     @property
     def epochs(self) -> Sequence[Epoch]:
         """Return all child Epoch elements (untyped to avoid ambiguity)."""
-        return self.findall_by_element(Epoch)
+        return_value = []
+        # schema contains a bug which is hidden here. see https://github.com/IHE/DEV.SDPi/issues/520
+        for epochs in  self.findall_by_element(Epoch):
+            return_value.extend(epochs.findall_by_element(Epoch))
+        return return_value
 
     @property
     def version(self) -> EpochVersion:

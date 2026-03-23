@@ -46,10 +46,14 @@
               <sdpi:Epochs Version="5">
                 <!-- non-slewing adjustment at 1 pm (1733317200000) in Epoch 4 shifted time back
                      to 10 am starting epoch 5 (1733306400000) -->
-                <sdpi:Epoch Version="4" Timestamp="1733317200000" Offset="-PT3H"/>
+                <sdpi:Epoch>
+                  <sdpi:Epoch Version="4" Timestamp="1733317200000" Offset="-PT3H"/>
+                </sdpi:Epoch>
                 <!-- non-slewing adjustment at 7 am (1733295600000) in epoch 3 shifted time
                      forward to 11 am starting epoch 4 (1733310000000) -->
-                <sdpi:Epoch Version="3" Timestamp="1733295600000" Offset="PT4H"/>
+                <sdpi:Epoch>
+                  <sdpi:Epoch Version="3" Timestamp="1733295600000" Offset="PT4H"/>
+                </sdpi:Epoch>
               </sdpi:Epochs>
             </ext:Extension>
           </pm:State>

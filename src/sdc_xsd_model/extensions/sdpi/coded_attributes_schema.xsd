@@ -8,8 +8,8 @@
 		elementFormDefault="qualified"
 		attributeFormDefault="unqualified"
 		xml:lang="en">
-	<xsd:import namespace="http://standards.ieee.org/downloads/11073/11073-10207-2017/extension" schemaLocation="../ExtensionPoint.xsd"/>
-	<xsd:import namespace="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant" schemaLocation="../BICEPS_ParticipantModel.xsd"/>
+	<xsd:import namespace="http://standards.ieee.org/downloads/11073/11073-10207-2017/extension" schemaLocation="../../xsd/ExtensionPoint.xsd"/>
+	<xsd:import namespace="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant" schemaLocation="../../xsd/BICEPS_ParticipantModel.xsd"/>
 	<!---->
 	<!---->
 	<!--CodedStringAttribute-->

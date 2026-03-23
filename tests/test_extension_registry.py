@@ -1,11 +1,10 @@
-# ruff: noqa: PLR2004
+# ruff: noqa: PLR2004, SLF001
 """Tests for the simplified extension registration API."""
 
 from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
-from unittest import mock
 
 if TYPE_CHECKING:
     import pathlib
@@ -16,12 +15,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from sdc_xsd_model.core import common
-from sdc_xsd_model.extension_registry import (
-    __REGISTRY__,
-    get_schema_lines,
-    register_extension,
-    set_lookup,
-)
+from sdc_xsd_model.extension_registry import ExtensionRegistry
 
 TEST_NS = "http://test.example.com/registry"
 
@@ -69,172 +63,172 @@ def test_register_with_prefix_and_schema(tmp_path: pathlib.Path) -> None:
     schema_file = tmp_path / "test.xsd"
     schema_file.write_text("<xsd:schema xmlns:xsd='http://www.w3.org/2001/XMLSchema'/>")
 
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS, prefix="treg", schema=schema_file)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS, prefix="treg", schema=schema_file)
 
-        @decorator
-        class Foo(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}Foo"
+    @decorator
+    class Foo(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}Foo"
 
-        assert TEST_NS in __REGISTRY__
-        info = __REGISTRY__[TEST_NS]
-        assert info.prefix == "treg"
-        assert schema_file.absolute() in info.schemas
-        assert info.classes["Foo"] is Foo
+    assert TEST_NS in registry._namespaces
+    info = registry._namespaces[TEST_NS]
+    assert info.prefix == "treg"
+    assert schema_file.absolute() in info.schemas
+    assert info.classes["Foo"] is Foo
 
 
 @given(local_part=nc_name())  # ty:ignore[missing-argument]
 def test_register_without_prefix(local_part: str) -> None:
     """Creating a factory without a prefix still registers classes."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS)
 
-        @decorator
-        class Bar(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}{local_part}"
+    @decorator
+    class Bar(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}{local_part}"
 
-        assert local_part in __REGISTRY__[TEST_NS].classes
-        assert __REGISTRY__[TEST_NS].classes[local_part] is Bar
+    assert local_part in registry._namespaces[TEST_NS].classes
+    assert registry._namespaces[TEST_NS].classes[local_part] is Bar
 
 
 @given(prefix=nc_name(), local_name_alpha=nc_name(), local_name_beta=nc_name())  # ty:ignore[missing-argument]
 def test_multiple_classes_same_namespace(prefix: str, local_name_alpha: str, local_name_beta: str) -> None:
     """Multiple classes in the same namespace are collected under one registry entry."""
     assume(local_name_alpha != local_name_beta)
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS, prefix=prefix)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS, prefix=prefix)
 
-        @decorator
-        class Alpha(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}{local_name_alpha}"
+    @decorator
+    class Alpha(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}{local_name_alpha}"
 
-        @decorator
-        class Beta(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}{local_name_beta}"
+    @decorator
+    class Beta(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}{local_name_beta}"
 
-        info = __REGISTRY__[TEST_NS]
-        assert info.prefix == prefix
-        assert len(info.classes) == 2
-        assert info.classes[local_name_alpha] is Alpha
-        assert info.classes[local_name_beta] is Beta
+    info = registry._namespaces[TEST_NS]
+    assert info.prefix == prefix
+    assert len(info.classes) == 2
+    assert info.classes[local_name_alpha] is Alpha
+    assert info.classes[local_name_beta] is Beta
 
 
 def test_register_invalid_tag_raises() -> None:
     """A TAG without Clark notation raises ValueError."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS)
-        with pytest.raises(ValueError, match="Clark notation"):
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS)
+    with pytest.raises(ValueError, match="Clark notation"):
 
-            @decorator
-            class BadTag(common.ElementBase):
-                TAG = "NoNamespace"
+        @decorator
+        class BadTag(common.ElementBase):
+            TAG = "NoNamespace"
 
 
 def test_register_duplicate_local_name_raises() -> None:
     """Registering the same local name twice in the same namespace raises RuntimeError."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS)
+
+    @decorator
+    class Dup(common.ElementBase):
+        TAG: str = f"{{{TEST_NS}}}Dup"
+
+    with pytest.raises(RuntimeError, match=re.escape(f"{Dup.TAG} already registered")):
 
         @decorator
-        class Dup(common.ElementBase):
-            TAG: str = f"{{{TEST_NS}}}Dup"
-
-        with pytest.raises(RuntimeError, match=re.escape(f"{Dup.TAG} already registered")):
-
-            @decorator
-            class Dup2(common.ElementBase):
-                TAG = Dup.TAG
+        class Dup2(common.ElementBase):
+            TAG = Dup.TAG
 
 
 def test_tag_namespace_mismatch_raises() -> None:
     """A class whose TAG namespace doesn't match the factory namespace raises ValueError."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS)
-        with pytest.raises(
-            ValueError,
-            match=f"TAG namespace 'http://wrong.example.com' does not match factory namespace {TEST_NS!r}",
-        ):
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS)
+    with pytest.raises(
+        ValueError,
+        match=re.escape(f"TAG namespace 'http://wrong.example.com' does not match factory namespace {TEST_NS!r}"),
+    ):
 
-            @decorator
-            class Wrong(common.ElementBase):
-                TAG = "{http://wrong.example.com}Wrong"
+        @decorator
+        class Wrong(common.ElementBase):
+            TAG = "{http://wrong.example.com}Wrong"
 
 
 @given(prefix=nc_name())  # ty:ignore[missing-argument]
 def test_same_prefix_reregistration_is_idempotent(prefix: str) -> None:
     """Calling register_namespace twice with the same prefix does not raise."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        register_extension(namespace=TEST_NS, prefix=prefix)
-        decorator = register_extension(namespace=TEST_NS, prefix=prefix)
+    registry = ExtensionRegistry()
+    registry.register_extension(namespace=TEST_NS, prefix=prefix)
+    decorator = registry.register_extension(namespace=TEST_NS, prefix=prefix)
 
-        @decorator
-        class Ok(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}Ok"
+    @decorator
+    class Ok(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}Ok"
 
-        assert __REGISTRY__[TEST_NS].prefix == prefix
-        assert Ok.__name__ in __REGISTRY__[TEST_NS].classes
+    assert registry._namespaces[TEST_NS].prefix == prefix
+    assert Ok.__name__ in registry._namespaces[TEST_NS].classes
 
 
 @given(first=nc_name(), second=nc_name())  # ty:ignore[missing-argument]
 def test_conflicting_prefix_raises(first: str, second: str) -> None:
     """Calling register_namespace with a different prefix for the same namespace raises ValueError."""
     assume(first != second)
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        register_extension(namespace=TEST_NS, prefix=first)
-        with pytest.raises(
-            ValueError,
-            match=re.escape(
-                f"Namespace {TEST_NS!r} already registered with prefix {first!r}, cannot re-register with {second!r}"
-            ),
-        ):
-            register_extension(namespace=TEST_NS, prefix=second)
+    registry = ExtensionRegistry()
+    registry.register_extension(namespace=TEST_NS, prefix=first)
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"Namespace {TEST_NS!r} already registered with prefix {first!r}, cannot re-register with {second!r}"
+        ),
+    ):
+        registry.register_extension(namespace=TEST_NS, prefix=second)
 
 
 @given(prefix=nc_name(), local_part=nc_name())  # ty:ignore[missing-argument]
 def test_set_lookup_registers_into_lookup(prefix: str, local_part: str) -> None:
     """set_lookup populates an ElementNamespaceClassLookup so parsed XML yields typed instances."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS, prefix=prefix)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS, prefix=prefix)
 
-        @decorator
-        class LookupTest(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}{local_part}"
+    @decorator
+    class LookupTest(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}{local_part}"
 
-        lookup = lxml.etree.ElementNamespaceClassLookup()
-        set_lookup(lookup)
-        xml_parser = lxml.etree.XMLParser()
-        xml_parser.set_element_class_lookup(lookup)
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    registry.set_lookup(lookup)
+    xml_parser = lxml.etree.XMLParser()
+    xml_parser.set_element_class_lookup(lookup)
 
-        xml = f'<{prefix}:{local_part} xmlns:{prefix}="{TEST_NS}"/>'.encode()
-        parsed = lxml.etree.fromstring(xml, parser=xml_parser)
-        assert isinstance(parsed, LookupTest)
+    xml = f'<{prefix}:{local_part} xmlns:{prefix}="{TEST_NS}"/>'.encode()
+    parsed = lxml.etree.fromstring(xml, parser=xml_parser)
+    assert isinstance(parsed, LookupTest)
 
 
 @given(prefix=nc_name(), local_part=nc_name())  # ty:ignore[missing-argument]
 def test_serialization_uses_registered_prefix_and_namespace(prefix: str, local_part: str) -> None:
     """Creating and serializing an element uses the registered prefix and namespace."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS, prefix=prefix)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS, prefix=prefix)
 
-        @decorator
-        class MyExtensionClass(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}{local_part}"
+    @decorator
+    class MyExtensionClass(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}{local_part}"
 
-        lookup = lxml.etree.ElementNamespaceClassLookup()
-        set_lookup(lookup)
-        xml_parser = lxml.etree.XMLParser()
-        xml_parser.set_element_class_lookup(lookup)
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    registry.set_lookup(lookup)
+    xml_parser = lxml.etree.XMLParser()
+    xml_parser.set_element_class_lookup(lookup)
 
-        elem = xml_parser.makeelement(MyExtensionClass.TAG)
-        xml_unicode = lxml.etree.tostring(elem, encoding="unicode")
+    elem = xml_parser.makeelement(MyExtensionClass.TAG)
+    xml_unicode = lxml.etree.tostring(elem, encoding="unicode")
 
-        assert f'<{prefix}:{local_part} xmlns:{prefix}="{TEST_NS}"/>' == xml_unicode
+    assert f'<{prefix}:{local_part} xmlns:{prefix}="{TEST_NS}"/>' == xml_unicode
 
-        parsed = lxml.etree.fromstring(xml_unicode, parser=xml_parser)
-        assert isinstance(parsed, MyExtensionClass)
-        assert parsed.tag == MyExtensionClass.TAG
-        assert parsed.prefix == prefix
-        assert parsed.nsmap[prefix] == TEST_NS
+    parsed = lxml.etree.fromstring(xml_unicode, parser=xml_parser)
+    assert isinstance(parsed, MyExtensionClass)
+    assert parsed.tag == MyExtensionClass.TAG
+    assert parsed.prefix == prefix
+    assert parsed.nsmap[prefix] == TEST_NS
 
 
 def test_get_schema_lines_returns_import_for_registered_schema(tmp_path: pathlib.Path) -> None:
@@ -242,26 +236,26 @@ def test_get_schema_lines_returns_import_for_registered_schema(tmp_path: pathlib
     schema_file = tmp_path / "ext.xsd"
     schema_file.write_text("<xsd:schema xmlns:xsd='http://www.w3.org/2001/XMLSchema'/>")
 
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS, prefix="ext", schema=schema_file)
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS, prefix="ext", schema=schema_file)
 
-        @decorator
-        class ExtElem(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}ExtElem"
+    @decorator
+    class ExtElem(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}ExtElem"
 
-        lines = get_schema_lines()
-        assert len(lines) == 1
-        assert lines[0] == f'<xsd:import namespace="{TEST_NS}" schemaLocation="{schema_file.absolute().as_uri()}"/>'
+    lines = registry.get_schema_lines()
+    assert len(lines) == 1
+    assert lines[0] == f'<xsd:import namespace="{TEST_NS}" schemaLocation="{schema_file.absolute().as_uri()}"/>'
 
 
 def test_get_schema_lines_excludes_entries_without_schema() -> None:
     """Namespaces registered without a schema are omitted from get_schema_lines."""
-    with mock.patch.dict(__REGISTRY__, clear=True):
-        decorator = register_extension(namespace=TEST_NS, prefix="noschema")
+    registry = ExtensionRegistry()
+    decorator = registry.register_extension(namespace=TEST_NS, prefix="noschema")
 
-        @decorator
-        class NoSchema(common.ElementBase):
-            TAG = f"{{{TEST_NS}}}NoSchema"
+    @decorator
+    class NoSchema(common.ElementBase):
+        TAG = f"{{{TEST_NS}}}NoSchema"
 
-        lines = get_schema_lines()
-        assert len(lines) == 0
+    lines = registry.get_schema_lines()
+    assert len(lines) == 0

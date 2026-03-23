@@ -1930,7 +1930,7 @@ def _register_structural_elements(ns: lxml.etree._NamespaceRegistry) -> None:
 
 
 def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
-    # Common elements → CodedValue
+    # Common elements -> CodedValue
     for name in (
         "Type",
         "Unit",
@@ -1952,7 +1952,7 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "Category",
     ):
         ns[name] = CodedValue
-    # Common elements → LocalizedText
+    # Common elements -> LocalizedText
     for name in (
         "CodingSystemName",
         "ConceptDescription",
@@ -1963,7 +1963,7 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "ModelName",
     ):
         ns[name] = LocalizedText
-    # Common elements → InstanceIdentifier
+    # Common elements -> InstanceIdentifier
     for name in (
         "Identification",
         "Validator",
@@ -1980,7 +1980,7 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "ApprovedJurisdiction",
     ):
         ns[name] = InstanceIdentifier
-    # Common elements → Range
+    # Common elements -> Range
     for name in (
         "TechnicalRange",
         "PhysiologicalRange",
@@ -1991,7 +1991,7 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "Range",
     ):
         ns[name] = Range
-    # Common elements → Measurement
+    # Common elements -> Measurement
     for name in (
         "Height",
         "Weight",
