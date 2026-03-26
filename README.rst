@@ -14,5 +14,6 @@ Included schemas are
 * `soap-envelope <https://www.w3.org/2003/05/soap-envelope/>`_
 * `WS-Addressing <https://www.w3.org/2005/08/addressing/>`_
 * `WS-Discovery <https://docs.oasis-open.org/ws-dd/discovery/1.1/os/wsdd-discovery-1.1-spec-os.html>`_
+* `MDPWS <https://standards.ieee.org/wp-content/uploads/import/download/11073-20702-2016_downloads.zip>`_
 * `wsdl <https://schemas.xmlsoap.org/wsdl/>`_
 * `xml <https://www.w3.org/XML/1998/namespace>`_
