@@ -60,8 +60,23 @@ class Envelope(common.ElementBase):
         return self.find_by_element(Header)
 
     @property
-    def body(self) -> Body | None:
-        return self.find_by_element(Body)
+    def body(self) -> common.ElementBase | None:
+        # R9981: An ENVELOPE MUST have exactly zero or one child elements of the soap:Body element.
+        body = self.find_by_element(Body)
+        if body is None:
+            return None
+        if len(body) > 1:
+            msg = f"Soap envelope {self!s} is violating R9981 because it has more than one soap:Body element."
+            raise ValueError(msg)
+        child = body[0]
+        if not isinstance(child, common.ElementBase):
+            msg = f"Soap envelope {self!s} contains unknown body element."
+            raise TypeError(msg)
+        return child
+
+    @classmethod
+    def with_header_and_body(cls, to: str, action: str, body: Body) -> typing.Self:
+        return cls(Header(addressing.To(to), addressing.Action(action)), body)
 
 
 class Value(common.QNameType):

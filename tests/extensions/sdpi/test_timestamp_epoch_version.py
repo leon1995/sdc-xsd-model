@@ -54,11 +54,11 @@ def parser() -> lxml.etree.XMLParser:
 @pytest.fixture
 def biceps_parser() -> lxml.etree.XMLParser:
     """Build a full BICEPS parser with schema validation and all namespace lookups."""
-    from sdc_xsd_model.parser import biceps_parser  # noqa: PLC0415
+    from sdc_xsd_model.parser import sdc_parser  # noqa: PLC0415
 
     _registry = ExtensionRegistry()
     sdpi.register_timestamp_epoch_version(_registry)
-    return biceps_parser(_registry)
+    return sdc_parser(_registry)
 
 
 @pytest.mark.parametrize(("clazz", "local_name"), TEV_CASES)
