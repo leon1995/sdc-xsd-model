@@ -44,10 +44,13 @@ class ElementBase(lxml.etree.ElementBase):
         return typing.cast("Sequence[E]", self.findall(element.TAG))
 
     def __str__(self) -> str:
-        return lxml.etree.tostring(self).decode()
+        return bytes(self).decode()
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def __bytes__(self) -> bytes:
+        return lxml.etree.tostring(self)
 
 
 class AnyUri(ElementBase):
