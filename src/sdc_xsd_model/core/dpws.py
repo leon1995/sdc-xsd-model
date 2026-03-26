@@ -108,12 +108,7 @@ class ThisDevice(common.ElementBase):
         return self.find_by_element(SerialNumber)
 
 
-class Relationship(common.ElementBase):
-    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Relationship"
 
-    @property
-    def type(self) -> str | None:
-        return self.get("Type")
 
 
 class Types(common.QNameListType):
@@ -160,6 +155,21 @@ class Hosted(common.ElementBase):
         assert value is not None
         return value
 
+
+class Relationship(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Relationship"
+
+    @property
+    def type(self) -> str | None:
+        return self.get("Type")
+
+    @property
+    def host(self) -> Host | None:
+        return self.find_by_element(Host)
+
+    @property
+    def hosted(self) -> Sequence[Hosted]:
+        return self.findall_by_element(Hosted)
 
 class Profile(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Profile"

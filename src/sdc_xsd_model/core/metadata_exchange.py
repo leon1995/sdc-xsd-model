@@ -56,8 +56,10 @@ class MetadataSection(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}MetadataSection"
 
     @property
-    def dialect(self) -> str | None:
-        return self.get("Dialect")
+    def dialect(self) -> str:
+        value = self.get("Dialect")
+        assert value is not None
+        return value
 
     @property
     def identifier(self) -> str | None:
