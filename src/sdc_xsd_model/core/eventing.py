@@ -153,8 +153,10 @@ class SubscribeResponse(common.ElementBase):
         return value
 
     @property
-    def expires(self) -> Expires | None:
-        return self.find_by_element(Expires)
+    def expires(self) -> Expires:
+        node = self.find_by_element(Expires)
+        assert node is not None
+        return node
 
 
 class SubscriptionEndCodeType(enum.StrEnum):
