@@ -1,6 +1,8 @@
 """Lxml models for WS-Eventing elements from https://www.w3.org/submissions/2006/SUBM-WS-Eventing-20060315/."""
 
 from __future__ import annotations
+import datetime
+from sdc_xsd_model.core.helper import duration
 
 import enum
 import functools
@@ -78,6 +80,14 @@ class Reason(LanguageSpecificStringType):
 
 class Expires(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Expires"
+
+    @property
+    def expiration(self) -> datetime.datetime | datetime.timedelta:
+        text = self.text
+        assert text is not None
+        if text.startswith("P"):
+            return duration.parse_duration(text)
+        return datetime.datetime.fromisoformat(text)
 
 
 class GetStatus(common.ElementBase):
