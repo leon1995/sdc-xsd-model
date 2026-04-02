@@ -85,6 +85,6 @@ class SoapEnvelopeParser:
         """Parse an XML string and return an Envelope object."""
         envelope = lxml.etree.fromstring(raw_envelope, parser=self._parser)
         if not isinstance(envelope, soap_envelope.Envelope):
-            msg = f"Expected a soap envelope, got: {envelope}"
+            msg = f"Expected a {soap_envelope.Envelope.TAG} element, got: {envelope.tag}"
             raise TypeError(msg)
         return envelope
