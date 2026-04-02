@@ -108,9 +108,6 @@ class ThisDevice(common.ElementBase):
         return self.find_by_element(SerialNumber)
 
 
-
-
-
 class Types(common.QNameListType):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Types"
 
@@ -149,11 +146,13 @@ class Hosted(common.ElementBase):
         return value
 
     @property
-    def service_id(self) -> ServiceId:
-        value = self.find_by_element(ServiceId)
+    def service_id(self) -> str:
+        node = self.find_by_element(ServiceId)
         # schema enforces presence
-        assert value is not None
-        return value
+        assert node is not None
+        text = node.text
+        assert text is not None
+        return text
 
 
 class Relationship(common.ElementBase):
@@ -170,6 +169,7 @@ class Relationship(common.ElementBase):
     @property
     def hosted(self) -> Sequence[Hosted]:
         return self.findall_by_element(Hosted)
+
 
 class Profile(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Profile"
