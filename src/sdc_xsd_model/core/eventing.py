@@ -89,6 +89,10 @@ class Expires(common.ElementBase):
             return duration.parse_duration(text)
         return datetime.datetime.fromisoformat(text)
 
+    @classmethod
+    def from_timedelta(cls, delta: datetime.timedelta) -> typing.Self:
+        return cls(duration.duration_string(delta))
+
 
 class GetStatus(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}GetStatus"
