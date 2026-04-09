@@ -75,7 +75,14 @@ class Envelope(common.ElementBase):
         return child
 
     @classmethod
-    def with_header_and_body(cls, to: str | None, relates_to: str | None, action: str, body: Body) -> typing.Self:
+    def with_header_and_body(
+        cls,
+        *,
+        action: str,
+        body: Body,
+        to: str | None = None,
+        relates_to: str | None = None,
+    ) -> typing.Self:
         headers = []
         if relates_to is not None:
             headers.append(addressing.RelatesTo(relates_to))
