@@ -393,14 +393,64 @@ class PhysicalConnectorInfo(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}PhysicalConnector"
 
     @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def labels(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Label"))
+
+    @property
     def number(self) -> str | None:
         return self.get("Number")
+
+
+class CalibrationResult(common.ElementBase):
+    """Calibration result with a code and measurement value."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CalibrationResult"
+
+    @property
+    def code(self) -> CodedValue:
+        result = typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Code"))
+        assert result is not None
+        return result
+
+    @property
+    def value(self) -> Measurement:
+        result = typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Value"))
+        assert result is not None
+        return result
+
+
+class CalibrationDocumentation(common.ElementBase):
+    """Documentation and results for a calibration step."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CalibrationDocumentation"
+
+    @property
+    def documentation(self) -> Sequence[LocalizedText]:
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Documentation"))
+
+    @property
+    def calibration_results(self) -> Sequence[CalibrationResult]:
+        return typing.cast("Sequence[CalibrationResult]", self.findall(f"{{{NAMESPACE}}}CalibrationResult"))
 
 
 class CalibrationInfo(common.ElementBase):
     """Calibration information."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}CalibrationInfo"
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def calibration_documentations(self) -> Sequence[CalibrationDocumentation]:
+        return typing.cast(
+            "Sequence[CalibrationDocumentation]", self.findall(f"{{{NAMESPACE}}}CalibrationDocumentation")
+        )
 
     @property
     def component_calibration_state(self) -> str | None:
@@ -419,6 +469,10 @@ class ApprovedJurisdictions(common.ElementBase):
     """List of regions in which a device component is approved."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ApprovedJurisdictions"
+
+    @property
+    def approved_jurisdictions(self) -> Sequence[InstanceIdentifier]:
+        return typing.cast("Sequence[InstanceIdentifier]", self.findall(f"{{{NAMESPACE}}}ApprovedJurisdiction"))
 
 
 class OperatingJurisdiction(InstanceIdentifier):
@@ -681,7 +735,7 @@ class MetaData(common.ElementBase):
     @property
     def manufacture_date(self) -> str | None:
         # TODO: convert to xsd:datetime  # noqa: FIX002, TD002, TD003
-        node = self.find(f"{{{NAMESPACE}}}ManufacturedDate")
+        node = self.find(f"{{{NAMESPACE}}}ManufactureDate")
         return node.text if node is not None else None
 
     @property
@@ -696,7 +750,7 @@ class MetaData(common.ElementBase):
 
     @property
     def model_number(self) -> str | None:
-        node = self.find("ModelNumber")
+        node = self.find(f"{{{NAMESPACE}}}ModelNumber")
         return node.text if node is not None else None
 
     @property
@@ -2008,6 +2062,7 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "Temperature",
         "RemainingBatteryTime",
         "Characteristic",
+        "Value",
     ):
         ns[name] = Measurement
 
@@ -2016,6 +2071,8 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # n
     ns["PhysicalConnector"] = PhysicalConnectorInfo
     ns["CalibrationInfo"] = CalibrationInfo
     ns["NextCalibration"] = CalibrationInfo
+    ns["CalibrationDocumentation"] = CalibrationDocumentation
+    ns["CalibrationResult"] = CalibrationResult
     ns["Relation"] = MetricRelation
     ns["ApprovedJurisdictions"] = ApprovedJurisdictions
     ns["OperatingJurisdiction"] = OperatingJurisdiction
