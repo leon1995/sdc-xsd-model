@@ -63,7 +63,7 @@ class Envelope(common.ElementBase):
     def body(self) -> common.ElementBase | None:
         # R9981: An ENVELOPE MUST have exactly zero or one child elements of the soap:Body element.
         body = self.find_by_element(Body)
-        if body is None:
+        if body is None or len(body) == 0:
             return None
         if len(body) > 1:
             msg = f"Soap envelope {self!s} is violating R9981 because it has more than one soap:Body element."
