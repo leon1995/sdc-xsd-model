@@ -1,4 +1,6 @@
 """Lxml models for SOAP elements from https://www.w3.org/TR/soap12-part1/ and https://www.w3.org/TR/soap12-part2/."""
+import uuid
+from operator import add
 
 import functools
 import pathlib
@@ -88,7 +90,7 @@ class Envelope(common.ElementBase):
             headers.append(addressing.RelatesTo(relates_to))
         if to is not None:
             headers.append(addressing.To(to))
-        return cls(Header(*headers, addressing.Action(action)), body)
+        return cls(Header(*headers, addressing.Action(action), addressing.MessageID(uuid.uuid4().urn)), body)
 
 
 class Value(common.QNameType):
