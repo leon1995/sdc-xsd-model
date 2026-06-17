@@ -52,6 +52,26 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
+def test_device_relationship_type_uris() -> None:
+    """Ensure the relationship-type enum mirrors the schema values."""
+    assert f"{dpws.NAMESPACE}/host" == dpws.DeviceRelationshipTypeURIs.HOST
+
+
+def test_device_metadata_dialect_uris() -> None:
+    """Ensure the metadata-dialect enum mirrors the schema values."""
+    assert f"{dpws.NAMESPACE}/ThisModel" == dpws.DeviceMetadataDialectURIs.THIS_MODEL
+    assert f"{dpws.NAMESPACE}/ThisDevice" == dpws.DeviceMetadataDialectURIs.THIS_DEVICE
+    assert f"{dpws.NAMESPACE}/Relationship" == dpws.DeviceMetadataDialectURIs.RELATIONSHIP
+
+
+def test_device_fault_enums() -> None:
+    """Ensure the QName-based fault enums use Clark notation matching the schema."""
+    assert (
+        f"{{{dpws.NAMESPACE}}}FilterActionNotSupported"
+    ) == dpws.DeviceSoapFaultSubcodeQNames.FILTER_ACTION_NOT_SUPPORTED
+    assert f"{{{dpws.NAMESPACE}}}Device" == dpws.DiscoveryTypeValues.DEVICE
+
+
 def _create_this_model() -> dpws.ThisModel:
     return dpws.ThisModel(
         dpws.Manufacturer("Acme Corp"),

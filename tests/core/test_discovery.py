@@ -21,6 +21,9 @@ DISCOVERY_CASES = [
     (discovery.ResolveMatch, "ResolveMatch"),
     (discovery.ResolveMatches, "ResolveMatches"),
     (discovery.AppSequence, "AppSequence"),
+    (discovery.SupportedMatchingRules, "SupportedMatchingRules"),
+    (discovery.Security, "Security"),
+    (discovery.Sig, "Sig"),
 ]
 
 
@@ -50,7 +53,7 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def _create_discovery_element(  # noqa: C901, PLR0911
+def _create_discovery_element(  # noqa: C901, PLR0911, PLR0912
     clazz: type[common.ElementBase],
 ) -> tuple[common.ElementBase, str | None]:
     if clazz is discovery.Types:
@@ -94,7 +97,23 @@ def _create_discovery_element(  # noqa: C901, PLR0911
         element.set("SequenceId", "urn:uuid:22222222-2222-2222-2222-222222222222")
         element.set("MessageNumber", "1")
         return element, None
+    if clazz is discovery.SupportedMatchingRules:
+        return discovery.SupportedMatchingRules(f"{discovery.NAMESPACE}/rfc3986"), None
+    if clazz is discovery.Security:
+        return discovery.Security(_make_sig()), None
+    if clazz is discovery.Sig:
+        return _make_sig(), None
     return clazz(), None
+
+
+def _make_sig() -> discovery.Sig:
+    return discovery.Sig(
+        attrib={
+            "Scheme": f"{discovery.NAMESPACE}/rfc4051",
+            "Refs": "id0",
+            "Sig": "QUJD",
+        },
+    )
 
 
 def _make_types() -> discovery.Types:

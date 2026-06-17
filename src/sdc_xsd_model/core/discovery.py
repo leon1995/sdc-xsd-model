@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import enum
 import functools
 import pathlib
 import typing
@@ -21,6 +22,10 @@ SCHEMA_PATH: typing.Final[pathlib.Path] = (
     pathlib.Path(__file__).parent.parent.joinpath("xsd", "wsdd-discovery-1.1-schema-os.xsd").absolute()
 )
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
+
+class FaultCodeType(enum.StrEnum):
+    MATCHING_RULE_NOT_SUPPORTED = f"{{{NAMESPACE}}}MatchingRuleNotSupported"
 
 
 class UriListType(common.ElementBase):
@@ -218,6 +223,47 @@ class AppSequence(common.ElementBase):
         return int(value)
 
 
+class SupportedMatchingRules(UriListType):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}SupportedMatchingRules"
+
+
+class Sig(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Sig"
+
+    @property
+    def scheme(self) -> str:
+        value = self.get("Scheme")
+        # schema enforces presence
+        assert value is not None
+        return value
+
+    @property
+    def key_id(self) -> str | None:
+        return self.get("KeyId")
+
+    @property
+    def refs(self) -> str:
+        value = self.get("Refs")
+        # schema enforces presence
+        assert value is not None
+        return value
+
+    @property
+    def sig(self) -> str:
+        value = self.get("Sig")
+        # schema enforces presence
+        assert value is not None
+        return value
+
+
+class Security(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Security"
+
+    @property
+    def sig(self) -> Sig | None:
+        return self.find_by_element(Sig)
+
+
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     """Register discovery types in the given lookup."""
     discovery_namespace = lookup.get_namespace(NAMESPACE)
@@ -234,6 +280,9 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     discovery_namespace["ResolveMatches"] = ResolveMatches
     discovery_namespace["AppSequence"] = AppSequence
     discovery_namespace["MetadataVersion"] = MetadataVersion
+    discovery_namespace["SupportedMatchingRules"] = SupportedMatchingRules
+    discovery_namespace["Security"] = Security
+    discovery_namespace["Sig"] = Sig
 
 
 @functools.cache

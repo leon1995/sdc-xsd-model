@@ -17,6 +17,11 @@ ADDRESSING_CASES = [
     (addressing.Action, "Action"),
     (addressing.MessageID, "MessageID"),
     (addressing.RelatesTo, "RelatesTo"),
+    (addressing.RetryAfter, "RetryAfter"),
+    (addressing.ProblemHeaderQName, "ProblemHeaderQName"),
+    (addressing.ProblemIRI, "ProblemIRI"),
+    (addressing.SoapAction, "SoapAction"),
+    (addressing.ProblemAction, "ProblemAction"),
 ]
 
 
@@ -46,12 +51,27 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def _create_addressing_element(
+def _create_addressing_element(  # noqa: PLR0911
     clazz: type[common.ElementBase],
 ) -> tuple[common.ElementBase, str | None]:
     if clazz is addressing.Address:
         container = addressing.EndpointReference(addressing.Address.from_random_uri())
         return container, addressing.Address.TAG
+    if clazz is addressing.RetryAfter:
+        return addressing.RetryAfter("10"), None
+    if clazz is addressing.ProblemHeaderQName:
+        return addressing.ProblemHeaderQName(
+            f"{addressing.PREFIX}:Action",
+            nsmap={addressing.PREFIX: addressing.NAMESPACE},
+        ), None
+    if clazz is addressing.SoapAction:
+        container = addressing.ProblemAction(addressing.SoapAction.from_uri("urn:example:soap-action"))
+        return container, addressing.SoapAction.TAG
+    if clazz is addressing.ProblemAction:
+        return addressing.ProblemAction(
+            addressing.Action.from_random_uri(),
+            addressing.SoapAction.from_uri("urn:example:soap-action"),
+        ), None
     if issubclass(clazz, addressing.EndpointReference):
         element = clazz(addressing.Address.from_random_uri())
         return element, None

@@ -1,10 +1,10 @@
 """Lxml models for SOAP elements from https://www.w3.org/TR/soap12-part1/ and https://www.w3.org/TR/soap12-part2/."""
-import uuid
-from operator import add
 
+import enum
 import functools
 import pathlib
 import typing
+import uuid
 from collections.abc import Sequence
 
 import lxml.etree
@@ -20,6 +20,14 @@ SCHEMA_PATH: typing.Final[pathlib.Path] = (
     pathlib.Path(__file__).parent.parent.joinpath("xsd", "soap-envelope.xsd").absolute()
 )
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
+
+class FaultCodeEnum(enum.StrEnum):
+    DATA_ENCODING_UNKNOWN = f"{{{NAMESPACE}}}DataEncodingUnknown"
+    MUST_UNDERSTAND = f"{{{NAMESPACE}}}MustUnderstand"
+    RECEIVER = f"{{{NAMESPACE}}}Receiver"
+    SENDER = f"{{{NAMESPACE}}}Sender"
+    VERSION_MISMATCH = f"{{{NAMESPACE}}}VersionMismatch"
 
 
 class Header(common.ElementBase):
@@ -176,6 +184,36 @@ class Fault(common.ElementBase):
         return self.find_by_element(Detail)
 
 
+class NotUnderstood(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}NotUnderstood"
+
+    @property
+    def qname(self) -> str:
+        value = self.get("qname")
+        # schema enforces presence
+        assert value is not None
+        return value
+
+
+class SupportedEnvelope(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}SupportedEnvelope"
+
+    @property
+    def qname(self) -> str:
+        value = self.get("qname")
+        # schema enforces presence
+        assert value is not None
+        return value
+
+
+class Upgrade(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Upgrade"
+
+    @property
+    def supported_envelopes(self) -> Sequence[SupportedEnvelope]:
+        return self.findall_by_element(SupportedEnvelope)
+
+
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     """Register SOAP elements in the given lookup."""
     soap_namespace = lookup.get_namespace(NAMESPACE)
@@ -191,6 +229,9 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     soap_namespace["Value"] = Value
     soap_namespace["Node"] = Node
     soap_namespace["Role"] = Role
+    soap_namespace["NotUnderstood"] = NotUnderstood
+    soap_namespace["Upgrade"] = Upgrade
+    soap_namespace["SupportedEnvelope"] = SupportedEnvelope
 
 
 @functools.cache

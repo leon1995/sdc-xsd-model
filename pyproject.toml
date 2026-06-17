@@ -14,15 +14,15 @@ dependencies = [
 
 [dependency-groups]
 test = [
-    "hypothesis>=6.139.2",
-    "pytest>=8.4.2",
-    "pytest-html>=4.1.1",
+    "hypothesis>=6.155.3",
+    "pytest>=9.1.0",
+    "pytest-html>=4.2.0",
 ]
 dev = [
     { include-group = "test" },
     "lxml-stubs>=0.5.1",
-    "ruff>=0.14.5",
-    "ty>=0.0.23",
+    "ruff>=0.15.17",
+    "ty>=0.0.49",
 ]
 
 [tool.ruff]
@@ -58,7 +58,7 @@ lint.extend-ignore = [# https://docs.astral.sh/ruff/settings/#extend-ignore
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 120 # https://docs.astral.sh/ruff/settings/#max-doc-length
 
-[tool.pytest.ini_options]
+[tool.pytest]
 testpaths = [
-    "tests"
+    "tests",
 ]

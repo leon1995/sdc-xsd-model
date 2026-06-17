@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import enum
 import functools
 import pathlib
 import typing
@@ -22,6 +23,24 @@ lxml.etree.register_namespace(PREFIX, NAMESPACE)
 
 SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "ws-addr.xsd").absolute()
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
+
+class RelationshipType(enum.StrEnum):
+    REPLY = f"{NAMESPACE}/reply"
+
+
+class FaultCodesType(enum.StrEnum):
+    INVALID_ADDRESSING_HEADER = f"{{{NAMESPACE}}}InvalidAddressingHeader"
+    INVALID_ADDRESS = f"{{{NAMESPACE}}}InvalidAddress"
+    INVALID_EPR = f"{{{NAMESPACE}}}InvalidEPR"
+    INVALID_CARDINALITY = f"{{{NAMESPACE}}}InvalidCardinality"
+    MISSING_ADDRESS_IN_EPR = f"{{{NAMESPACE}}}MissingAddressInEPR"
+    DUPLICATE_MESSAGE_ID = f"{{{NAMESPACE}}}DuplicateMessageID"
+    ACTION_MISMATCH = f"{{{NAMESPACE}}}ActionMismatch"
+    MESSAGE_ADDRESSING_HEADER_REQUIRED = f"{{{NAMESPACE}}}MessageAddressingHeaderRequired"
+    DESTINATION_UNREACHABLE = f"{{{NAMESPACE}}}DestinationUnreachable"
+    ACTION_NOT_SUPPORTED = f"{{{NAMESPACE}}}ActionNotSupported"
+    ENDPOINT_UNAVAILABLE = f"{{{NAMESPACE}}}EndpointUnavailable"
 
 
 class AttributedURIType(common.AnyUri):
@@ -121,6 +140,38 @@ class RelatesTo(AttributedURIType):
         return self.get("RelationshipType")
 
 
+class RetryAfter(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}RetryAfter"
+
+    @property
+    def value(self) -> int | None:
+        return int(self.text) if self.text is not None else None
+
+
+class ProblemHeaderQName(common.QNameType):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProblemHeaderQName"
+
+
+class ProblemIRI(AttributedURIType):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProblemIRI"
+
+
+class SoapAction(common.AnyUri):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}SoapAction"
+
+
+class ProblemAction(common.ElementBase):
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProblemAction"
+
+    @property
+    def action(self) -> Action | None:
+        return self.find_by_element(Action)
+
+    @property
+    def soap_action(self) -> SoapAction | None:
+        return self.find_by_element(SoapAction)
+
+
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     """Register WS-Addressing elements in the given lookup."""
     addressing_namespace = lookup.get_namespace(NAMESPACE)
@@ -135,6 +186,11 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     addressing_namespace["Action"] = Action
     addressing_namespace["MessageID"] = MessageID
     addressing_namespace["RelatesTo"] = RelatesTo
+    addressing_namespace["RetryAfter"] = RetryAfter
+    addressing_namespace["ProblemHeaderQName"] = ProblemHeaderQName
+    addressing_namespace["ProblemIRI"] = ProblemIRI
+    addressing_namespace["SoapAction"] = SoapAction
+    addressing_namespace["ProblemAction"] = ProblemAction
 
 
 @functools.cache

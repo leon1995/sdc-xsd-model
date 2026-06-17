@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import enum
 import functools
 import pathlib
 import typing
@@ -22,6 +23,32 @@ SCHEMA_PATH: typing.Final[pathlib.Path] = (
     pathlib.Path(__file__).parent.parent.joinpath("xsd", "wsdd-dpws-1.1-schema-os.xsd").absolute()
 )
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
+
+
+class DeviceRelationshipTypeURIs(enum.StrEnum):
+    HOST = f"{NAMESPACE}/host"
+
+
+class DeviceMetadataDialectURIs(enum.StrEnum):
+    THIS_MODEL = f"{NAMESPACE}/ThisModel"
+    THIS_DEVICE = f"{NAMESPACE}/ThisDevice"
+    RELATIONSHIP = f"{NAMESPACE}/Relationship"
+
+
+class DeviceEventingFilterDialectURIs(enum.StrEnum):
+    ACTION = f"{NAMESPACE}/Action"
+
+
+class DeviceActionURIs(enum.StrEnum):
+    FAULT = f"{NAMESPACE}/fault"
+
+
+class DeviceSoapFaultSubcodeQNames(enum.StrEnum):
+    FILTER_ACTION_NOT_SUPPORTED = f"{{{NAMESPACE}}}FilterActionNotSupported"
+
+
+class DiscoveryTypeValues(enum.StrEnum):
+    DEVICE = f"{{{NAMESPACE}}}Device"
 
 
 class LocalizedStringType(common.ElementBase):

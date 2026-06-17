@@ -68,6 +68,7 @@ def sdc_parser(registry: ExtensionRegistry) -> lxml.etree.XMLParser:
     biceps_msg.set_lookup(ns_lookup)
     metadata_exchange.set_lookup(ns_lookup)
     dpws.set_lookup(ns_lookup)
+    mdpws.set_lookup(ns_lookup)
     registry.set_lookup(ns_lookup)
     custom_lookup = element_class_lookup.BicepsElementClassLookup(ns_lookup)
     xml_parser = lxml.etree.XMLParser(schema=sdc_schema(registry))

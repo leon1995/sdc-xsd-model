@@ -1,9 +1,8 @@
 """Lxml models for WS-Eventing elements from https://www.w3.org/submissions/2006/SUBM-WS-Eventing-20060315/."""
 
 from __future__ import annotations
-import datetime
-from sdc_xsd_model.core.helper import duration
 
+import datetime
 import enum
 import functools
 import pathlib
@@ -12,6 +11,7 @@ import typing
 import lxml.etree
 
 from sdc_xsd_model.core import addressing, common
+from sdc_xsd_model.core.helper import duration
 
 if typing.TYPE_CHECKING:
     from collections.abc import Sequence

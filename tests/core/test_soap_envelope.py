@@ -23,6 +23,9 @@ SOAP_ENVELOPE_CASES = [
     (soap_envelope.Node, "Node"),
     (soap_envelope.Role, "Role"),
     (soap_envelope.Fault, "Fault"),
+    (soap_envelope.NotUnderstood, "NotUnderstood"),
+    (soap_envelope.Upgrade, "Upgrade"),
+    (soap_envelope.SupportedEnvelope, "SupportedEnvelope"),
 ]
 
 
@@ -55,7 +58,7 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def _create_envelope_element(  # noqa: C901, PLR0911
+def _create_envelope_element(  # noqa: C901, PLR0911, PLR0912
     clazz: type[common.ElementBase],
 ) -> tuple[common.ElementBase, str | None]:
     if clazz is soap_envelope.Header:
@@ -85,7 +88,29 @@ def _create_envelope_element(  # noqa: C901, PLR0911
         return _make_fault(), soap_envelope.Role.TAG
     if clazz is soap_envelope.Fault:
         return _make_fault(), None
+    if clazz is soap_envelope.NotUnderstood:
+        return _make_not_understood(), None
+    if clazz is soap_envelope.Upgrade:
+        return _make_upgrade(), None
+    if clazz is soap_envelope.SupportedEnvelope:
+        return _make_upgrade(), soap_envelope.SupportedEnvelope.TAG
     return clazz(), None
+
+
+def _make_not_understood() -> soap_envelope.NotUnderstood:
+    return soap_envelope.NotUnderstood(
+        attrib={"qname": f"{soap_envelope.PREFIX}:Envelope"},
+        nsmap={soap_envelope.PREFIX: soap_envelope.NAMESPACE},
+    )
+
+
+def _make_upgrade() -> soap_envelope.Upgrade:
+    return soap_envelope.Upgrade(
+        soap_envelope.SupportedEnvelope(
+            attrib={"qname": f"{soap_envelope.PREFIX}:Envelope"},
+            nsmap={soap_envelope.PREFIX: soap_envelope.NAMESPACE},
+        ),
+    )
 
 
 def _make_header() -> soap_envelope.Header:

@@ -77,7 +77,7 @@ def test_register_with_prefix_and_schema(tmp_path: pathlib.Path) -> None:
     assert info.classes["Foo"] is Foo
 
 
-@given(local_part=nc_name())  # ty:ignore[missing-argument]
+@given(local_part=nc_name())
 def test_register_without_prefix(local_part: str) -> None:
     """Creating a factory without a prefix still registers classes."""
     registry = ExtensionRegistry()
@@ -91,7 +91,7 @@ def test_register_without_prefix(local_part: str) -> None:
     assert registry._namespaces[TEST_NS].classes[local_part] is Bar
 
 
-@given(prefix=nc_name(), local_name_alpha=nc_name(), local_name_beta=nc_name())  # ty:ignore[missing-argument]
+@given(prefix=nc_name(), local_name_alpha=nc_name(), local_name_beta=nc_name())
 def test_multiple_classes_same_namespace(prefix: str, local_name_alpha: str, local_name_beta: str) -> None:
     """Multiple classes in the same namespace are collected under one registry entry."""
     assume(local_name_alpha != local_name_beta)
@@ -154,7 +154,7 @@ def test_tag_namespace_mismatch_raises() -> None:
             TAG = "{http://wrong.example.com}Wrong"
 
 
-@given(prefix=nc_name())  # ty:ignore[missing-argument]
+@given(prefix=nc_name())
 def test_same_prefix_reregistration_is_idempotent(prefix: str) -> None:
     """Calling register_namespace twice with the same prefix does not raise."""
     registry = ExtensionRegistry()
@@ -169,7 +169,7 @@ def test_same_prefix_reregistration_is_idempotent(prefix: str) -> None:
     assert Ok.__name__ in registry._namespaces[TEST_NS].classes
 
 
-@given(first=nc_name(), second=nc_name())  # ty:ignore[missing-argument]
+@given(first=nc_name(), second=nc_name())
 def test_conflicting_prefix_raises(first: str, second: str) -> None:
     """Calling register_namespace with a different prefix for the same namespace raises ValueError."""
     assume(first != second)
@@ -184,7 +184,7 @@ def test_conflicting_prefix_raises(first: str, second: str) -> None:
         registry.register_extension(namespace=TEST_NS, prefix=second)
 
 
-@given(prefix=nc_name(), local_part=nc_name())  # ty:ignore[missing-argument]
+@given(prefix=nc_name(), local_part=nc_name())
 def test_set_lookup_registers_into_lookup(prefix: str, local_part: str) -> None:
     """set_lookup populates an ElementNamespaceClassLookup so parsed XML yields typed instances."""
     registry = ExtensionRegistry()
@@ -204,7 +204,7 @@ def test_set_lookup_registers_into_lookup(prefix: str, local_part: str) -> None:
     assert isinstance(parsed, LookupTest)
 
 
-@given(prefix=nc_name(), local_part=nc_name())  # ty:ignore[missing-argument]
+@given(prefix=nc_name(), local_part=nc_name())
 def test_serialization_uses_registered_prefix_and_namespace(prefix: str, local_part: str) -> None:
     """Creating and serializing an element uses the registered prefix and namespace."""
     registry = ExtensionRegistry()
