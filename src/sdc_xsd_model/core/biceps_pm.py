@@ -383,8 +383,11 @@ class Measurement(common.ElementBase):
         return decimal.Decimal(value)
 
     @property
-    def measurement_unit(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}MeasurementUnit"))
+    def measurement_unit(self) -> CodedValue:
+        value = typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}MeasurementUnit"))
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class PhysicalConnectorInfo(common.ElementBase):
@@ -784,8 +787,8 @@ class MdsDescriptor(AbstractComplexDeviceComponentDescriptor):
         return self.find_by_element(ClockDescriptor)
 
     @property
-    def battery(self) -> BatteryDescriptor | None:
-        return self.find_by_element(BatteryDescriptor)
+    def battery(self) -> Sequence[BatteryDescriptor]:
+        return self.findall_by_element(BatteryDescriptor)
 
     @property
     def approved_jurisdictions(self) -> ApprovedJurisdictions | None:
@@ -801,11 +804,23 @@ class VmdDescriptor(AbstractComplexDeviceComponentDescriptor):
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Vmd"
 
+    @property
+    def approved_jurisdictions(self) -> ApprovedJurisdictions | None:
+        return self.find_by_element(ApprovedJurisdictions)
+
+    @property
+    def channels(self) -> Sequence[ChannelDescriptor]:
+        return self.findall_by_element(ChannelDescriptor)
+
 
 class ChannelDescriptor(AbstractDeviceComponentDescriptor):
     """Descriptor for a channel grouping metrics."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Channel"
+
+    @property
+    def metrics(self) -> Sequence[AbstractMetricDescriptor]:
+        return typing.cast("Sequence[AbstractMetricDescriptor]", self.findall(f"{{{NAMESPACE}}}Metric"))
 
 
 class ClockDescriptor(AbstractDeviceComponentDescriptor):
@@ -1295,10 +1310,10 @@ class NumericMetricDescriptor(AbstractMetricDescriptor):
     """Descriptor for a numeric metric."""
 
     @property
-    def resolution(self) -> str:
+    def resolution(self) -> decimal.Decimal:
         value = self.get("Resolution")
         assert value is not None
-        return value
+        return decimal.Decimal(value)
 
     @property
     def averaging_period(self) -> str | None:
@@ -1795,7 +1810,7 @@ class PatientDemographicsCoreData(BaseDemographics):
         return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Height"))
 
     @property
-    def weigth(self) -> Measurement | None:
+    def weight(self) -> Measurement | None:
         return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Weight"))
 
     @property

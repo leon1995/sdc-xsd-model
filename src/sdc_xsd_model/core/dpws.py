@@ -186,8 +186,11 @@ class Relationship(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Relationship"
 
     @property
-    def type(self) -> str | None:
-        return self.get("Type")
+    def type(self) -> str:
+        value = self.get("Type")
+        # schema enforces presence (use="required")
+        assert value is not None
+        return value
 
     @property
     def host(self) -> Host | None:

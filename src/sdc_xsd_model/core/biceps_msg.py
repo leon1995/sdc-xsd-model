@@ -666,8 +666,14 @@ class SetAlertState(AbstractSet):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SetAlertState"
 
     @property
-    def proposed_alert_state(self) -> biceps_pm.ABSTRACT_ALERT_STATE | None:
-        return typing.cast("biceps_pm.ABSTRACT_ALERT_STATE | None", self.find(f"{{{NAMESPACE}}}ProposedAlertState"))
+    def proposed_alert_state(self) -> biceps_pm.ABSTRACT_ALERT_STATE:
+        value = typing.cast(
+            "biceps_pm.ABSTRACT_ALERT_STATE | None",
+            self.find(f"{{{NAMESPACE}}}ProposedAlertState"),
+        )
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class SetAlertStateResponse(AbstractSetResponse):
@@ -805,7 +811,10 @@ class WaveformStream(AbstractReport):
 
     @property
     def states(self) -> Sequence[biceps_pm.RealTimeSampleArrayMetricState]:
-        return self.findall_by_element(biceps_pm.RealTimeSampleArrayMetricState)
+        return typing.cast(
+            "Sequence[biceps_pm.RealTimeSampleArrayMetricState]",
+            self.findall(f"{{{NAMESPACE}}}State"),
+        )
 
 
 class ObservedValueStream(AbstractReport):

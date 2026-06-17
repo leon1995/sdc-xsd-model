@@ -170,8 +170,16 @@ class SubscriptionEndCodeType(enum.StrEnum):
 
 
 class OpenSubscriptionEndCodeType(common.ElementBase):
-    def code_type(self) -> SubscriptionEndCodeType | None:
-        return SubscriptionEndCodeType(super().text) if super().text is not None else None
+    def code_type(self) -> SubscriptionEndCodeType | str | None:
+        # The schema type is an open union of the enum and xs:anyURI, so a value
+        # outside the enumerated members is still valid; fall back to the raw string.
+        text = super().text
+        if text is None:
+            return None
+        try:
+            return SubscriptionEndCodeType(text)
+        except ValueError:
+            return text
 
 
 class Status(OpenSubscriptionEndCodeType):
@@ -189,8 +197,11 @@ class SubscriptionEnd(common.ElementBase):
         return value
 
     @property
-    def status(self) -> Status | None:
-        return self.find_by_element(Status)
+    def status(self) -> Status:
+        value = self.find_by_element(Status)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def reason(self) -> Sequence[Reason]:

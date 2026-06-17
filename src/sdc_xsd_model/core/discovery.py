@@ -130,8 +130,11 @@ class ProbeMatch(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProbeMatch"
 
     @property
-    def endpoint_reference(self) -> addressing.EndpointReference | None:
-        return self.find_by_element(addressing.EndpointReference)
+    def endpoint_reference(self) -> addressing.EndpointReference:
+        value = self.find_by_element(addressing.EndpointReference)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def types(self) -> Types | None:
@@ -173,8 +176,11 @@ class ResolveMatch(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ResolveMatch"
 
     @property
-    def endpoint_reference(self) -> addressing.EndpointReference | None:
-        return self.find_by_element(addressing.EndpointReference)
+    def endpoint_reference(self) -> addressing.EndpointReference:
+        value = self.find_by_element(addressing.EndpointReference)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def types(self) -> Types | None:
