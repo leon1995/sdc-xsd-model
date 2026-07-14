@@ -184,6 +184,26 @@ def _make_fault() -> soap_envelope.Fault:
     )
 
 
+def test_body_as_returns_narrowed_body() -> None:
+    """``body_as`` returns the soap:Body child when it matches the requested type."""
+    envelope = soap_envelope.Envelope(_make_header(), _make_body())
+    result = envelope.body_as(soap_envelope.Fault)
+    assert isinstance(result, soap_envelope.Fault)
+
+
+def test_body_as_raises_on_type_mismatch() -> None:
+    """``body_as`` raises ``TypeError`` when the body is not the requested type."""
+    envelope = soap_envelope.Envelope(_make_header(), _make_body())
+    with pytest.raises(TypeError):
+        envelope.body_as(soap_envelope.Upgrade)
+
+
+def test_body_as_returns_none_on_missing_body() -> None:
+    """``body_as`` returns ``None`` when there is no soap:Body child (R9981 permits zero)."""
+    envelope = soap_envelope.Envelope(_make_header(), soap_envelope.Body())
+    assert envelope.body_as(soap_envelope.Fault) is None
+
+
 def _make_app_sequence() -> discovery.AppSequence:
     return discovery.AppSequence(
         attrib={

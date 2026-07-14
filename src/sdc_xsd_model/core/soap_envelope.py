@@ -84,6 +84,21 @@ class Envelope(common.ElementBase):
             raise TypeError(msg)
         return child
 
+    def body_as[B: common.ElementBase](self, element: type[B]) -> B | None:
+        """Return the ``soap:Body`` child, checked to be an instance of *element*.
+
+        Returns ``None`` if the envelope has no ``soap:Body`` child (permitted by R9981).
+        Raises ``TypeError`` if a body is present but is not an instance of *element*.
+        """
+        body = self.body
+        if body is None:
+            return None
+        if not isinstance(body, element):
+            actual = type(body).__name__
+            msg = f"Soap envelope {self!s} expected a soap:Body child of type {element.__name__}, got {actual}."
+            raise TypeError(msg)
+        return body
+
     @classmethod
     def with_header_and_body(
         cls,
