@@ -765,16 +765,18 @@ class MetaData(common.ElementBase):
         return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Manufacturer"))
 
     @property
-    def manufacture_date(self) -> str | None:
-        # TODO: convert to xsd:datetime  # noqa: FIX002, TD002, TD003
+    def manufacture_date(self) -> datetime.datetime | None:
         node = self.find(f"{{{NAMESPACE}}}ManufactureDate")
-        return node.text if node is not None else None
+        if node is None or node.text is None:
+            return None
+        return converter.DateTimeConverter.deserialize(node.text)
 
     @property
-    def expiration_date(self) -> str | None:
-        # TODO: convert to xsd:datetime  # noqa: FIX002, TD002, TD003
+    def expiration_date(self) -> datetime.datetime | None:
         node = self.find(f"{{{NAMESPACE}}}ExpirationDate")
-        return node.text if node is not None else None
+        if node is None or node.text is None:
+            return None
+        return converter.DateTimeConverter.deserialize(node.text)
 
     @property
     def model_names(self) -> Sequence[LocalizedText]:
@@ -1849,10 +1851,11 @@ class PatientDemographicsCoreData(BaseDemographics):
         return converter.to_enum(node.text, PatientType) if node is not None else None
 
     @property
-    def date_of_birth(self) -> str | None:
-        # TODO: union of xsd:dateTime, xsd:date, xsd:gYearMonth, xsd:gYear  # noqa: FIX002, TD002, TD003
+    def date_of_birth(self) -> converter.XsdDateTime | None:
         node = self.find(f"{{{NAMESPACE}}}DateOfBirth")
-        return node.text if node is not None else None
+        if node is None or node.text is None:
+            return None
+        return converter.XsdDateTime.deserialize(node.text)
 
     @property
     def height(self) -> Measurement | None:

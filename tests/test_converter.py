@@ -233,6 +233,235 @@ def test_negative_duration_round_trip(raw: str) -> None:
     assert converter.DurationConverter.serialize(delta, allow_negative=True) == raw
 
 
+# ── xsd:dateTime and its truncated forms ───────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("2020", converter.XsdDateTime(2020)),
+        ("2020-05", converter.XsdDateTime(2020, 5)),
+        ("2020-05-17", converter.XsdDateTime(2020, 5, 17)),
+        ("2020-05-17T10:20:30", converter.XsdDateTime(2020, 5, 17, datetime.time(10, 20, 30))),
+        ("-0045", converter.XsdDateTime(-45)),
+        ("12020", converter.XsdDateTime(12020)),
+        ("20200517", converter.XsdDateTime(20200517)),
+        ("2020-02-29", converter.XsdDateTime(2020, 2, 29)),
+        ("2020-05-17T10:20:30.5", converter.XsdDateTime(2020, 5, 17, datetime.time(10, 20, 30, 500000))),
+        (" 2020 ", converter.XsdDateTime(2020)),
+        ("\n2020-05-17\t", converter.XsdDateTime(2020, 5, 17)),
+    ],
+)
+def test_xsd_date_time_deserialize(raw: str, expected: converter.XsdDateTime) -> None:
+    """Each of the four union member types parses to the components it states.
+
+    A year of any digit count and a negative year are both valid, which is why the components are kept as
+    integers rather than as a datetime.date.
+    """
+    assert converter.XsdDateTime.deserialize(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("2020", converter.DateTimePrecision.YEAR),
+        ("2020-05", converter.DateTimePrecision.YEAR_MONTH),
+        ("2020-05-17", converter.DateTimePrecision.DATE),
+        ("2020-05-17T10:20:30", converter.DateTimePrecision.DATE_TIME),
+    ],
+)
+def test_xsd_date_time_precision(raw: str, expected: converter.DateTimePrecision) -> None:
+    """The precision reports which member type of the union the literal was written in."""
+    assert converter.XsdDateTime.deserialize(raw).precision is expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "offset"),
+    [
+        ("2020Z", datetime.timedelta(0)),
+        ("2020-05+02:00", datetime.timedelta(hours=2)),
+        ("2020-05-17-14:00", datetime.timedelta(hours=-14)),
+        ("2020-05-17T10:20:30+05:30", datetime.timedelta(hours=5, minutes=30)),
+    ],
+)
+def test_xsd_date_time_timezone(raw: str, offset: datetime.timedelta) -> None:
+    """Every precision may carry a timezone, so the offset is kept apart from the time of day."""
+    parsed = converter.XsdDateTime.deserialize(raw)
+    assert parsed.tzinfo == datetime.timezone(offset)
+    assert parsed.time is None or parsed.time.tzinfo is None
+
+
+def test_xsd_date_time_truncates_sub_microsecond_fraction() -> None:
+    """Fractional seconds are truncated rather than rounded, so they can never carry into the second."""
+    parsed = converter.XsdDateTime.deserialize("2020-05-17T10:20:30.9999999")
+    assert parsed.time == datetime.time(10, 20, 30, 999999)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("2020-05-17T24:00:00", converter.XsdDateTime(2020, 5, 18, datetime.time())),
+        ("2020-05-31T24:00:00", converter.XsdDateTime(2020, 6, 1, datetime.time())),
+        ("2020-12-31T24:00:00", converter.XsdDateTime(2021, 1, 1, datetime.time())),
+    ],
+)
+def test_xsd_date_time_midnight_rolls_over(raw: str, expected: converter.XsdDateTime) -> None:
+    """The hour 24 denotes midnight of the following day and is normalized to it."""
+    assert converter.XsdDateTime.deserialize(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "",
+        "+2020",
+        "2020-00",
+        "2020-13-01",
+        "2020-01-32",
+        "2020-5-17",
+        "2020-05-17T10:20",
+        "2020-05-17T23:59:60",
+        "2020-05-17+15:00",
+        "2020-05-17T10:20:30+02",
+        "2020-05-17 10:20:30",
+        "17.05.2020",
+    ],
+)
+def test_xsd_date_time_invalid_lexical(raw: str) -> None:
+    """Literals outside the lexical space of all four types are rejected."""
+    with pytest.raises(ValueError, match="not a valid xsd:dateTime"):
+        converter.XsdDateTime.deserialize(raw)
+
+
+@pytest.mark.parametrize(
+    ("raw", "message"),
+    [
+        ("0000", "year zero"),
+        ("2001-02-30", "out of range"),
+        ("2021-02-29", "out of range"),
+        ("2020-04-31", "out of range"),
+        ("2020-05-17T24:00:01", "denotes midnight"),
+    ],
+)
+def test_xsd_date_time_invalid_value(raw: str, message: str) -> None:
+    """Literals inside the lexical space but outside the value space are rejected as well."""
+    with pytest.raises(ValueError, match=message):
+        converter.XsdDateTime.deserialize(raw)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "2020",
+        "-0045",
+        "12020",
+        "2020Z",
+        "2020+02:00",
+        "2020-05",
+        "2020-05-17",
+        "2020-05-17-14:00",
+        "2020-05-17T10:20:30",
+        "2020-05-17T10:20:30.5",
+        "2020-05-17T10:20:30Z",
+    ],
+)
+def test_xsd_date_time_round_trip(raw: str) -> None:
+    """A canonical literal of any precision survives deserialize followed by serialize unchanged."""
+    assert converter.XsdDateTime.deserialize(raw).serialize() == raw
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [("2020-05-17T24:00:00", "2020-05-18T00:00:00"), ("2020-05-17+00:00", "2020-05-17Z")],
+)
+def test_xsd_date_time_canonicalizes(raw: str, expected: str) -> None:
+    """Where two lexical forms denote one value, serialize returns the canonical one."""
+    assert converter.XsdDateTime.deserialize(raw).serialize() == expected
+
+
+def test_xsd_date_time_str_is_the_lexical_form() -> None:
+    """str() gives the lexical form, so a value can be written straight into an element."""
+    assert str(converter.XsdDateTime(2020, 5)) == "2020-05"
+
+
+def test_xsd_date_time_rejects_year_zero() -> None:
+    """Direct construction enforces the same invariants as parsing; XML Schema 1.0 has no year zero."""
+    with pytest.raises(ValueError, match="year zero"):
+        converter.XsdDateTime(0)
+
+
+def test_xsd_date_time_rejects_day_without_month() -> None:
+    """No lexical form states a day without the month it refines."""
+    with pytest.raises(ValueError, match="without a month"):
+        converter.XsdDateTime(2020, day=17)
+
+
+def test_xsd_date_time_rejects_time_without_date() -> None:
+    """No lexical form states a time of day without a full date."""
+    with pytest.raises(ValueError, match="without a full date"):
+        converter.XsdDateTime(2020, 5, time=datetime.time(10))
+
+
+def test_xsd_date_time_rejects_month_out_of_range() -> None:
+    """A month outside 1 to 12 has no lexical form."""
+    with pytest.raises(ValueError, match="out of range"):
+        converter.XsdDateTime(2020, 13)
+
+
+def test_xsd_date_time_rejects_day_out_of_range_for_month() -> None:
+    """The value space rejects a day the month does not have, February 29th of a common year included."""
+    with pytest.raises(ValueError, match="out of range"):
+        converter.XsdDateTime(2021, 2, 29)
+
+
+def test_xsd_date_time_rejects_aware_time() -> None:
+    """The offset lives in tzinfo, so that it survives at a precision that has no time of day."""
+    with pytest.raises(ValueError, match="belongs in the tzinfo"):
+        converter.XsdDateTime(2020, 5, 17, datetime.time(10, tzinfo=datetime.UTC))
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("2020", "2020-01-01T00:00:00"),
+        ("2020-05", "2020-05-01T00:00:00"),
+        ("2020-05-17", "2020-05-17T00:00:00"),
+        ("2020-05-17T10:20:30", "2020-05-17T10:20:30"),
+        ("2020-05-17T10:20:30+02:00", "2020-05-17T10:20:30+02:00"),
+        ("2020-05Z", "2020-05-01T00:00:00+00:00"),
+    ],
+)
+def test_xsd_date_time_to_datetime(raw: str, expected: str) -> None:
+    """An absent month or day defaults to 1 and an absent time to midnight; the offset is kept."""
+    assert converter.XsdDateTime.deserialize(raw).to_datetime() == datetime.datetime.fromisoformat(expected)
+
+
+def test_xsd_date_time_to_datetime_rejects_unrepresentable_year() -> None:
+    """A year datetime cannot hold is an error only once a concrete instant is asked for."""
+    parsed = converter.XsdDateTime.deserialize("12020")
+    with pytest.raises(ValueError, match="year"):
+        parsed.to_datetime()
+
+
+def test_date_time_converter_deserialize() -> None:
+    """A full xsd:dateTime literal converts straight to a datetime."""
+    converted = converter.DateTimeConverter.deserialize("2020-05-17T10:20:30Z")
+    assert converted == datetime.datetime.fromisoformat("2020-05-17T10:20:30+00:00")
+
+
+@pytest.mark.parametrize(("raw", "precision"), [("2020", "gYear"), ("2020-05", "gYearMonth"), ("2020-05-17", "date")])
+def test_date_time_converter_rejects_shorter_forms(raw: str, precision: str) -> None:
+    """The shorter forms are valid literals of their own types, but not of xsd:dateTime."""
+    with pytest.raises(ValueError, match=f"xsd:{precision} literal"):
+        converter.DateTimeConverter.deserialize(raw)
+
+
+@pytest.mark.parametrize("raw", ["2020-05-17T10:20:30", "2020-05-17T10:20:30+02:00", "2020-05-17T10:20:30.5Z"])
+def test_date_time_converter_round_trip(raw: str) -> None:
+    """A naive or aware datetime round-trips through deserialize and serialize."""
+    assert converter.DateTimeConverter.serialize(converter.DateTimeConverter.deserialize(raw)) == raw
+
+
 # ── absent values ──────────────────────────────────────────────────────────────────────────────────
 
 

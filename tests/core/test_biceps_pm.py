@@ -6,6 +6,7 @@ import decimal
 import lxml.etree
 import pytest
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import biceps_pm, common, extension
 
 
@@ -267,3 +268,70 @@ def test_xsi_type_resolves_to_qname() -> None:
     assert xsi_type is not None
     assert xsi_type.namespace == biceps_pm.NAMESPACE
     assert xsi_type.localname == "AlertSystemDescriptor"
+
+
+# ── date and time properties ───────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("2020", converter.XsdDateTime(2020)),
+        ("2020-05", converter.XsdDateTime(2020, 5)),
+        ("2020-05-17", converter.XsdDateTime(2020, 5, 17)),
+        ("2020-05-17T10:20:30Z", converter.XsdDateTime(2020, 5, 17, datetime.time(10, 20, 30), datetime.UTC)),
+    ],
+)
+def test_core_data_date_of_birth(raw: str, expected: converter.XsdDateTime) -> None:
+    """DateOfBirth is a union of four precisions, each of which is exposed as an XsdDateTime."""
+    element = _parse(f'<CoreData xmlns="{biceps_pm.NAMESPACE}"><DateOfBirth>{raw}</DateOfBirth></CoreData>')
+    assert isinstance(element, biceps_pm.PatientDemographicsCoreData)
+    assert element.date_of_birth == expected
+
+
+def test_core_data_date_of_birth_absent() -> None:
+    """DateOfBirth is optional, so an absent one stays absent."""
+    element = _parse(f'<CoreData xmlns="{biceps_pm.NAMESPACE}"/>')
+    assert isinstance(element, biceps_pm.PatientDemographicsCoreData)
+    assert element.date_of_birth is None
+
+
+def test_core_data_date_of_birth_invalid() -> None:
+    """An invalid literal raises rather than being handed back as the raw string it used to be."""
+    element = _parse(f'<CoreData xmlns="{biceps_pm.NAMESPACE}"><DateOfBirth>17.05.2020</DateOfBirth></CoreData>')
+    assert isinstance(element, biceps_pm.PatientDemographicsCoreData)
+    with pytest.raises(ValueError, match="not a valid xsd:dateTime"):
+        _ = element.date_of_birth
+
+
+def _meta_data(**children: str) -> biceps_pm.MetaData:
+    """Build a MetaData element with the given child elements and texts.
+
+    Built through the class rather than parsed, because MetaData is not registered in set_lookup, so no
+    parser resolves a pm:MetaData element to this class.
+    """
+    element = biceps_pm.MetaData()
+    for name, text in children.items():
+        lxml.etree.SubElement(element, f"{{{biceps_pm.NAMESPACE}}}{name}").text = text
+    return element
+
+
+def test_meta_data_dates() -> None:
+    """ManufactureDate and ExpirationDate are plain xsd:dateTime, so both are exposed as datetimes."""
+    element = _meta_data(ManufactureDate="2020-05-17T10:20:30Z", ExpirationDate="2030-05-17T00:00:00")
+    assert element.manufacture_date == datetime.datetime.fromisoformat("2020-05-17T10:20:30+00:00")
+    assert element.expiration_date == datetime.datetime.fromisoformat("2030-05-17T00:00:00")
+
+
+def test_meta_data_dates_absent() -> None:
+    """Both elements are optional, so an absent one stays absent."""
+    element = _meta_data()
+    assert element.manufacture_date is None
+    assert element.expiration_date is None
+
+
+def test_meta_data_date_rejects_shorter_form() -> None:
+    """A bare year is a valid xsd:gYear but not a valid xsd:dateTime, so it is not silently accepted."""
+    element = _meta_data(ManufactureDate="2020")
+    with pytest.raises(ValueError, match="xsd:gYear literal"):
+        _ = element.manufacture_date
