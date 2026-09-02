@@ -10,7 +10,7 @@ import typing
 
 import lxml.etree
 
-from sdc_xsd_model import element_class_lookup
+from sdc_xsd_model import converter, element_class_lookup
 from sdc_xsd_model.core import common, extension
 from sdc_xsd_model.core.extension import Extension
 
@@ -1058,8 +1058,8 @@ class AlertSignalDescriptor(AbstractAlertDescriptor):
         return value
 
     @property
-    def latching(self) -> str:
-        value = self.get("Latching")
+    def latching(self) -> bool:
+        value = converter.to_bool(self.get("Latching"))
         assert value is not None
         return value
 

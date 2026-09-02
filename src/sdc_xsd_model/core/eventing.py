@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import datetime
 import enum
 import functools
 import pathlib
@@ -10,10 +9,11 @@ import typing
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import addressing, common
-from sdc_xsd_model.core.helper import duration
 
 if typing.TYPE_CHECKING:
+    import datetime
     from collections.abc import Sequence
 
 
@@ -82,16 +82,14 @@ class Expires(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Expires"
 
     @property
-    def expiration(self) -> datetime.datetime | datetime.timedelta:
+    def expiration(self) -> datetime.timedelta:
         text = self.text
         assert text is not None
-        if text.startswith("P"):
-            return duration.parse_duration(text)
-        return datetime.datetime.fromisoformat(text)
+        return converter.DurationConverter.deserialize(text)
 
     @classmethod
     def from_timedelta(cls, delta: datetime.timedelta) -> typing.Self:
-        return cls(duration.duration_string(delta))
+        return cls(converter.DurationConverter.serialize(delta))
 
 
 class GetStatus(common.ElementBase):

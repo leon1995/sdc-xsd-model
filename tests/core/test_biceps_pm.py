@@ -78,3 +78,12 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     xml = lxml.etree.tostring(element)
     parsed_element = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
     assert isinstance(parsed_element, clazz)
+
+
+@pytest.mark.parametrize(("raw", "expected"), [("true", True), ("1", True), ("false", False), ("0", False)])
+def test_alert_signal_descriptor_latching(raw: str, expected: bool) -> None:  # noqa: FBT001
+    """Ensure the Latching attribute is exposed as a Python bool."""
+    xml = f'<AlertSignal xmlns="{biceps_pm.NAMESPACE}" Manifestation="Vis" Latching="{raw}"/>'.encode()
+    element = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
+    assert isinstance(element, biceps_pm.AlertSignalDescriptor)
+    assert element.latching is expected
