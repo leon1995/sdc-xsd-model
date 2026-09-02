@@ -79,6 +79,11 @@ class BicepsElementClassLookup(lxml.etree.PythonElementClassLookup):
 
     def lookup(self, _: typing.Any, element: lxml.etree._Element) -> type[common.ElementBase] | None:  # noqa: ANN401
         """Return the element class based on ``xsi:type``, parent context, or *None* for fallback."""
+        # Comments and processing instructions are also passed here, but their read-only proxy
+        # exposes neither ``get`` nor a string ``tag``.  Delegate them to the fallback lookup.
+        if not isinstance(element.tag, str):
+            return None
+
         ns, local = self._resolve_xsi_type(element)
         if ns is not None and local is not None:
             try:

@@ -5,6 +5,7 @@ from collections.abc import Mapping
 import lxml.etree
 import pytest
 
+from sdc_xsd_model import element_class_lookup
 from sdc_xsd_model.core import addressing, common, discovery, soap_envelope
 
 XMLNS: str = "http://www.w3.org/2000/xmlns/"
@@ -202,6 +203,35 @@ def test_body_as_returns_none_on_missing_body() -> None:
     """``body_as`` returns ``None`` when there is no soap:Body child (R9981 permits zero)."""
     envelope = soap_envelope.Envelope(_make_header(), soap_envelope.Body())
     assert envelope.body_as(soap_envelope.Fault) is None
+
+
+def _make_biceps_parser() -> lxml.etree.XMLParser:
+    """Non-validating parser using the ``xsi:type``-aware BICEPS class lookup."""
+    ns_lookup = lxml.etree.ElementNamespaceClassLookup()
+    addressing.set_lookup(ns_lookup)
+    discovery.set_lookup(ns_lookup)
+    soap_envelope.set_lookup(ns_lookup)
+    parser = lxml.etree.XMLParser()
+    parser.set_element_class_lookup(element_class_lookup.BicepsElementClassLookup(ns_lookup))
+    return parser
+
+
+def test_comment_in_body_does_not_break_class_lookup() -> None:
+    """``BicepsElementClassLookup`` must delegate comments and PIs instead of raising.
+
+    Comment and processing-instruction nodes are passed to ``PythonElementClassLookup.lookup`` too,
+    but their read-only proxy exposes neither ``get`` nor a string ``tag``.
+    """
+    raw = (
+        f'<s12:Envelope xmlns:s12="{soap_envelope.NAMESPACE}">'
+        f"<s12:Header/>"
+        f"<s12:Body><!-- a comment --><?pi data?>"
+        f'<s12:Upgrade><s12:SupportedEnvelope qname="s12:Envelope"/></s12:Upgrade>'
+        f"</s12:Body></s12:Envelope>"
+    ).encode()
+    envelope = lxml.etree.fromstring(raw, parser=_make_biceps_parser())
+    assert isinstance(envelope, soap_envelope.Envelope)
+    assert isinstance(envelope.body_as(soap_envelope.Upgrade), soap_envelope.Upgrade)
 
 
 def _make_app_sequence() -> discovery.AppSequence:

@@ -73,12 +73,17 @@ class Envelope(common.ElementBase):
     def body(self) -> common.ElementBase | None:
         # R9981: An ENVELOPE MUST have exactly zero or one child elements of the soap:Body element.
         body = self.find_by_element(Body)
-        if body is None or len(body) == 0:
+        if body is None:
             return None
-        if len(body) > 1:
+        # ``findall("*")`` matches element children only; comments and processing instructions are
+        # legal inside soap:Body and must not be counted or returned.
+        children = body.findall("*")
+        if not children:
+            return None
+        if len(children) > 1:
             msg = f"Soap envelope {self!s} is violating R9981 because it has more than one soap:Body element."
             raise ValueError(msg)
-        child = body[0]
+        child = children[0]
         if not isinstance(child, common.ElementBase):
             msg = f"Soap envelope {self!s} contains unknown body element."
             raise TypeError(msg)

@@ -1695,8 +1695,8 @@ class BaseDemographics(common.ElementBase):
         return node.text if node is not None else None
 
     @property
-    def middle_names(self) -> Sequence[str]:
-        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Middlename") if node.text is not None]
+    def middle_names(self) -> Sequence[str | None]:
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Middlename")]
 
     @property
     def family_name(self) -> str | None:
