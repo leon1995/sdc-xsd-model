@@ -155,12 +155,10 @@ def test_to_enum_error_lists_permitted_values() -> None:
         ("PT1H30M45S", datetime.timedelta(hours=1, minutes=30, seconds=45)),
         ("PT0.5S", datetime.timedelta(milliseconds=500)),
         ("PT1H0.25S", datetime.timedelta(hours=1, milliseconds=250)),
-        ("-PT3H", datetime.timedelta(hours=-3)),
-        ("-PT1H30M", -datetime.timedelta(hours=1, minutes=30)),
     ],
 )
 def test_duration_deserialize(raw: str, expected: datetime.timedelta) -> None:
-    """The hour/minute/second forms and a leading sign convert to timedelta."""
+    """The hour/minute/second forms convert to timedelta."""
     assert converter.DurationConverter.deserialize(raw) == expected
 
 
@@ -182,23 +180,57 @@ def test_duration_deserialize_invalid(raw: str) -> None:
         (datetime.timedelta(hours=1, minutes=30, seconds=45), "PT1H30M45S"),
         (datetime.timedelta(milliseconds=500), "PT0.5S"),
         (datetime.timedelta(days=1), "PT24H"),
-        (datetime.timedelta(hours=-3), "-PT3H"),
-        (-datetime.timedelta(hours=1, minutes=30), "-PT1H30M"),
-        (-datetime.timedelta(milliseconds=500), "-PT0.5S"),
     ],
 )
 def test_duration_serialize(delta: datetime.timedelta, expected: str) -> None:
-    """A timedelta serializes to the PT form, with a leading sign when negative."""
+    """A non-negative timedelta serializes to the PT form."""
     assert converter.DurationConverter.serialize(delta) == expected
 
 
-@pytest.mark.parametrize(
-    "raw",
-    ["PT0S", "PT1H", "PT1H30M45S", "PT0.5S", "-PT3H", "-PT1H30M", "-PT0.5S"],
-)
+@pytest.mark.parametrize("raw", ["PT0S", "PT1H", "PT1H30M45S", "PT0.5S"])
 def test_duration_round_trip(raw: str) -> None:
     """Round-tripping a canonical form through deserialize and serialize returns it unchanged."""
     assert converter.DurationConverter.serialize(converter.DurationConverter.deserialize(raw)) == raw
+
+
+# ── negative durations ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("raw", ["-PT3H", "-PT1H30M", "-PT0.5S"])
+def test_negative_duration_rejected_by_default(raw: str) -> None:
+    """Every duration in the core models is a period, delay or timeout, so a negative is an error."""
+    with pytest.raises(ValueError, match="negative xsd:duration"):
+        converter.DurationConverter.deserialize(raw)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("-PT3H", datetime.timedelta(hours=-3)),
+        ("-PT1H30M", -datetime.timedelta(hours=1, minutes=30)),
+        ("-PT0.5S", -datetime.timedelta(milliseconds=500)),
+    ],
+)
+def test_negative_duration_allowed_when_opted_in(raw: str, expected: datetime.timedelta) -> None:
+    """sdpi:Epoch/@Offset is signed, so the caller can opt in."""
+    assert converter.DurationConverter.deserialize(raw, allow_negative=True) == expected
+
+
+@pytest.mark.parametrize(
+    "delta",
+    [datetime.timedelta(hours=-3), -datetime.timedelta(hours=1, minutes=30), -datetime.timedelta(milliseconds=500)],
+)
+def test_negative_duration_serialize_rejected_by_default(delta: datetime.timedelta) -> None:
+    """Serializing mirrors deserializing: a negative delta needs the same opt-in."""
+    with pytest.raises(ValueError, match="negative xsd:duration"):
+        converter.DurationConverter.serialize(delta)
+
+
+@pytest.mark.parametrize("raw", ["-PT3H", "-PT1H30M", "-PT0.5S"])
+def test_negative_duration_round_trip(raw: str) -> None:
+    """A signed duration round-trips, sign included, once opted in on both sides."""
+    delta = converter.DurationConverter.deserialize(raw, allow_negative=True)
+    assert converter.DurationConverter.serialize(delta, allow_negative=True) == raw
 
 
 # ── absent values ──────────────────────────────────────────────────────────────────────────────────
