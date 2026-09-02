@@ -80,3 +80,31 @@ def _create_addressing_element(  # noqa: PLR0911
             return clazz.from_random_uri(attrib={"RelationshipType": f"{addressing.NAMESPACE}/reply"}), None
         return clazz.from_random_uri(), None
     return clazz(), None
+
+
+# ── QNameType prefix resolution ────────────────────────────────────────────────────────────────────
+
+
+def _parse_problem_header_qname(attrs: str, text: str) -> addressing.ProblemHeaderQName:
+    xml = f'<ProblemHeaderQName xmlns="{addressing.NAMESPACE}" {attrs}>{text}</ProblemHeaderQName>'.encode()
+    element = lxml.etree.fromstring(xml, parser=addressing.ProblemHeaderQName.PARSER)
+    assert isinstance(element, addressing.ProblemHeaderQName)
+    return element
+
+
+def test_q_name_resolves_prefix() -> None:
+    """A prefixed QName resolves against the in-scope declarations."""
+    element = _parse_problem_header_qname('xmlns:t="urn:test"', "t:Local")
+    q_name = element.q_name
+    assert q_name is not None
+    assert q_name.namespace == "urn:test"
+    assert q_name.localname == "Local"
+
+
+def test_q_name_resolves_unprefixed_against_default_namespace() -> None:
+    """An unprefixed xsd:QName value is in the default namespace when one is in scope."""
+    element = _parse_problem_header_qname("", "Local")
+    q_name = element.q_name
+    assert q_name is not None
+    assert q_name.namespace == addressing.NAMESPACE
+    assert q_name.localname == "Local"

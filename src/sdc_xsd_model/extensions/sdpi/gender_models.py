@@ -6,6 +6,7 @@ import enum
 import pathlib
 import typing
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import common, extension
 
 PREFIX: typing.Final[str] = "sdpi"
@@ -35,13 +36,15 @@ class Gender(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Gender"
 
     @property
-    def type(self) -> str:
+    def type(self) -> GenderType:
         """Return the gender text content (Male / Female / Other / Unknown)."""
-        assert self.text is not None
-        return GenderType(self.text)
+        value = converter.to_enum(self.text, GenderType)
+        assert value is not None
+        return value
 
     @property
-    def must_understand(self) -> bool | None:
-        """Return the optional ext:MustUnderstand attribute."""
-        raw = self.get(extension.MUST_UNDERSTAND_ATTR_TAG)
-        return raw.lower() == "true" if raw is not None else None
+    def must_understand(self) -> bool:
+        """Return the ext:MustUnderstand attribute, which defaults to false when absent."""
+        value = converter.to_bool(self.get(extension.MUST_UNDERSTAND_ATTR_TAG, "false"))
+        assert value is not None
+        return value

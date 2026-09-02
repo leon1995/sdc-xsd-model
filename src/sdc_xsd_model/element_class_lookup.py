@@ -5,6 +5,7 @@ from collections.abc import Mapping
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import common
 
 _XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
@@ -48,16 +49,15 @@ class BicepsElementClassLookup(lxml.etree.PythonElementClassLookup):
 
     def _resolve_xsi_type(self, element: lxml.etree._Element) -> tuple[str | None, str | None]:
         """Extract (namespace, local_name) from an element's ``xsi:type``, or *(None, None)*."""
-        xsi_type = element.get(_XSI_TYPE)
-        if xsi_type is None:
+        try:
+            q_name = converter.to_qname(element.get(_XSI_TYPE), element.nsmap)
+        except ValueError:
+            # A malformed or undeclared-prefix xsi:type cannot name a class; defer to the fallback
+            # lookup rather than raising out of the parser.
             return None, None
-        if ":" in xsi_type:
-            prefix, local = xsi_type.split(":", 1)
-            ns = dict(element.nsmap).get(prefix)
-        else:
-            ns = dict(element.nsmap).get(None)
-            local = xsi_type
-        return ns, local
+        if q_name is None:
+            return None, None
+        return q_name.namespace, q_name.localname
 
     def _resolve_parent_type(
         self, parent: lxml.etree._Element, child: lxml.etree._Element

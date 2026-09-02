@@ -122,13 +122,13 @@ class TestExampleXml:
         assert equip_id.uri == "urn:uuid:84051cdb-5353-47af-a916-b1f007e08ed8"
 
     def test_must_understand_absent(self, tree: biceps_msg.GetMdibResponse) -> None:
-        """Verify ext:MustUnderstand is None when not present in the example."""
+        """Verify ext:MustUnderstand falls back to its schema default of false when not present."""
         mds = tree.mdib.md_description.mds[0]  # ty:ignore[unresolved-attribute]
         ext = mds.extension
         assert ext is not None
         equip_id = ext.find_by_element(EquipmentIdentifier)
         assert isinstance(equip_id, EquipmentIdentifier)
-        assert equip_id.must_understand is None
+        assert equip_id.must_understand is False
 
     def test_md_state_present(self, tree: biceps_msg.GetMdibResponse) -> None:
         """Verify the MdState element is present in the Mdib."""

@@ -8,6 +8,7 @@ import typing
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import common
 
 if typing.TYPE_CHECKING:
@@ -20,13 +21,6 @@ lxml.etree.register_namespace(PREFIX, NAMESPACE)
 
 SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.joinpath("xsd", "MDPWS.xsd").absolute()
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
-
-
-def _bool_attr(element: common.ElementBase, name: str, *, default: bool) -> bool:
-    value = element.get(name)
-    if value is None:
-        return default
-    return value in {"true", "1"}
 
 
 # -- Stream description ----------------------------------------------------------------------
@@ -136,12 +130,12 @@ class DualChannelDef(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}DualChannelDef"
 
     @property
-    def algorithm(self) -> str | None:
-        return self.get("Algorithm")
+    def algorithm(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("Algorithm"), self.nsmap)
 
     @property
-    def transform(self) -> str | None:
-        return self.get("Transform")
+    def transform(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("Transform"), self.nsmap)
 
     @property
     def selectors(self) -> Sequence[Selector]:
@@ -173,11 +167,15 @@ class SafetyReqAssertion(common.ElementBase):
 
     @property
     def transmit_dual_channel(self) -> bool:
-        return _bool_attr(self, "TransmitDualChannel", default=True)
+        value = converter.to_bool(self.get("TransmitDualChannel", "true"))
+        assert value is not None
+        return value
 
     @property
     def transmit_safety_context(self) -> bool:
-        return _bool_attr(self, "TransmitSafetyContext", default=True)
+        value = converter.to_bool(self.get("TransmitSafetyContext", "true"))
+        assert value is not None
+        return value
 
 
 # -- Safety information transmission ---------------------------------------------------------

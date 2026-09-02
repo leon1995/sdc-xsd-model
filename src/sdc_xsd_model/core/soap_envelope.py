@@ -9,6 +9,7 @@ from collections.abc import Sequence
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import addressing, common, discovery
 
 PREFIX: typing.Final[str] = "s12"
@@ -129,8 +130,11 @@ class FaultReasonText(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Text"
 
     @property
-    def lang(self) -> str | None:
-        return self.get("{http://www.w3.org/XML/1998/namespace}lang")
+    def lang(self) -> str:
+        value = self.get("{http://www.w3.org/XML/1998/namespace}lang")
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class FaultReason(common.ElementBase):
@@ -145,8 +149,11 @@ class SubCode(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Subcode"
 
     @property
-    def value(self) -> Value | None:
-        return self.find_by_element(Value)
+    def value(self) -> Value:
+        value = self.find_by_element(Value)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def subcode(self) -> "SubCode | None":
@@ -157,8 +164,11 @@ class FaultCode(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Code"
 
     @property
-    def value(self) -> Value | None:
-        return self.find_by_element(Value)
+    def value(self) -> Value:
+        value = self.find_by_element(Value)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def subcode(self) -> SubCode | None:
@@ -188,8 +198,11 @@ class Fault(common.ElementBase):
         return value
 
     @property
-    def reason(self) -> FaultReason | None:
-        return self.find_by_element(FaultReason)
+    def reason(self) -> FaultReason:
+        value = self.find_by_element(FaultReason)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def node(self) -> Node | None:
@@ -208,8 +221,8 @@ class NotUnderstood(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}NotUnderstood"
 
     @property
-    def qname(self) -> str:
-        value = self.get("qname")
+    def qname(self) -> lxml.etree.QName:
+        value = converter.to_qname(self.get("qname"), self.nsmap)
         # schema enforces presence
         assert value is not None
         return value
@@ -219,8 +232,8 @@ class SupportedEnvelope(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SupportedEnvelope"
 
     @property
-    def qname(self) -> str:
-        value = self.get("qname")
+    def qname(self) -> lxml.etree.QName:
+        value = converter.to_qname(self.get("qname"), self.nsmap)
         # schema enforces presence
         assert value is not None
         return value

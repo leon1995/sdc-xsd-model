@@ -5,9 +5,11 @@ from __future__ import annotations
 import pathlib
 import typing
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import biceps_pm, common, extension
 
 if typing.TYPE_CHECKING:
+    import datetime
     from collections.abc import Sequence
 
 PREFIX: typing.Final[str] = "sdpi"
@@ -26,22 +28,24 @@ class EpochSupport(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}EpochSupport"
 
     @property
-    def must_understand(self) -> bool | None:
-        """Return the optional ext:MustUnderstand attribute."""
-        raw = self.get(extension.MUST_UNDERSTAND_ATTR_TAG)
-        return raw.lower() == "true" if raw is not None else None
+    def must_understand(self) -> bool:
+        """Return the ext:MustUnderstand attribute, which defaults to false when absent."""
+        value = converter.to_bool(self.get(extension.MUST_UNDERSTAND_ATTR_TAG, "false"))
+        assert value is not None
+        return value
 
     @property
     def version(self) -> int:
         """Return the Version attribute (default 1)."""
-        raw = self.get("Version")
-        if raw is None:
-            return 1
-        return int(raw)
+        value = converter.to_int(self.get("Version", "1"))
+        assert value is not None
+        return value
 
 
 class EpochVersion(int):
     """Time-stamp epoch version. The default version for any timestamp not versioned is the current epoch version."""
+
+    __slots__ = ()
 
 
 class Epoch(common.ElementBase):
@@ -59,29 +63,30 @@ class Epoch(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Epoch"
 
     @property
-    def must_understand(self) -> bool | None:
-        """Return the optional ext:MustUnderstand attribute."""
-        raw = self.get(extension.MUST_UNDERSTAND_ATTR_TAG)
-        return raw.lower() == "true" if raw is not None else None
+    def must_understand(self) -> bool:
+        """Return the ext:MustUnderstand attribute, which defaults to false when absent."""
+        value = converter.to_bool(self.get(extension.MUST_UNDERSTAND_ATTR_TAG, "false"))
+        assert value is not None
+        return value
 
     @property
     def version(self) -> EpochVersion:
-        value = self.get("Version")
+        value = converter.to_int(self.get("Version"))
         assert value is not None
         return EpochVersion(value)
 
     @property
     def timestamp(self) -> biceps_pm.Timestamp:
-        value = self.get("Timestamp")
+        value = converter.to_int(self.get("Timestamp"))
         assert value is not None
         return biceps_pm.Timestamp(value)
 
     @property
-    def offset(self) -> str:
+    def offset(self) -> datetime.timedelta:
+        """Return the required Offset, which may be negative to step the time reference backwards."""
         value = self.get("Offset")
         assert value is not None
-        # TODO: return duration  # noqa: FIX002, TD002, TD003
-        return value
+        return converter.DurationConverter.deserialize(value, allow_negative=True)
 
 
 class Epochs(common.ElementBase):
@@ -104,7 +109,7 @@ class Epochs(common.ElementBase):
     @property
     def version(self) -> EpochVersion:
         """Return the required current epoch Version attribute."""
-        raw = self.get("Version")
+        raw = converter.to_int(self.get("Version"))
         assert raw is not None
         return EpochVersion(raw)
 
@@ -115,26 +120,27 @@ class MetricEpoch(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}MetricEpoch"
 
     @property
-    def clock(self) -> str | None:
+    def clock(self) -> biceps_pm.HandleRef | None:
         """Return the optional Clock attribute (HandleRef)."""
-        return self.get("Clock")
+        value = self.get("Clock")
+        return biceps_pm.HandleRef(value) if value is not None else None
 
     @property
     def determination_time(self) -> EpochVersion | None:
         """Return the optional DeterminationTime epoch version."""
-        raw = self.get("DeterminationTime")
+        raw = converter.to_int(self.get("DeterminationTime"))
         return EpochVersion(raw) if raw is not None else None
 
     @property
     def start_time(self) -> EpochVersion | None:
         """Return the optional StartTime epoch version."""
-        raw = self.get("StartTime")
+        raw = converter.to_int(self.get("StartTime"))
         return EpochVersion(raw) if raw is not None else None
 
     @property
     def stop_time(self) -> EpochVersion | None:
         """Return the optional StopTime epoch version."""
-        raw = self.get("StopTime")
+        raw = converter.to_int(self.get("StopTime"))
         return EpochVersion(raw) if raw is not None else None
 
 
@@ -152,7 +158,7 @@ class CalibrationInfoEpoch(common.ElementBase):
     @property
     def time(self) -> EpochVersion | None:
         """Return the optional Time epoch version."""
-        raw = self.get("Time")
+        raw = converter.to_int(self.get("Time"))
         return EpochVersion(raw) if raw is not None else None
 
 
@@ -170,7 +176,7 @@ class AlertSystemStateEpoch(common.ElementBase):
     @property
     def last_self_check(self) -> EpochVersion | None:
         """Return the optional LastSelfCheck epoch version."""
-        raw = self.get("LastSelfCheck")
+        raw = converter.to_int(self.get("LastSelfCheck"))
         return EpochVersion(raw) if raw is not None else None
 
 
@@ -188,7 +194,7 @@ class AlertConditionStateEpoch(common.ElementBase):
     @property
     def determination_time(self) -> EpochVersion | None:
         """Return the optional DeterminationTime epoch version."""
-        raw = self.get("DeterminationTime")
+        raw = converter.to_int(self.get("DeterminationTime"))
         return EpochVersion(raw) if raw is not None else None
 
 
@@ -206,11 +212,11 @@ class AbstractContextStateEpoch(common.ElementBase):
     @property
     def binding_start_time(self) -> EpochVersion | None:
         """Return the optional BindingStartTime epoch version."""
-        raw = self.get("BindingStartTime")
+        raw = converter.to_int(self.get("BindingStartTime"))
         return EpochVersion(raw) if raw is not None else None
 
     @property
     def binding_end_time(self) -> EpochVersion | None:
         """Return the optional BindingEndTime epoch version."""
-        raw = self.get("BindingEndTime")
+        raw = converter.to_int(self.get("BindingEndTime"))
         return EpochVersion(raw) if raw is not None else None

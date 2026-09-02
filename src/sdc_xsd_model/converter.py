@@ -4,7 +4,7 @@ Every converter passes ``None`` through unchanged so that an absent attribute or
 and raises :class:`ValueError` for input outside the lexical space of the corresponding XSD type.
 The lexical spaces follow https://www.w3.org/TR/xmlschema11-2/ (XML Schema 1.1 Part 2: Datatypes).
 
-``boolean``, ``decimal``, ``float``, ``double`` and ``QName`` all carry a fixed ``whiteSpace="collapse"``
+``boolean``, ``integer``, ``decimal`` and ``QName`` all carry a fixed ``whiteSpace="collapse"``
 facet, so surrounding whitespace is collapsed away before validation. Enumeration facets are checked
 against the *value space* rather than the lexical space; for the ``xsd:string`` based enumerations of this
 model that amounts to a verbatim comparison -- see :func:`to_enum`.
@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import datetime
 import decimal
-import math
 import re
 import typing
 
@@ -27,22 +26,11 @@ if typing.TYPE_CHECKING:
 TRUE_LEXICAL_VALUES: typing.Final[frozenset[str]] = frozenset({"true", "1"})
 FALSE_LEXICAL_VALUES: typing.Final[frozenset[str]] = frozenset({"false", "0"})
 
-# xsd:float and xsd:double additionally allow these four special literals (case-sensitive):
-# numericalSpecialRep ::= '+INF' | minimalNumericalSpecialRep, where the latter is 'INF' | '-INF' | 'NaN'.
-# '+INF' is an XSD 1.1 addition; only the other three are required of a minimally conforming implementation.
-FLOAT_SPECIAL_VALUES: typing.Final[Mapping[str, float]] = {
-    "INF": math.inf,
-    "+INF": math.inf,
-    "-INF": -math.inf,
-    "NaN": math.nan,
-}
-
 # Lexical spaces of the numeric types; Python's own parsers are more permissive
 # (they accept underscores, "infinity", non-ASCII digits, ...), hence the explicit patterns.
 _INTEGER_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r"[+-]?[0-9]+")
 # The regular expression the specification itself gives as equivalent to the decimalLexicalRep grammar.
 _DECIMAL_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
-_FLOAT_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[Ee][+-]?[0-9]+)?")
 
 
 def _collapse(value: str) -> str:
@@ -115,29 +103,6 @@ def to_decimal(value: str | None) -> decimal.Decimal | None:
     return decimal.Decimal(collapsed)
 
 
-def to_float(value: str | None) -> float | None:
-    """Convert an ``xsd:float`` or ``xsd:double`` lexical value to a Python ``float``.
-
-    In addition to the mantissa/exponent form, the special literals ``INF``, ``+INF``, ``-INF`` and ``NaN``
-    are accepted. They are case-sensitive, so Python spellings such as ``"inf"``, ``"Infinity"`` or
-    ``"nan"`` are rejected, and only ``INF`` takes a leading ``"+"`` (there is no ``"+NaN"``).
-    See https://www.w3.org/TR/xmlschema11-2/#double and https://www.w3.org/TR/xmlschema11-2/#float.
-
-    Raises:
-        ValueError: if ``value`` is not a valid ``xsd:float``/``xsd:double`` literal.
-
-    """
-    if value is None:
-        return None
-    collapsed = _collapse(value)
-    if collapsed in FLOAT_SPECIAL_VALUES:
-        return FLOAT_SPECIAL_VALUES[collapsed]
-    if _FLOAT_PATTERN.fullmatch(collapsed) is None:
-        msg = f"{value!r} is not a valid xsd:double literal, expected a decimal number, INF, -INF or NaN"
-        raise ValueError(msg)
-    return float(collapsed)
-
-
 def to_qname(value: str | None, nsmap: Mapping[str | None, str]) -> lxml.etree.QName | None:
     """Convert an ``xsd:QName`` lexical value to an :class:`lxml.etree.QName`.
 
@@ -203,51 +168,70 @@ class DurationConverter:
 
     # https://profiles.ihe.net/DEV/SDPi/#r1018
     SDPI_REGEX_DURATION: typing.Final[re.Pattern[str]] = re.compile(
-        r"^PT(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?"
+        r"^(?P<sign>-)?PT(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?"
         r"(?:(?P<seconds>\d+)(?:\.(?P<fraction>\d+))?S)?(?<!PT)$",
     )
 
     @staticmethod
-    def deserialize(date_string: str) -> datetime.timedelta:
+    def deserialize(date_string: str, *, allow_negative: bool = False) -> datetime.timedelta:
         """XML Schema duration, constrained to hours, minutes and seconds.
 
         SDPi explicitly requires this constraint for the Expires attributes. However, we apply it to all
         xsd:duration elements. See https://profiles.ihe.net/DEV/SDPi/#r1018 for more details
+
+        A leading ``"-"`` is rejected unless *allow_negative* is set. xsd:duration itself permits a negative
+        duration, and only wse:Expires is bounded by its schema (wse:NonNegativeDurationType, via a
+        minInclusive facet), but every duration in the core models is a period, delay, timeout or resolution
+        for which a negative value is meaningless. sdpi:Epoch/@Offset is the one signed duration here.
+
+        Raises:
+            ValueError: if *date_string* is outside the supported lexical space, or is negative while
+                *allow_negative* is not set.
+
         """
         match = DurationConverter.SDPI_REGEX_DURATION.match(date_string)
         if match is None:
             msg = f"xsd:duration string {date_string} not matching SDPI 1018 regex for durations"
             raise ValueError(msg)
         groups = match.groupdict()
+        if groups["sign"] and not allow_negative:
+            msg = f"negative xsd:duration {date_string} is not supported here"
+            raise ValueError(msg)
         seconds = groups["seconds"] or "0"
         fraction = groups["fraction"] or "0"
-        return datetime.timedelta(
+        delta = datetime.timedelta(
             hours=int(groups["hours"] or 0),
             minutes=int(groups["minutes"] or 0),
             seconds=float(f"{seconds}.{fraction}"),
         )
+        return -delta if groups["sign"] else delta
 
     @staticmethod
-    def serialize(delta: datetime.timedelta) -> str:
+    def serialize(delta: datetime.timedelta, *, allow_negative: bool = False) -> str:
         """Create an ISO 8601 durations value containing seconds.
+
+        A negative *delta* is rejected unless *allow_negative* is set, mirroring :meth:`deserialize`; when
+        it is set, the value is emitted with a leading ``"-"``.
 
         Note: Smaller fractions than microseconds are rounded based in the seventh digit.
               The referenced ISO8601 from 1988 in XML 1.1 does not restrict the precision, but in part 2 5.4 the minimal
               supported fraction-second duration is set to
               milliseconds https://www.w3.org/TR/xmlschema11-2/#partial-implementation, so microseconds should be safe
         """
-        if delta < datetime.timedelta(0):
-            msg = "Negative durations are not supported"
+        if delta < datetime.timedelta(0) and not allow_negative:
+            msg = f"negative xsd:duration {delta} is not supported here"
             raise ValueError(msg)
         if not delta:
             return "PT0S"
 
-        total_us = delta.days * 86_400_000_000 + delta.seconds * 1_000_000 + delta.microseconds
+        sign = "-" if delta < datetime.timedelta(0) else ""
+        magnitude = abs(delta)
+        total_us = magnitude.days * 86_400_000_000 + magnitude.seconds * 1_000_000 + magnitude.microseconds
         total_secs, us = divmod(total_us, 1_000_000)
         hours, remainder = divmod(total_secs, 3600)
         minutes, secs = divmod(remainder, 60)
 
-        parts = ["PT"]
+        parts: list[str] = [f"{sign}PT"]
         if hours:
             parts.append(f"{hours}H")
         if minutes:

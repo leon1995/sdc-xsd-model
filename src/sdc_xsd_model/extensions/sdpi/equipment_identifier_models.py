@@ -5,6 +5,7 @@ from __future__ import annotations
 import pathlib
 import typing
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import common, extension
 
 PREFIX: typing.Final[str] = "sdpi"
@@ -29,7 +30,8 @@ class EquipmentIdentifier(common.AnyUri):
         return self.text
 
     @property
-    def must_understand(self) -> bool | None:
-        """Return the optional ext:MustUnderstand attribute."""
-        value = self.get(extension.MUST_UNDERSTAND_ATTR_TAG)
-        return value.lower() == "true" if value is not None else None
+    def must_understand(self) -> bool:
+        """Return the ext:MustUnderstand attribute, which defaults to false when absent."""
+        value = converter.to_bool(self.get(extension.MUST_UNDERSTAND_ATTR_TAG, "false"))
+        assert value is not None
+        return value

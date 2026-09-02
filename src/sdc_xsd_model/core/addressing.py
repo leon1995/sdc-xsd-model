@@ -10,6 +10,7 @@ import uuid
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import common
 
 if typing.TYPE_CHECKING:
@@ -144,8 +145,11 @@ class RetryAfter(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}RetryAfter"
 
     @property
-    def value(self) -> int | None:
-        return int(self.text) if self.text is not None else None
+    def value(self) -> int:
+        value = converter.to_int(self.text)
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class ProblemHeaderQName(common.QNameType):

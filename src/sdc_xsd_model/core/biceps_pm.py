@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import decimal
 import enum
 import functools
 import pathlib
@@ -15,6 +14,8 @@ from sdc_xsd_model.core import common, extension
 from sdc_xsd_model.core.extension import Extension
 
 if typing.TYPE_CHECKING:
+    import datetime
+    import decimal
     from collections.abc import Sequence
 
 PREFIX: typing.Final[str] = "pm"
@@ -190,6 +191,37 @@ class LocalizedTextWidth(enum.StrEnum):
     XXL = "xxl"
 
 
+class CanEscalate(enum.StrEnum):
+    """Restriction of pm:AlertConditionPriority for AlertConditionDescriptor/@CanEscalate, without "None"."""
+
+    LO = "Lo"
+    ME = "Me"
+    HI = "Hi"
+
+
+class CanDeescalate(enum.StrEnum):
+    """Restriction of pm:AlertConditionPriority for AlertConditionDescriptor/@CanDeescalate, without "Hi"."""
+
+    ME = "Me"
+    LO = "Lo"
+    NONE = "None"
+
+
+class AccessLevel(enum.StrEnum):
+    USR = "Usr"
+    CS_USR = "CSUsr"
+    RO = "RO"
+    SP = "SP"
+    OTH = "Oth"
+
+
+class ChargeStatus(enum.StrEnum):
+    FUL = "Ful"
+    CH_B = "ChB"
+    DIS_CH_B = "DisChB"
+    DEB = "DEB"
+
+
 class MetricRelationKind(enum.StrEnum):
     RCM = "Rcm"
     PS = "PS"
@@ -235,6 +267,8 @@ class SymbolicCodeName(str):
 class Timestamp(int):
     """An unsigned 64-bit integer value that represents a timestamp."""
 
+    __slots__ = ()
+
 
 class LocalizedText(common.ElementBase):
     """Bundled element for localized text references or content."""
@@ -248,12 +282,12 @@ class LocalizedText(common.ElementBase):
         return self.get("Lang")
 
     @property
-    def version(self) -> str | None:
-        return self.get("Version")
+    def version(self) -> int | None:
+        return converter.to_int(self.get("Version"))
 
     @property
-    def text_width(self) -> str | None:
-        return self.get("TextWidth")
+    def text_width(self) -> LocalizedTextWidth | None:
+        return converter.to_enum(self.get("TextWidth"), LocalizedTextWidth)
 
 
 class Translation(common.ElementBase):
@@ -349,24 +383,24 @@ class Range(common.ElementBase):
     """A range of decimal values with lower/upper bounds and step width."""
 
     @property
-    def lower(self) -> str | None:
-        return self.get("Lower")
+    def lower(self) -> decimal.Decimal | None:
+        return converter.to_decimal(self.get("Lower"))
 
     @property
-    def upper(self) -> str | None:
-        return self.get("Upper")
+    def upper(self) -> decimal.Decimal | None:
+        return converter.to_decimal(self.get("Upper"))
 
     @property
-    def step_width(self) -> str | None:
-        return self.get("StepWidth")
+    def step_width(self) -> decimal.Decimal | None:
+        return converter.to_decimal(self.get("StepWidth"))
 
     @property
-    def relative_accuracy(self) -> str | None:
-        return self.get("RelativeAccuracy")
+    def relative_accuracy(self) -> decimal.Decimal | None:
+        return converter.to_decimal(self.get("RelativeAccuracy"))
 
     @property
-    def absolute_accuracy(self) -> str | None:
-        return self.get("AbsoluteAccuracy")
+    def absolute_accuracy(self) -> decimal.Decimal | None:
+        return converter.to_decimal(self.get("AbsoluteAccuracy"))
 
 
 class Measurement(common.ElementBase):
@@ -378,9 +412,9 @@ class Measurement(common.ElementBase):
 
     @property
     def measured_value(self) -> decimal.Decimal:
-        value = self.get("MeasuredValue")
+        value = converter.to_decimal(self.get("MeasuredValue"))
         assert value is not None
-        return decimal.Decimal(value)
+        return value
 
     @property
     def measurement_unit(self) -> CodedValue:
@@ -404,8 +438,8 @@ class PhysicalConnectorInfo(common.ElementBase):
         return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Label"))
 
     @property
-    def number(self) -> str | None:
-        return self.get("Number")
+    def number(self) -> int | None:
+        return converter.to_int(self.get("Number"))
 
 
 class CalibrationResult(common.ElementBase):
@@ -456,16 +490,17 @@ class CalibrationInfo(common.ElementBase):
         )
 
     @property
-    def component_calibration_state(self) -> str | None:
-        return self.get("ComponentCalibrationState")
+    def component_calibration_state(self) -> CalibrationState | None:
+        return converter.to_enum(self.get("ComponentCalibrationState"), CalibrationState)
 
     @property
-    def calibration_type(self) -> str | None:
-        return self.get("Type")
+    def calibration_type(self) -> CalibrationType | None:
+        return converter.to_enum(self.get("Type"), CalibrationType)
 
     @property
-    def time(self) -> str | None:
-        return self.get("Time")
+    def time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("Time"))
+        return Timestamp(value) if value is not None else None
 
 
 class ApprovedJurisdictions(common.ElementBase):
@@ -490,14 +525,14 @@ class SystemSignalActivation(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SystemSignalActivation"
 
     @property
-    def manifestation(self) -> str:
-        value = self.get("Manifestation")
+    def manifestation(self) -> AlertSignalManifestation:
+        value = converter.to_enum(self.get("Manifestation"), AlertSignalManifestation)
         assert value is not None
         return value
 
     @property
-    def state(self) -> str:
-        value = self.get("State")
+    def state(self) -> AlertActivation:
+        value = converter.to_enum(self.get("State"), AlertActivation)
         assert value is not None
         return value
 
@@ -517,15 +552,15 @@ class MetricRelation(common.ElementBase):
 
     @property
     def kind(self) -> MetricRelationKind:
-        value = self.get("Kind")
+        value = converter.to_enum(self.get("Kind"), MetricRelationKind)
         assert value is not None
-        return MetricRelationKind(value)
+        return value
 
     @property
     def entries(self) -> Sequence[HandleRef]:
-        entries = self.find(f"{{{NAMESPACE}}}Entries")
-        assert entries is not None
-        return [HandleRef(text) for text in entries.text.split()] if entries.text is not None else []
+        value = self.get("Entries")
+        assert value is not None
+        return [HandleRef(entry) for entry in value.split()]
 
 
 # ── MDIB root types ───────────────────────────────────────────────────────────────────────────────
@@ -545,8 +580,8 @@ class MdDescription(common.ElementBase):
         return self.findall_by_element(MdsDescriptor)
 
     @property
-    def description_version(self) -> str | None:
-        return self.get("DescriptionVersion")
+    def description_version(self) -> int | None:
+        return converter.to_int(self.get("DescriptionVersion"))
 
 
 class MdState(common.ElementBase):
@@ -563,8 +598,8 @@ class MdState(common.ElementBase):
         return typing.cast("Sequence[ABSTRACT_STATE]", self.findall(f"{{{NAMESPACE}}}State"))
 
     @property
-    def state_version(self) -> str | None:
-        return self.get("StateVersion")
+    def state_version(self) -> int | None:
+        return converter.to_int(self.get("StateVersion"))
 
 
 class Mdib(common.ElementBase):
@@ -581,8 +616,8 @@ class Mdib(common.ElementBase):
         return self.find_by_element(MdState)
 
     @property
-    def mdib_version(self) -> str | None:
-        return self.get("MdibVersion")
+    def mdib_version(self) -> int | None:
+        return converter.to_int(self.get("MdibVersion"))
 
     @property
     def sequence_id(self) -> str:
@@ -591,8 +626,8 @@ class Mdib(common.ElementBase):
         return value
 
     @property
-    def instance_id(self) -> str | None:
-        return self.get("InstanceId")
+    def instance_id(self) -> int | None:
+        return converter.to_int(self.get("InstanceId"))
 
     @property
     def extension(self) -> Extension | None:
@@ -606,31 +641,27 @@ class AbstractDescriptor(common.ElementBase):
     """Base for all descriptor types."""
 
     @property
-    def handle(self) -> HandleRef:
+    def handle(self) -> Handle:
         value = self.get("Handle")
         assert value is not None
-        return HandleRef(value)
+        return Handle(value)
 
     @property
     def descriptor_version(self) -> int | None:
-        value = self.get("DescriptorVersion")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("DescriptorVersion"))
 
     @property
     def safety_classification(self) -> SafetyClassification | None:
-        value = self.get("SafetyClassification")
-        return SafetyClassification(value) if value is not None else None
+        return converter.to_enum(self.get("SafetyClassification"), SafetyClassification)
 
     @property
     def extension(self) -> Extension | None:
         return self.find_by_element(Extension)
 
     @property
-    def xsi_type(self) -> str:
-        # TODO: return qname here?  # noqa: FIX002, TD002, TD003
-        value = self.get("{http://www.w3.org/2001/XMLSchema-instance}type")
-        assert value is not None
-        return value
+    def xsi_type(self) -> lxml.etree.QName | None:
+        xsi_type = self.get("{http://www.w3.org/2001/XMLSchema-instance}type")
+        return converter.to_qname(xsi_type, self.nsmap)
 
     @property
     def type(self) -> CodedValue | None:
@@ -641,8 +672,8 @@ class AbstractState(common.ElementBase):
     """Base for all state types."""
 
     @property
-    def state_version(self) -> str | None:
-        return self.get("StateVersion")
+    def state_version(self) -> int | None:
+        return converter.to_int(self.get("StateVersion"))
 
     @property
     def descriptor_handle(self) -> HandleRef:
@@ -651,19 +682,17 @@ class AbstractState(common.ElementBase):
         return HandleRef(value)
 
     @property
-    def descriptor_version(self) -> str | None:
-        return self.get("DescriptorVersion")
+    def descriptor_version(self) -> int | None:
+        return converter.to_int(self.get("DescriptorVersion"))
 
     @property
     def extension(self) -> Extension | None:
         return self.find_by_element(Extension)
 
     @property
-    def xsi_type(self) -> str:
-        # TODO: return qname here?  # noqa: FIX002, TD002, TD003
-        value = self.get("{http://www.w3.org/2001/XMLSchema-instance}type")
-        assert value is not None
-        return value
+    def xsi_type(self) -> lxml.etree.QName | None:
+        xsi_type = self.get("{http://www.w3.org/2001/XMLSchema-instance}type")
+        return converter.to_qname(xsi_type, self.nsmap)
 
 
 class AbstractMultiState(AbstractState):
@@ -849,18 +878,15 @@ class AbstractDeviceComponentState(AbstractState):
 
     @property
     def activation_state(self) -> ComponentActivation | None:
-        value = self.get("ActivationState")
-        return ComponentActivation(value) if value is not None else None
+        return converter.to_enum(self.get("ActivationState"), ComponentActivation)
 
     @property
     def operating_hours(self) -> int | None:
-        value = self.get("OperatingHours")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("OperatingHours"))
 
     @property
     def operating_cycles(self) -> int | None:
-        value = self.get("OperatingCycles")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("OperatingCycles"))
 
     @property
     def calibration_info(self) -> CalibrationInfo | None:
@@ -889,8 +915,8 @@ class MdsState(AbstractComplexDeviceComponentState):
         return self.get("Lang")
 
     @property
-    def operating_mode(self) -> str | None:
-        return self.get("OperatingMode")
+    def operating_mode(self) -> MdsOperatingMode | None:
+        return converter.to_enum(self.get("OperatingMode"), MdsOperatingMode)
 
     @property
     def operating_jurisdiction(self) -> OperatingJurisdiction | None:
@@ -919,30 +945,32 @@ class ClockState(AbstractDeviceComponentState):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ClockState"
 
     @property
-    def remote_sync(self) -> str:
-        value = self.get("RemoteSync")
+    def remote_sync(self) -> bool:
+        value = converter.to_bool(self.get("RemoteSync"))
         assert value is not None
         return value
 
     @property
-    def date_and_time(self) -> str | None:
-        return self.get("DateAndTime")
+    def date_and_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("DateAndTime"))
+        return Timestamp(value) if value is not None else None
 
     @property
-    def accuracy(self) -> str | None:
-        return self.get("Accuracy")
+    def accuracy(self) -> decimal.Decimal | None:
+        return converter.to_decimal(self.get("Accuracy"))
 
     @property
-    def last_set(self) -> str | None:
-        return self.get("LastSet")
+    def last_set(self) -> Timestamp | None:
+        value = converter.to_int(self.get("LastSet"))
+        return Timestamp(value) if value is not None else None
 
     @property
     def time_zone(self) -> str | None:
         return self.get("TimeZone")
 
     @property
-    def critical_use(self) -> str | None:
-        return self.get("CriticalUse")
+    def critical_use(self) -> bool | None:
+        return converter.to_bool(self.get("CriticalUse"))
 
 
 class BatteryState(AbstractDeviceComponentState):
@@ -951,12 +979,12 @@ class BatteryState(AbstractDeviceComponentState):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}BatteryState"
 
     @property
-    def charge_status(self) -> str | None:
-        return self.get("ChargeStatus")
+    def charge_status(self) -> ChargeStatus | None:
+        return converter.to_enum(self.get("ChargeStatus"), ChargeStatus)
 
     @property
-    def charge_cycles(self) -> str | None:
-        return self.get("ChargeCycles")
+    def charge_cycles(self) -> int | None:
+        return converter.to_int(self.get("ChargeCycles"))
 
 
 class ScoState(AbstractDeviceComponentState):
@@ -965,12 +993,14 @@ class ScoState(AbstractDeviceComponentState):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ScoState"
 
     @property
-    def invocation_requested(self) -> str | None:
-        return self.get("InvocationRequested")
+    def invocation_requested(self) -> Sequence[HandleRef]:
+        value = self.get("InvocationRequested")
+        return [HandleRef(entry) for entry in value.split()] if value is not None else []
 
     @property
-    def invocation_required(self) -> str | None:
-        return self.get("InvocationRequired")
+    def invocation_required(self) -> Sequence[HandleRef]:
+        value = self.get("InvocationRequired")
+        return [HandleRef(entry) for entry in value.split()] if value is not None else []
 
 
 class SystemContextState(AbstractDeviceComponentState):
@@ -992,16 +1022,17 @@ class AlertSystemDescriptor(AbstractAlertDescriptor):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertSystem"
 
     @property
-    def max_physiological_parallel_alarms(self) -> str | None:
-        return self.get("MaxPhysiologicalParallelAlarms")
+    def max_physiological_parallel_alarms(self) -> int | None:
+        return converter.to_int(self.get("MaxPhysiologicalParallelAlarms"))
 
     @property
-    def max_technical_parallel_alarms(self) -> str | None:
-        return self.get("MaxTechnicalParallelAlarms")
+    def max_technical_parallel_alarms(self) -> int | None:
+        return converter.to_int(self.get("MaxTechnicalParallelAlarms"))
 
     @property
-    def self_check_period(self) -> str | None:
-        return self.get("SelfCheckPeriod")
+    def self_check_period(self) -> datetime.timedelta | None:
+        value = self.get("SelfCheckPeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
 
 class AlertConditionDescriptor(AbstractAlertDescriptor):
@@ -1010,36 +1041,37 @@ class AlertConditionDescriptor(AbstractAlertDescriptor):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertCondition"
 
     @property
-    def kind(self) -> str:
-        value = self.get("Kind")
+    def kind(self) -> AlertConditionKind:
+        value = converter.to_enum(self.get("Kind"), AlertConditionKind)
         assert value is not None
         return value
 
     @property
-    def priority(self) -> str:
-        value = self.get("Priority")
+    def priority(self) -> AlertConditionPriority:
+        value = converter.to_enum(self.get("Priority"), AlertConditionPriority)
         assert value is not None
         return value
 
     @property
-    def default_condition_generation_delay(self) -> str | None:
-        return self.get("DefaultConditionGenerationDelay")
+    def default_condition_generation_delay(self) -> datetime.timedelta | None:
+        value = self.get("DefaultConditionGenerationDelay")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def can_escalate(self) -> str | None:
-        return self.get("CanEscalate")
+    def can_escalate(self) -> CanEscalate | None:
+        return converter.to_enum(self.get("CanEscalate"), CanEscalate)
 
     @property
-    def can_deescalate(self) -> str | None:
-        return self.get("CanDeescalate")
+    def can_deescalate(self) -> CanDeescalate | None:
+        return converter.to_enum(self.get("CanDeescalate"), CanDeescalate)
 
 
 class LimitAlertConditionDescriptor(AlertConditionDescriptor):
     """Descriptor for limit-based alert conditions."""
 
     @property
-    def auto_limit_supported(self) -> str | None:
-        return self.get("AutoLimitSupported")
+    def auto_limit_supported(self) -> bool | None:
+        return converter.to_bool(self.get("AutoLimitSupported"))
 
 
 class AlertSignalDescriptor(AbstractAlertDescriptor):
@@ -1048,12 +1080,13 @@ class AlertSignalDescriptor(AbstractAlertDescriptor):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertSignal"
 
     @property
-    def condition_signaled(self) -> str | None:
-        return self.get("ConditionSignaled")
+    def condition_signaled(self) -> HandleRef | None:
+        value = self.get("ConditionSignaled")
+        return HandleRef(value) if value is not None else None
 
     @property
-    def manifestation(self) -> str:
-        value = self.get("Manifestation")
+    def manifestation(self) -> AlertSignalManifestation:
+        value = converter.to_enum(self.get("Manifestation"), AlertSignalManifestation)
         assert value is not None
         return value
 
@@ -1064,20 +1097,22 @@ class AlertSignalDescriptor(AbstractAlertDescriptor):
         return value
 
     @property
-    def default_signal_generation_delay(self) -> str | None:
-        return self.get("DefaultSignalGenerationDelay")
+    def default_signal_generation_delay(self) -> datetime.timedelta | None:
+        value = self.get("DefaultSignalGenerationDelay")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def signal_delegation_supported(self) -> str | None:
-        return self.get("SignalDelegationSupported")
+    def signal_delegation_supported(self) -> bool | None:
+        return converter.to_bool(self.get("SignalDelegationSupported"))
 
     @property
-    def acknowledgement_supported(self) -> str | None:
-        return self.get("AcknowledgementSupported")
+    def acknowledgement_supported(self) -> bool | None:
+        return converter.to_bool(self.get("AcknowledgementSupported"))
 
     @property
-    def acknowledge_timeout(self) -> str | None:
-        return self.get("AcknowledgeTimeout")
+    def acknowledge_timeout(self) -> datetime.timedelta | None:
+        value = self.get("AcknowledgeTimeout")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
 
 # ── Alert states ──────────────────────────────────────────────────────────────────────────────────
@@ -1087,8 +1122,8 @@ class AbstractAlertState(AbstractState):
     """Base for alert states."""
 
     @property
-    def activation_state(self) -> str:
-        value = self.get("ActivationState")
+    def activation_state(self) -> AlertActivation:
+        value = converter.to_enum(self.get("ActivationState"), AlertActivation)
         assert value is not None
         return value
 
@@ -1097,20 +1132,23 @@ class AlertSystemState(AbstractAlertState):
     """State of an alert system."""
 
     @property
-    def last_self_check(self) -> str | None:
-        return self.get("LastSelfCheck")
+    def last_self_check(self) -> Timestamp | None:
+        value = converter.to_int(self.get("LastSelfCheck"))
+        return Timestamp(value) if value is not None else None
 
     @property
-    def self_check_count(self) -> str | None:
-        return self.get("SelfCheckCount")
+    def self_check_count(self) -> int | None:
+        return converter.to_int(self.get("SelfCheckCount"))
 
     @property
-    def present_physiological_alarm_conditions(self) -> str | None:
-        return self.get("PresentPhysiologicalAlarmConditions")
+    def present_physiological_alarm_conditions(self) -> Sequence[HandleRef]:
+        value = self.get("PresentPhysiologicalAlarmConditions")
+        return [HandleRef(entry) for entry in value.split()] if value is not None else []
 
     @property
-    def present_technical_alarm_conditions(self) -> str | None:
-        return self.get("PresentTechnicalAlarmConditions")
+    def present_technical_alarm_conditions(self) -> Sequence[HandleRef]:
+        value = self.get("PresentTechnicalAlarmConditions")
+        return [HandleRef(entry) for entry in value.split()] if value is not None else []
 
     @property
     def system_signal_activations(self) -> Sequence[SystemSignalActivation]:
@@ -1121,58 +1159,61 @@ class AlertConditionState(AbstractAlertState):
     """State of an alert condition."""
 
     @property
-    def actual_condition_generation_delay(self) -> str | None:
-        return self.get("ActualConditionGenerationDelay")
+    def actual_condition_generation_delay(self) -> datetime.timedelta | None:
+        value = self.get("ActualConditionGenerationDelay")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def actual_priority(self) -> str | None:
-        return self.get("ActualPriority")
+    def actual_priority(self) -> AlertConditionPriority | None:
+        return converter.to_enum(self.get("ActualPriority"), AlertConditionPriority)
 
     @property
-    def rank(self) -> str | None:
-        return self.get("Rank")
+    def rank(self) -> int | None:
+        return converter.to_int(self.get("Rank"))
 
     @property
-    def presence(self) -> str | None:
-        return self.get("Presence")
+    def presence(self) -> bool | None:
+        return converter.to_bool(self.get("Presence"))
 
     @property
-    def determination_time(self) -> str | None:
-        return self.get("DeterminationTime")
+    def determination_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("DeterminationTime"))
+        return Timestamp(value) if value is not None else None
 
 
 class LimitAlertConditionState(AlertConditionState):
     """State of a limit alert condition."""
 
     @property
-    def monitored_alert_limits(self) -> str:
-        value = self.get("MonitoredAlertLimits")
+    def monitored_alert_limits(self) -> AlertConditionMonitoredLimits:
+        value = converter.to_enum(self.get("MonitoredAlertLimits"), AlertConditionMonitoredLimits)
         assert value is not None
         return value
 
     @property
-    def auto_limit_activation_state(self) -> str | None:
-        return self.get("AutoLimitActivationState")
+    def auto_limit_activation_state(self) -> AlertActivation | None:
+        return converter.to_enum(self.get("AutoLimitActivationState"), AlertActivation)
 
 
 class AlertSignalState(AbstractAlertState):
     """State of an alert signal."""
 
     @property
-    def actual_signal_generation_delay(self) -> str | None:
-        return self.get("ActualSignalGenerationDelay")
+    def actual_signal_generation_delay(self) -> datetime.timedelta | None:
+        value = self.get("ActualSignalGenerationDelay")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def presence(self) -> str | None:
-        return self.get("Presence")
+    def presence(self) -> AlertSignalPresence | None:
+        return converter.to_enum(self.get("Presence"), AlertSignalPresence)
 
     @property
-    def location(self) -> str | None:
-        return self.get("Location")
+    def location(self) -> AlertSignalPrimaryLocation | None:
+        return converter.to_enum(self.get("Location"), AlertSignalPrimaryLocation)
 
     @property
-    def slot(self) -> str | None:
-        return self.get("Slot")
+    def slot(self) -> int | None:
+        return converter.to_int(self.get("Slot"))
 
 
 # ── Metric value types ────────────────────────────────────────────────────────────────────────────
@@ -1182,16 +1223,19 @@ class AbstractMetricValue(common.ElementBase):
     """Abstract metric value."""
 
     @property
-    def start_time(self) -> str | None:
-        return self.get("StartTime")
+    def start_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("StartTime"))
+        return Timestamp(value) if value is not None else None
 
     @property
-    def stop_time(self) -> str | None:
-        return self.get("StopTime")
+    def stop_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("StopTime"))
+        return Timestamp(value) if value is not None else None
 
     @property
-    def determination_time(self) -> str | None:
-        return self.get("DeterminationTime")
+    def determination_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("DeterminationTime"))
+        return Timestamp(value) if value is not None else None
 
 
 class NumericMetricValue(AbstractMetricValue):
@@ -1199,8 +1243,7 @@ class NumericMetricValue(AbstractMetricValue):
 
     @property
     def value(self) -> decimal.Decimal | None:
-        value = self.get("Value")
-        return decimal.Decimal(value) if value else None
+        return converter.to_decimal(self.get("Value"))
 
 
 class StringMetricValue(AbstractMetricValue):
@@ -1222,15 +1265,15 @@ class ApplyAnnotation(common.ElementBase):
 
     @property
     def annotation_index(self) -> int:
-        value = self.get("AnnotationIndex")
+        value = converter.to_int(self.get("AnnotationIndex"))
         assert value is not None
-        return int(value)
+        return value
 
     @property
     def sample_index(self) -> int:
-        value = self.get("SampleIndex")
+        value = converter.to_int(self.get("SampleIndex"))
         assert value is not None
-        return int(value)
+        return value
 
 
 class SampleArrayValue(AbstractMetricValue):
@@ -1241,8 +1284,11 @@ class SampleArrayValue(AbstractMetricValue):
         return self.findall_by_element(ApplyAnnotation)
 
     @property
-    def samples(self) -> str | None:
-        return self.get("Samples")
+    def samples(self) -> Sequence[decimal.Decimal]:
+        value = self.get("Samples")
+        if value is None:
+            return []
+        return [sample for raw in value.split() if (sample := converter.to_decimal(raw)) is not None]
 
 
 # ── Metric descriptors ────────────────────────────────────────────────────────────────────────────
@@ -1252,8 +1298,10 @@ class AbstractMetricDescriptor(AbstractDescriptor):
     """Abstract descriptor for a metric."""
 
     @property
-    def unit(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Unit"))
+    def unit(self) -> CodedValue:
+        node = self.find(f"{{{NAMESPACE}}}Unit")
+        assert node is not None
+        return typing.cast("CodedValue", node)
 
     @property
     def body_site(self) -> Sequence[CodedValue]:
@@ -1265,45 +1313,44 @@ class AbstractMetricDescriptor(AbstractDescriptor):
 
     @property
     def metric_category(self) -> MetricCategory:
-        value = self.get("MetricCategory")
+        value = converter.to_enum(self.get("MetricCategory"), MetricCategory)
         assert value is not None
-        return MetricCategory(value)
+        return value
 
     @property
-    def derivation_method(self) -> str | None:
-        value = self.get("DerivationMethod")
-        return DerivationMethod(value) if value is not None else None
+    def derivation_method(self) -> DerivationMethod | None:
+        return converter.to_enum(self.get("DerivationMethod"), DerivationMethod)
 
     @property
     def metric_availability(self) -> MetricAvailability:
-        value = self.get("MetricAvailability")
+        value = converter.to_enum(self.get("MetricAvailability"), MetricAvailability)
         assert value is not None
-        return MetricAvailability(value)
+        return value
 
     @property
-    def max_measurement_time(self) -> str | None:
-        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
-        return self.get("MaxMeasurementTime")
+    def max_measurement_time(self) -> datetime.timedelta | None:
+        value = self.get("MaxMeasurementTime")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def max_delay_time(self) -> str | None:
-        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
-        return self.get("MaxDelayTime")
+    def max_delay_time(self) -> datetime.timedelta | None:
+        value = self.get("MaxDelayTime")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def determination_period(self) -> str | None:
-        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
-        return self.get("DeterminationPeriod")
+    def determination_period(self) -> datetime.timedelta | None:
+        value = self.get("DeterminationPeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def life_time_period(self) -> str | None:
-        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
-        return self.get("LifeTimePeriod")
+    def life_time_period(self) -> datetime.timedelta | None:
+        value = self.get("LifeTimePeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def activation_duration(self) -> str | None:
-        # TODO: implement duration type?  # noqa: FIX002, TD002, TD003
-        return self.get("ActivationDuration")
+    def activation_duration(self) -> datetime.timedelta | None:
+        value = self.get("ActivationDuration")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
 
 class NumericMetricDescriptor(AbstractMetricDescriptor):
@@ -1311,13 +1358,14 @@ class NumericMetricDescriptor(AbstractMetricDescriptor):
 
     @property
     def resolution(self) -> decimal.Decimal:
-        value = self.get("Resolution")
+        value = converter.to_decimal(self.get("Resolution"))
         assert value is not None
-        return decimal.Decimal(value)
+        return value
 
     @property
-    def averaging_period(self) -> str | None:
-        return self.get("AveragingPeriod")
+    def averaging_period(self) -> datetime.timedelta | None:
+        value = self.get("AveragingPeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
 
 class StringMetricDescriptor(AbstractMetricDescriptor):
@@ -1364,16 +1412,15 @@ class RealTimeSampleArrayMetricDescriptor(AbstractMetricDescriptor):
 
     @property
     def resolution(self) -> decimal.Decimal:
-        value = self.get("Resolution")
-        assert value is not None
-        return decimal.Decimal(value)
-
-    @property
-    def sample_period(self) -> str:
-        # TODO: convert to duration  # noqa: FIX002, TD002, TD003
-        value = self.get("SamplePeriod")
+        value = converter.to_decimal(self.get("Resolution"))
         assert value is not None
         return value
+
+    @property
+    def sample_period(self) -> datetime.timedelta:
+        value = self.get("SamplePeriod")
+        assert value is not None
+        return converter.DurationConverter.deserialize(value)
 
 
 class DistributionSampleArrayMetricDescriptor(AbstractMetricDescriptor):
@@ -1397,9 +1444,9 @@ class DistributionSampleArrayMetricDescriptor(AbstractMetricDescriptor):
 
     @property
     def resolution(self) -> decimal.Decimal:
-        value = self.get("Resolution")
+        value = converter.to_decimal(self.get("Resolution"))
         assert value is not None
-        return decimal.Decimal(value)
+        return value
 
 
 # ── Metric states ─────────────────────────────────────────────────────────────────────────────────
@@ -1409,16 +1456,18 @@ class AbstractMetricState(AbstractState):
     """Abstract state of a metric."""
 
     @property
-    def activation_state(self) -> str | None:
-        return self.get("ActivationState")
+    def activation_state(self) -> ComponentActivation | None:
+        return converter.to_enum(self.get("ActivationState"), ComponentActivation)
 
     @property
-    def active_determination_period(self) -> str | None:
-        return self.get("ActiveDeterminationPeriod")
+    def active_determination_period(self) -> datetime.timedelta | None:
+        value = self.get("ActiveDeterminationPeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def life_time_period(self) -> str | None:
-        return self.get("LifeTimePeriod")
+    def life_time_period(self) -> datetime.timedelta | None:
+        value = self.get("LifeTimePeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
     def physical_connector(self) -> PhysicalConnectorInfo | None:
@@ -1439,8 +1488,9 @@ class NumericMetricState(AbstractMetricState):
         return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
 
     @property
-    def active_averaging_period(self) -> str | None:
-        return self.get("ActiveAveragingPeriod")
+    def active_averaging_period(self) -> datetime.timedelta | None:
+        value = self.get("ActiveAveragingPeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
 
 class StringMetricState(AbstractMetricState):
@@ -1494,26 +1544,28 @@ class AbstractOperationDescriptor(AbstractDescriptor):
     """Abstract descriptor for an operation."""
 
     @property
-    def operation_target(self) -> str:
+    def operation_target(self) -> HandleRef:
         value = self.get("OperationTarget")
         assert value is not None
-        return value
+        return HandleRef(value)
 
     @property
-    def max_time_to_finish(self) -> str | None:
-        return self.get("MaxTimeToFinish")
+    def max_time_to_finish(self) -> datetime.timedelta | None:
+        value = self.get("MaxTimeToFinish")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def invocation_effective_timeout(self) -> str | None:
-        return self.get("InvocationEffectiveTimeout")
+    def invocation_effective_timeout(self) -> datetime.timedelta | None:
+        value = self.get("InvocationEffectiveTimeout")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
-    def retriggerable(self) -> str | None:
-        return self.get("Retriggerable")
+    def retriggerable(self) -> bool | None:
+        return converter.to_bool(self.get("Retriggerable"))
 
     @property
-    def access_level(self) -> str | None:
-        return self.get("AccessLevel")
+    def access_level(self) -> AccessLevel | None:
+        return converter.to_enum(self.get("AccessLevel"), AccessLevel)
 
 
 class AbstractSetStateOperationDescriptor(AbstractOperationDescriptor):
@@ -1528,8 +1580,8 @@ class SetStringOperationDescriptor(AbstractOperationDescriptor):
     """Descriptor for a string set operation."""
 
     @property
-    def max_length(self) -> str | None:
-        return self.get("MaxLength")
+    def max_length(self) -> int | None:
+        return converter.to_int(self.get("MaxLength"))
 
 
 class ActivateOperationDescriptor(AbstractSetStateOperationDescriptor):
@@ -1559,8 +1611,8 @@ class AbstractOperationState(AbstractState):
     """Base state for operations."""
 
     @property
-    def operating_mode(self) -> str:
-        value = self.get("OperatingMode")
+    def operating_mode(self) -> OperatingMode:
+        value = converter.to_enum(self.get("OperatingMode"), OperatingMode)
         assert value is not None
         return value
 
@@ -1658,28 +1710,25 @@ class AbstractContextState(AbstractMultiState):
 
     @property
     def context_association(self) -> ContextAssociation | None:
-        value = self.get("ContextAssociation")
-        return ContextAssociation(value) if value is not None else None
+        return converter.to_enum(self.get("ContextAssociation"), ContextAssociation)
 
     @property
     def binding_mdib_version(self) -> int | None:
-        value = self.get("BindingMdibVersion")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("BindingMdibVersion"))
 
     @property
     def unbinding_mdib_version(self) -> int | None:
-        value = self.get("UnbindingMdibVersion")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("UnbindingMdibVersion"))
 
     @property
-    def binding_start_time(self) -> int | None:
-        value = self.get("BindingStartTime")
-        return int(value) if value is not None else None
+    def binding_start_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("BindingStartTime"))
+        return Timestamp(value) if value is not None else None
 
     @property
-    def binding_end_time(self) -> int | None:
-        value = self.get("BindingEndTime")
-        return int(value) if value is not None else None
+    def binding_end_time(self) -> Timestamp | None:
+        value = converter.to_int(self.get("BindingEndTime"))
+        return Timestamp(value) if value is not None else None
 
 
 class BaseDemographics(common.ElementBase):
@@ -1792,16 +1841,16 @@ class PatientDemographicsCoreData(BaseDemographics):
     @property
     def sex(self) -> Sex | None:
         node = self.find(f"{{{NAMESPACE}}}Sex")
-        return Sex(node.text) if node is not None else None
+        return converter.to_enum(node.text, Sex) if node is not None else None
 
     @property
     def patient_type(self) -> PatientType | None:
         node = self.find(f"{{{NAMESPACE}}}PatientType")
-        return PatientType(node.text) if node is not None else None
+        return converter.to_enum(node.text, PatientType) if node is not None else None
 
     @property
     def date_of_birth(self) -> str | None:
-        # TODO: parse date here?  # noqa: FIX002, TD002, TD003
+        # TODO: union of xsd:dateTime, xsd:date, xsd:gYearMonth, xsd:gYear  # noqa: FIX002, TD002, TD003
         node = self.find(f"{{{NAMESPACE}}}DateOfBirth")
         return node.text if node is not None else None
 
@@ -1921,20 +1970,22 @@ class ContainmentTree(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ContainmentTree"
 
     @property
-    def handle_ref(self) -> str | None:
-        return self.get("HandleRef")
+    def handle_ref(self) -> HandleRef | None:
+        value = self.get("HandleRef")
+        return HandleRef(value) if value is not None else None
 
     @property
-    def parent_handle_ref(self) -> str | None:
-        return self.get("ParentHandleRef")
+    def parent_handle_ref(self) -> HandleRef | None:
+        value = self.get("ParentHandleRef")
+        return HandleRef(value) if value is not None else None
 
     @property
-    def entry_type(self) -> str | None:
-        return self.get("EntryType")
+    def entry_type(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("EntryType"), self.nsmap)
 
     @property
-    def children_count(self) -> str | None:
-        return self.get("ChildrenCount")
+    def children_count(self) -> int | None:
+        return converter.to_int(self.get("ChildrenCount"))
 
 
 class ContainmentTreeEntry(common.ElementBase):
@@ -1943,20 +1994,22 @@ class ContainmentTreeEntry(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Entry"
 
     @property
-    def handle_ref(self) -> str | None:
-        return self.get("HandleRef")
+    def handle_ref(self) -> HandleRef | None:
+        value = self.get("HandleRef")
+        return HandleRef(value) if value is not None else None
 
     @property
-    def parent_handle_ref(self) -> str | None:
-        return self.get("ParentHandleRef")
+    def parent_handle_ref(self) -> HandleRef | None:
+        value = self.get("ParentHandleRef")
+        return HandleRef(value) if value is not None else None
 
     @property
-    def entry_type(self) -> str | None:
-        return self.get("EntryType")
+    def entry_type(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("EntryType"), self.nsmap)
 
     @property
-    def children_count(self) -> str | None:
-        return self.get("ChildrenCount")
+    def children_count(self) -> int | None:
+        return converter.to_int(self.get("ChildrenCount"))
 
 
 # ── Namespace lookup registration ─────────────────────────────────────────────────────────────────

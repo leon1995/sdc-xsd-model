@@ -9,6 +9,7 @@ import typing
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import addressing, common
 
 if typing.TYPE_CHECKING:
@@ -56,8 +57,11 @@ class MetadataVersion(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}MetadataVersion"
 
     @property
-    def version(self) -> int | None:
-        return int(self.text) if self.text is not None else None
+    def version(self) -> int:
+        value = converter.to_int(self.text)
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class Hello(common.ElementBase):
@@ -83,8 +87,11 @@ class Hello(common.ElementBase):
         return self.find_by_element(XAddrs)
 
     @property
-    def metadata_version(self) -> MetadataVersion | None:
-        return self.find_by_element(MetadataVersion)
+    def metadata_version(self) -> MetadataVersion:
+        value = self.find_by_element(MetadataVersion)
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class Bye(common.ElementBase):
@@ -149,8 +156,11 @@ class ProbeMatch(common.ElementBase):
         return self.find_by_element(XAddrs)
 
     @property
-    def metadata_version(self) -> MetadataVersion | None:
-        return self.find_by_element(MetadataVersion)
+    def metadata_version(self) -> MetadataVersion:
+        value = self.find_by_element(MetadataVersion)
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class ProbeMatches(common.ElementBase):
@@ -195,8 +205,11 @@ class ResolveMatch(common.ElementBase):
         return self.find_by_element(XAddrs)
 
     @property
-    def metadata_version(self) -> MetadataVersion | None:
-        return self.find_by_element(MetadataVersion)
+    def metadata_version(self) -> MetadataVersion:
+        value = self.find_by_element(MetadataVersion)
+        # schema enforces presence
+        assert value is not None
+        return value
 
 
 class ResolveMatches(common.ElementBase):
@@ -212,10 +225,10 @@ class AppSequence(common.ElementBase):
 
     @property
     def instance_id(self) -> int:
-        instance_id = self.get("InstanceId")
+        value = converter.to_int(self.get("InstanceId"))
         # schema enforces presence
-        assert instance_id is not None
-        return int(instance_id)
+        assert value is not None
+        return value
 
     @property
     def sequence_id(self) -> str | None:
@@ -223,10 +236,10 @@ class AppSequence(common.ElementBase):
 
     @property
     def message_number(self) -> int:
-        value = self.get("MessageNumber")
+        value = converter.to_int(self.get("MessageNumber"))
         # schema enforces presence
         assert value is not None
-        return int(value)
+        return value
 
 
 class SupportedMatchingRules(UriListType):
@@ -248,11 +261,11 @@ class Sig(common.ElementBase):
         return self.get("KeyId")
 
     @property
-    def refs(self) -> str:
+    def refs(self) -> Sequence[str]:
         value = self.get("Refs")
         # schema enforces presence
         assert value is not None
-        return value
+        return value.split()
 
     @property
     def sig(self) -> str:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import decimal
 import pathlib
 import typing
@@ -145,12 +146,12 @@ class TestExampleXml:
         assert epoch_support.version == 1
 
     def test_epoch_support_must_understand_absent(self, clock_descriptor: biceps_pm.ClockDescriptor) -> None:
-        """Verify EpochSupport ext:MustUnderstand is None when not present."""
+        """Verify EpochSupport ext:MustUnderstand falls back to its schema default of false."""
         ext = clock_descriptor.extension
         assert ext is not None
         epoch_support = ext.find_by_element(EpochSupport)
         assert epoch_support is not None
-        assert epoch_support.must_understand is None
+        assert epoch_support.must_understand is False
 
     # ── ClockState / Epochs ────────────────────────────────────────────────
 
@@ -159,9 +160,9 @@ class TestExampleXml:
 
     def test_clock_state_attributes(self, clock_state: biceps_pm.ClockState) -> None:
         """Verify ClockState attributes from the example."""
-        assert clock_state.remote_sync == "1"
-        assert clock_state.last_set == "1733317200000"
-        assert clock_state.date_and_time == "1733328000000"
+        assert clock_state.remote_sync is True
+        assert clock_state.last_set == 1733317200000
+        assert clock_state.date_and_time == 1733328000000
 
     def test_epochs_type(self, clock_state: biceps_pm.ClockState) -> None:
         """Verify Epochs resolves to the correct class inside the ClockState extension."""
@@ -198,12 +199,12 @@ class TestExampleXml:
         # First entry: epoch 4
         assert entries[0].version == 4
         assert entries[0].timestamp == 1733317200000
-        assert entries[0].offset == "-PT3H"
+        assert entries[0].offset == -datetime.timedelta(hours=3)
 
         # Second entry: epoch 3
         assert entries[1].version == 3
         assert entries[1].timestamp == 1733295600000
-        assert entries[1].offset == "PT4H"
+        assert entries[1].offset == datetime.timedelta(hours=4)
 
     # ── NumericMetricState m1 / MetricEpoch ────────────────────────────────
 
@@ -235,9 +236,9 @@ class TestExampleXml:
         assert metric_value is not None
         assert isinstance(metric_value, biceps_pm.NumericMetricValue)
         assert metric_value.value == decimal.Decimal(0)
-        assert metric_value.determination_time == "1733284800000"
-        assert metric_value.start_time == "1733284799850"
-        assert metric_value.stop_time == "1733284799950"
+        assert metric_value.determination_time == 1733284800000
+        assert metric_value.start_time == 1733284799850
+        assert metric_value.stop_time == 1733284799950
 
     # ── NumericMetricState m2 — no MetricEpoch ─────────────────────────────
 
@@ -262,7 +263,7 @@ class TestExampleXml:
         assert isinstance(m4_state, biceps_pm.NumericMetricState)
         metric_value = m4_state.metric_value
         assert metric_value is not None
-        assert metric_value.determination_time == "1733320800000"
+        assert metric_value.determination_time == 1733320800000
 
     # ── State count ────────────────────────────────────────────────────────
 

@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
-import decimal
 import pathlib
 import typing
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import biceps_pm, common
 
 if typing.TYPE_CHECKING:
+    import decimal
     from collections.abc import Sequence
 
 PREFIX: typing.Final[str] = "sdpi"
 NAMESPACE: typing.Final[str] = "urn:oid:1.3.6.1.4.1.19376.1.6.2.10.1.1.1"
-SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.joinpath("coded_attributes.xsd").absolute()
+SCHEMA_PATH: typing.Final[pathlib.Path] = (
+    pathlib.Path(__file__).parent.joinpath("coded_attributes_schema.xsd").absolute()
+)
 
 
 class CodedAttributes(common.ElementBase):
@@ -75,8 +78,9 @@ class CodedIntegerAttribute(common.ElementBase):
         """Value (user data) of the key value pair."""
         elem = self.find(f"{{{NAMESPACE}}}Value")
         assert elem is not None
-        assert elem.text is not None
-        return int(elem.text)
+        value = converter.to_int(elem.text)
+        assert value is not None
+        return value
 
 
 class CodedDecimalAttribute(common.ElementBase):
@@ -96,8 +100,9 @@ class CodedDecimalAttribute(common.ElementBase):
         """Value (user data) of the key value pair."""
         elem = self.find(f"{{{NAMESPACE}}}Value")
         assert elem is not None
-        assert elem.text is not None
-        return decimal.Decimal(elem.text)
+        value = converter.to_decimal(elem.text)
+        assert value is not None
+        return value
 
 
 class MdcAttribute(common.ElementBase):

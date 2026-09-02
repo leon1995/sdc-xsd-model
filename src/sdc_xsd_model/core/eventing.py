@@ -83,6 +83,7 @@ class Expires(common.ElementBase):
 
     @property
     def expiration(self) -> datetime.timedelta:
+        """Expiration is restricted by SDPI 1018 to be a duration only."""
         text = self.text
         assert text is not None
         return converter.DurationConverter.deserialize(text)
@@ -132,8 +133,11 @@ class Subscribe(common.ElementBase):
         return self.find_by_element(EndTo)
 
     @property
-    def delivery(self) -> DeliveryType | None:
-        return self.find_by_element(DeliveryType)
+    def delivery(self) -> DeliveryType:
+        value = self.find_by_element(DeliveryType)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def expires(self) -> Expires | None:

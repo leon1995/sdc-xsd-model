@@ -7,6 +7,8 @@ import uuid
 
 import lxml.etree
 
+from sdc_xsd_model import converter
+
 if typing.TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
@@ -68,15 +70,7 @@ class AnyUri(ElementBase):
 class QNameType(ElementBase):
     @property
     def q_name(self) -> lxml.etree.QName | None:
-        if self.text is None:
-            return None
-        if "{" in self.text and "}" in self.text:
-            return lxml.etree.QName(self.text)
-        if ":" in self.text:
-            prefix, tag = self.text.split(":", 1)
-            namespace = self.nsmap.get(prefix)
-            return lxml.etree.QName(namespace, tag)
-        return lxml.etree.QName(self.text)
+        return converter.to_qname(self.text, self.nsmap)
 
 
 class QNameListType(ElementBase):
@@ -84,17 +78,11 @@ class QNameListType(ElementBase):
     def q_names(self) -> Sequence[lxml.etree.QName]:
         if self.text is None:
             return []
-        q_names: list[lxml.etree.QName] = []
-        for raw_qname in self.text.split():
-            if "{" in raw_qname and "}" in raw_qname:
-                q_names.append(lxml.etree.QName(raw_qname))
-            elif ":" in raw_qname:
-                prefix, tag = raw_qname.split(":", 1)
-                namespace = self.nsmap.get(prefix)
-                q_names.append(lxml.etree.QName(namespace, tag))
-            else:
-                q_names.append(lxml.etree.QName(raw_qname))
-        return q_names
+        return [
+            q_name
+            for raw_qname in self.text.split()
+            if (q_name := converter.to_qname(raw_qname, self.nsmap)) is not None
+        ]
 
 
 def _all_subclasses(cls: type[ElementBase]) -> set[type[ElementBase]]:

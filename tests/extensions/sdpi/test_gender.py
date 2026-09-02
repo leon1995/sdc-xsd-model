@@ -135,17 +135,17 @@ class TestExampleXml:
         assert ext is not None
         gender = ext.find_by_element(Gender)
         assert isinstance(gender, Gender)
-        assert gender.type == GenderType.OTHER
+        assert gender.type is GenderType.OTHER
 
     def test_gender_must_understand_absent(self, patient_state: biceps_pm.PatientContextState) -> None:
-        """Verify ext:MustUnderstand is None when not present in the example."""
+        """Verify ext:MustUnderstand falls back to its schema default of false when not present."""
         core_data = patient_state.core_data
         assert core_data is not None
         ext = core_data.extension
         assert ext is not None
         gender = ext.find_by_element(Gender)
         assert isinstance(gender, Gender)
-        assert gender.must_understand is None
+        assert gender.must_understand is False
 
     def test_core_data_given_name(self, patient_state: biceps_pm.PatientContextState) -> None:
         """Verify CoreData given name equals 'John'."""

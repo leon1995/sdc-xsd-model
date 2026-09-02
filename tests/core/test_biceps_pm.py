@@ -1,5 +1,8 @@
 """Tests for the BICEPS ParticipantModel model classes."""
 
+import datetime
+import decimal
+
 import lxml.etree
 import pytest
 
@@ -87,3 +90,180 @@ def test_alert_signal_descriptor_latching(raw: str, expected: bool) -> None:  # 
     element = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
     assert isinstance(element, biceps_pm.AlertSignalDescriptor)
     assert element.latching is expected
+
+
+# ── converted property types ───────────────────────────────────────────────────────────────────────
+
+
+_SELF_CHECK_COUNT = 42
+_LAST_SELF_CHECK = 1733317200000
+
+
+def _parse(xml: str) -> lxml.etree._Element:
+    """Parse a hand-written PM fragment with the non-validating lookup parser."""
+    return lxml.etree.fromstring(xml.encode(), parser=_LOOKUP_PARSER)
+
+
+@pytest.mark.parametrize(("raw", "expected"), [("true", True), ("1", True), ("false", False), ("0", False)])
+def test_optional_boolean_attribute(raw: str, expected: bool) -> None:  # noqa: FBT001
+    """An optional xsd:boolean attribute is exposed as a bool, including the "1"/"0" forms."""
+    element = _parse(f'<AlertSignal xmlns="{biceps_pm.NAMESPACE}" AcknowledgementSupported="{raw}"/>')
+    assert isinstance(element, biceps_pm.AlertSignalDescriptor)
+    assert element.acknowledgement_supported is expected
+
+
+def test_absent_optional_boolean_attribute_is_none() -> None:
+    """An absent optional attribute stays absent rather than defaulting."""
+    element = _parse(f'<AlertSignal xmlns="{biceps_pm.NAMESPACE}"/>')
+    assert isinstance(element, biceps_pm.AlertSignalDescriptor)
+    assert element.acknowledgement_supported is None
+
+
+def test_invalid_boolean_attribute_raises() -> None:
+    """A literal outside the xsd:boolean lexical space is rejected rather than silently false."""
+    element = _parse(f'<AlertSignal xmlns="{biceps_pm.NAMESPACE}" AcknowledgementSupported="True"/>')
+    assert isinstance(element, biceps_pm.AlertSignalDescriptor)
+    with pytest.raises(ValueError, match="xsd:boolean"):
+        _ = element.acknowledgement_supported
+
+
+def test_integer_attribute() -> None:
+    """An xsd:long attribute is exposed as an int."""
+    element = _parse(f'<AlertSystemState xmlns="{biceps_pm.NAMESPACE}" SelfCheckCount="{_SELF_CHECK_COUNT}"/>')
+    assert isinstance(element, biceps_pm.AlertSystemState)
+    assert element.self_check_count == _SELF_CHECK_COUNT
+
+
+def test_integer_attribute_rejects_python_only_literal() -> None:
+    """Underscores are valid for int() but not for xsd:integer."""
+    element = _parse(f'<AlertSystemState xmlns="{biceps_pm.NAMESPACE}" SelfCheckCount="1_0"/>')
+    assert isinstance(element, biceps_pm.AlertSystemState)
+    with pytest.raises(ValueError, match="xsd:integer"):
+        _ = element.self_check_count
+
+
+def test_timestamp_attribute_is_nominal_type() -> None:
+    """A pm:Timestamp attribute is exposed as the Timestamp int subclass."""
+    element = _parse(f'<AlertSystemState xmlns="{biceps_pm.NAMESPACE}" LastSelfCheck="{_LAST_SELF_CHECK}"/>')
+    assert isinstance(element, biceps_pm.AlertSystemState)
+    assert isinstance(element.last_self_check, biceps_pm.Timestamp)
+    assert element.last_self_check == _LAST_SELF_CHECK
+
+
+def test_decimal_attribute_preserves_precision() -> None:
+    """An xsd:decimal attribute becomes a Decimal built from the literal."""
+    element = _parse(f'<Range xmlns="{biceps_pm.NAMESPACE}" Lower="1.50" Upper="99"/>')
+    assert isinstance(element, biceps_pm.Range)
+    assert element.lower == decimal.Decimal("1.5")
+    assert str(element.lower) == "1.50"
+    assert element.upper == decimal.Decimal(99)
+
+
+def test_decimal_attribute_rejects_exponent() -> None:
+    """decimal.Decimal accepts "1E5"; xsd:decimal does not."""
+    element = _parse(f'<Range xmlns="{biceps_pm.NAMESPACE}" Lower="1E5"/>')
+    assert isinstance(element, biceps_pm.Range)
+    with pytest.raises(ValueError, match="xsd:decimal"):
+        _ = element.lower
+
+
+def test_enum_attribute() -> None:
+    """An enumerated attribute resolves to the enum member itself, not a look-alike string."""
+    element = _parse(f'<AlertSignal xmlns="{biceps_pm.NAMESPACE}" Manifestation="Vis" Latching="false"/>')
+    assert isinstance(element, biceps_pm.AlertSignalDescriptor)
+    assert element.manifestation is biceps_pm.AlertSignalManifestation.VIS
+
+
+def test_enum_attribute_rejects_unknown_value() -> None:
+    """A value outside the enumeration facet is rejected, and the message lists what is permitted."""
+    element = _parse(f'<AlertSignal xmlns="{biceps_pm.NAMESPACE}" Manifestation="Nope" Latching="false"/>')
+    assert isinstance(element, biceps_pm.AlertSignalDescriptor)
+    with pytest.raises(ValueError, match="Aud, Vis, Tan, Oth"):
+        _ = element.manifestation
+
+
+def test_narrowed_enum_attribute_excludes_widest_value() -> None:
+    """@CanEscalate restricts pm:AlertConditionPriority and drops "None"."""
+    element = _parse(f'<AlertCondition xmlns="{biceps_pm.NAMESPACE}" Kind="Phy" Priority="Lo" CanEscalate="Hi"/>')
+    assert isinstance(element, biceps_pm.AlertConditionDescriptor)
+    assert element.can_escalate is biceps_pm.CanEscalate.HI
+    element = _parse(f'<AlertCondition xmlns="{biceps_pm.NAMESPACE}" Kind="Phy" Priority="Lo" CanEscalate="None"/>')
+    assert isinstance(element, biceps_pm.AlertConditionDescriptor)
+    with pytest.raises(ValueError, match="CanEscalate"):
+        _ = element.can_escalate
+
+
+def test_duration_attribute() -> None:
+    """An xsd:duration attribute is exposed as a timedelta."""
+    element = _parse(f'<AlertSystem xmlns="{biceps_pm.NAMESPACE}" SelfCheckPeriod="PT1H30M"/>')
+    assert isinstance(element, biceps_pm.AlertSystemDescriptor)
+    assert element.self_check_period == datetime.timedelta(hours=1, minutes=30)
+
+
+def test_absent_duration_attribute_is_none() -> None:
+    """The explicit None guard on each duration property keeps an absent attribute absent."""
+    element = _parse(f'<AlertSystem xmlns="{biceps_pm.NAMESPACE}"/>')
+    assert isinstance(element, biceps_pm.AlertSystemDescriptor)
+    assert element.self_check_period is None
+
+
+def test_qname_attribute_resolves_prefix() -> None:
+    """An xsd:QName attribute resolves its prefix against the in-scope namespace declarations."""
+    element = _parse(f'<Entry xmlns="{biceps_pm.NAMESPACE}" xmlns:pm="{biceps_pm.NAMESPACE}" EntryType="pm:Mds"/>')
+    assert isinstance(element, biceps_pm.ContainmentTreeEntry)
+    entry_type = element.entry_type
+    assert entry_type is not None
+    assert entry_type.namespace == biceps_pm.NAMESPACE
+    assert entry_type.localname == "Mds"
+
+
+def test_handle_ref_list_attribute() -> None:
+    """A pm:HandleRef list attribute is split into HandleRef items."""
+    element = _parse(f'<AlertSystemState xmlns="{biceps_pm.NAMESPACE}" PresentPhysiologicalAlarmConditions="a b  c"/>')
+    assert isinstance(element, biceps_pm.AlertSystemState)
+    assert element.present_physiological_alarm_conditions == ["a", "b", "c"]
+
+
+def test_absent_handle_ref_list_attribute_is_empty() -> None:
+    """An absent list attribute yields an empty sequence, not None."""
+    element = _parse(f'<AlertSystemState xmlns="{biceps_pm.NAMESPACE}"/>')
+    assert isinstance(element, biceps_pm.AlertSystemState)
+    assert element.present_physiological_alarm_conditions == []
+
+
+def test_sample_array_samples_are_decimals() -> None:
+    """pm:RealTimeValueType is a list of xsd:decimal, so each sample converts individually."""
+    element = _parse(f'<SampleArrayValue xmlns="{biceps_pm.NAMESPACE}" Samples="1.5 -2 0.25"/>')
+    assert isinstance(element, biceps_pm.SampleArrayValue)
+    assert element.samples == [decimal.Decimal("1.5"), decimal.Decimal(-2), decimal.Decimal("0.25")]
+
+
+def test_metric_relation_entries_reads_the_attribute() -> None:
+    """Relation/@Entries is an attribute, not a child element."""
+    element = _parse(f'<Relation xmlns="{biceps_pm.NAMESPACE}" Kind="Rcm" Entries="h1 h2"/>')
+    assert isinstance(element, biceps_pm.MetricRelation)
+    assert element.entries == ["h1", "h2"]
+    assert element.kind is biceps_pm.MetricRelationKind.RCM
+
+
+def test_xsi_type_absent_is_none() -> None:
+    """xsi:type is absent on concretely-typed elements, which is not an error."""
+    element = _parse(f'<Mds xmlns="{biceps_pm.NAMESPACE}" Handle="mds0"/>')
+    assert isinstance(element, biceps_pm.MdsDescriptor)
+    assert element.xsi_type is None
+    assert element.handle == "mds0"
+
+
+def test_xsi_type_resolves_to_qname() -> None:
+    """A present xsi:type is exposed as a resolved QName rather than the raw prefixed string."""
+    xml = (
+        f'<AlertSystem xmlns="{biceps_pm.NAMESPACE}" xmlns:pm="{biceps_pm.NAMESPACE}"'
+        ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+        ' xsi:type="pm:AlertSystemDescriptor" Handle="as0"/>'
+    )
+    element = _parse(xml)
+    assert isinstance(element, biceps_pm.AlertSystemDescriptor)
+    xsi_type = element.xsi_type
+    assert xsi_type is not None
+    assert xsi_type.namespace == biceps_pm.NAMESPACE
+    assert xsi_type.localname == "AlertSystemDescriptor"

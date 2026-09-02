@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import decimal
 import enum
 import functools
 import pathlib
@@ -10,10 +9,13 @@ import typing
 
 import lxml.etree
 
+from sdc_xsd_model import converter
 from sdc_xsd_model.core import biceps_pm, common, extension
 from sdc_xsd_model.core.extension import Extension
 
 if typing.TYPE_CHECKING:
+    import datetime
+    import decimal
     from collections.abc import Sequence
 
 PREFIX: typing.Final[str] = "msg"
@@ -73,22 +75,24 @@ class InvocationInfo(common.ElementBase):
     def transaction_id(self) -> int:
         el = self.find(f"{{{NAMESPACE}}}TransactionId")
         assert el is not None
-        assert el.text is not None
-        return int(el.text)
+        value = converter.to_int(el.text)
+        assert value is not None
+        return value
 
     @property
     def invocation_state(self) -> InvocationState:
         el = self.find(f"{{{NAMESPACE}}}InvocationState")
         assert el is not None
-        assert el.text is not None
-        return InvocationState(el.text)
+        value = converter.to_enum(el.text, InvocationState)
+        assert value is not None
+        return value
 
     @property
     def invocation_error(self) -> InvocationError | None:
         el = self.find(f"{{{NAMESPACE}}}InvocationError")
         if el is None:
             return None
-        return InvocationError(el.text)
+        return converter.to_enum(el.text, InvocationError)
 
     @property
     def invocation_error_messages(self) -> Sequence[biceps_pm.LocalizedText]:
@@ -111,8 +115,8 @@ class AbstractGetResponse(common.ElementBase):
         return self.find_by_element(Extension)
 
     @property
-    def mdib_version(self) -> str | None:
-        return self.get("MdibVersion")
+    def mdib_version(self) -> int | None:
+        return converter.to_int(self.get("MdibVersion"))
 
     @property
     def sequence_id(self) -> str:
@@ -121,8 +125,8 @@ class AbstractGetResponse(common.ElementBase):
         return value
 
     @property
-    def instance_id(self) -> str | None:
-        return self.get("InstanceId")
+    def instance_id(self) -> int | None:
+        return converter.to_int(self.get("InstanceId"))
 
 
 class AbstractReportPart(common.ElementBase):
@@ -149,8 +153,7 @@ class AbstractReport(common.ElementBase):
 
     @property
     def mdib_version(self) -> int | None:
-        value = self.get("MdibVersion")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("MdibVersion"))
 
     @property
     def sequence_id(self) -> str:
@@ -160,8 +163,7 @@ class AbstractReport(common.ElementBase):
 
     @property
     def instance_id(self) -> int | None:
-        value = self.get("InstanceId")
-        return int(value) if value is not None else None
+        return converter.to_int(self.get("InstanceId"))
 
 
 class AbstractSet(common.ElementBase):
@@ -193,8 +195,8 @@ class AbstractSetResponse(common.ElementBase):
         return el
 
     @property
-    def mdib_version(self) -> str | None:
-        return self.get("MdibVersion")
+    def mdib_version(self) -> int | None:
+        return converter.to_int(self.get("MdibVersion"))
 
     @property
     def sequence_id(self) -> str:
@@ -203,8 +205,8 @@ class AbstractSetResponse(common.ElementBase):
         return value
 
     @property
-    def instance_id(self) -> str | None:
-        return self.get("InstanceId")
+    def instance_id(self) -> int | None:
+        return converter.to_int(self.get("InstanceId"))
 
 
 class VersionFrame(common.ElementBase):
@@ -212,35 +214,25 @@ class VersionFrame(common.ElementBase):
 
     @property
     def start(self) -> int | None:
-        value = self.get("Start")
-        if value is None:
-            return value
-        return int(value)
+        return converter.to_int(self.get("Start"))
 
     @property
     def end(self) -> int | None:
-        value = self.get("End")
-        if value is None:
-            return value
-        return int(value)
+        return converter.to_int(self.get("End"))
 
 
 class TimeFrame(common.ElementBase):
     """A time frame with start and end."""
 
     @property
-    def start(self) -> int | None:
-        value = self.get("Start")
-        if value is None:
-            return value
-        return int(value)
+    def start(self) -> biceps_pm.Timestamp | None:
+        value = converter.to_int(self.get("Start"))
+        return biceps_pm.Timestamp(value) if value is not None else None
 
     @property
-    def end(self) -> int | None:
-        value = self.get("End")
-        if value is None:
-            return value
-        return int(value)
+    def end(self) -> biceps_pm.Timestamp | None:
+        value = converter.to_int(self.get("End"))
+        return biceps_pm.Timestamp(value) if value is not None else None
 
 
 class RetrievabilityInfo(common.ElementBase):
@@ -252,13 +244,14 @@ class RetrievabilityInfo(common.ElementBase):
 
     @property
     def method(self) -> RetrievabilityMethod:
-        value = self.get("Method")
+        value = converter.to_enum(self.get("Method"), RetrievabilityMethod)
         assert value is not None
-        return RetrievabilityMethod(value)
+        return value
 
     @property
-    def update_period(self) -> str | None:
-        return self.get("UpdatePeriod")
+    def update_period(self) -> datetime.timedelta | None:
+        value = self.get("UpdatePeriod")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
 
 
 class ReportPart(AbstractReportPart):
@@ -320,21 +313,23 @@ class ReportPart(AbstractReportPart):
         return typing.cast("biceps_pm.LocalizedText | None", self.find(f"{{{NAMESPACE}}}ErrorInfo"))
 
     @property
-    def operation_handle_ref(self) -> str | None:
-        return self.get("OperationHandleRef")
+    def operation_handle_ref(self) -> biceps_pm.HandleRef | None:
+        value = self.get("OperationHandleRef")
+        return biceps_pm.HandleRef(value) if value is not None else None
 
     @property
-    def operation_target(self) -> str | None:
-        return self.get("OperationTarget")
+    def operation_target(self) -> biceps_pm.HandleRef | None:
+        value = self.get("OperationTarget")
+        return biceps_pm.HandleRef(value) if value is not None else None
 
     @property
-    def parent_descriptor(self) -> str | None:
-        return self.get("ParentDescriptor")
+    def parent_descriptor(self) -> biceps_pm.HandleRef | None:
+        value = self.get("ParentDescriptor")
+        return biceps_pm.HandleRef(value) if value is not None else None
 
     @property
     def modification_type(self) -> DescriptionModificationType | None:
-        value = self.get("ModificationType")
-        return DescriptionModificationType(value) if value is not None else None
+        return converter.to_enum(self.get("ModificationType"), DescriptionModificationType)
 
 
 # ── Abstract report subtypes ──────────────────────────────────────────────────────────────────────
@@ -402,7 +397,11 @@ class GetMdDescription(AbstractGet):
 
     @property
     def handle_refs(self) -> Sequence[biceps_pm.HandleRef]:
-        return [biceps_pm.HandleRef(handle) for handle in self.findall(f"{{{NAMESPACE}}}HandleRef")]
+        return [
+            biceps_pm.HandleRef(node.text)
+            for node in self.findall(f"{{{NAMESPACE}}}HandleRef")
+            if node.text is not None
+        ]
 
 
 class GetMdDescriptionResponse(AbstractGetResponse):
@@ -418,7 +417,11 @@ class GetMdState(AbstractGet):
 
     @property
     def handle_refs(self) -> Sequence[biceps_pm.HandleRef]:
-        return [biceps_pm.HandleRef(handle) for handle in self.findall(f"{{{NAMESPACE}}}HandleRef")]
+        return [
+            biceps_pm.HandleRef(node.text)
+            for node in self.findall(f"{{{NAMESPACE}}}HandleRef")
+            if node.text is not None
+        ]
 
 
 class GetMdStateResponse(AbstractGetResponse):
@@ -437,7 +440,11 @@ class GetContextStates(AbstractGet):
 
     @property
     def handle_refs(self) -> Sequence[biceps_pm.HandleRef]:
-        return [biceps_pm.HandleRef(handle) for handle in self.findall(f"{{{NAMESPACE}}}HandleRef")]
+        return [
+            biceps_pm.HandleRef(node.text)
+            for node in self.findall(f"{{{NAMESPACE}}}HandleRef")
+            if node.text is not None
+        ]
 
 
 class GetContextStatesResponse(AbstractGetResponse):
@@ -456,9 +463,8 @@ class GetContextStatesByIdentification(AbstractGet):
         return self.findall_by_element(biceps_pm.InstanceIdentifier)
 
     @property
-    def context_type(self) -> str | None:
-        # TODO: should return Qname instead of string  # noqa: FIX002, TD002, TD003
-        return self.get("ContextType")
+    def context_type(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("ContextType"), self.nsmap)
 
 
 class GetContextStatesByIdentificationResponse(AbstractGetResponse):
@@ -475,12 +481,11 @@ class GetContextStatesByFilter(AbstractGet):
     @property
     def filters(self) -> Sequence[str]:
         # TODO: clarify whether this is correct  # noqa: FIX002, TD002, TD003
-        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Filter")]
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Filter") if node.text is not None]
 
     @property
-    def context_type(self) -> str | None:
-        # TODO: should return Qname instead of string  # noqa: FIX002, TD002, TD003
-        return self.get("ContextType")
+    def context_type(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("ContextType"), self.nsmap)
 
 
 class GetContextStatesByFilterResponse(AbstractGetResponse):
@@ -521,27 +526,32 @@ class GetLocalizedText(AbstractGet):
 
     @property
     def refs(self) -> Sequence[str]:
-        # TODO: return str, proper type or just the element itself?  # noqa: FIX002, TD002, TD003
-        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Ref")]
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Ref") if node.text is not None]
 
     @property
-    def version(self) -> str | None:
-        # TODO: return str, proper type or just the element itself?  # noqa: FIX002, TD002, TD003
+    def version(self) -> int | None:
         node = self.find(f"{{{NAMESPACE}}}Version")
-        return node.text if node else None
+        return converter.to_int(node.text) if node is not None else None
 
     @property
     def langs(self) -> Sequence[str]:
-        # TODO: return str, proper type or just the element itself?  # noqa: FIX002, TD002, TD003
-        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Lang")]
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Lang") if node.text is not None]
 
     @property
     def text_widths(self) -> Sequence[biceps_pm.LocalizedTextWidth]:
-        return [biceps_pm.LocalizedTextWidth(node.text) for node in self.findall(f"{{{NAMESPACE}}}TextWidth")]
+        return [
+            width
+            for node in self.findall(f"{{{NAMESPACE}}}TextWidth")
+            if (width := converter.to_enum(node.text, biceps_pm.LocalizedTextWidth)) is not None
+        ]
 
     @property
     def number_of_lines(self) -> Sequence[int]:
-        return [int(node.text) for node in self.findall(f"{{{NAMESPACE}}}NumberOfLines")]
+        return [
+            lines
+            for node in self.findall(f"{{{NAMESPACE}}}NumberOfLines")
+            if (lines := converter.to_int(node.text)) is not None
+        ]
 
 
 class GetLocalizedTextResponse(AbstractGetResponse):
@@ -561,8 +571,7 @@ class GetSupportedLanguagesResponse(AbstractGetResponse):
 
     @property
     def langs(self) -> Sequence[str]:
-        # TODO: return str, proper type or just the element itself?  # noqa: FIX002, TD002, TD003
-        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Lang")]
+        return [node.text for node in self.findall(f"{{{NAMESPACE}}}Lang") if node.text is not None]
 
 
 # ── Archive Section ────────────────────────────────────────────────────────────────────────────────
@@ -623,11 +632,12 @@ class SetValue(AbstractSet):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SetValue"
 
     @property
-    def requested_numeric_value(self) -> decimal.Decimal | None:
+    def requested_numeric_value(self) -> decimal.Decimal:
         el = self.find(f"{{{NAMESPACE}}}RequestedNumericValue")
-        if el is None:
-            return None
-        return decimal.Decimal(el.text)
+        assert el is not None
+        value = converter.to_decimal(el.text)
+        assert value is not None
+        return value
 
 
 class SetValueResponse(AbstractSetResponse):
@@ -638,11 +648,11 @@ class SetString(AbstractSet):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SetString"
 
     @property
-    def requested_string_value(self) -> str | None:
+    def requested_string_value(self) -> str:
         el = self.find(f"{{{NAMESPACE}}}RequestedStringValue")
-        if el is None:
-            return None
-        return el.text
+        assert el is not None
+        # xsd:string permits the empty string, which lxml exposes as a None text node.
+        return el.text or ""
 
 
 class SetStringResponse(AbstractSetResponse):
