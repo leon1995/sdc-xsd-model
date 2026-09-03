@@ -1,6 +1,6 @@
 """Tests for the SOAP envelope model classes."""
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 import lxml.etree
 import pytest
@@ -11,118 +11,9 @@ from sdc_xsd_model.core import addressing, common, discovery, soap_envelope
 XMLNS: str = "http://www.w3.org/2000/xmlns/"
 XML_LANG: str = "http://www.w3.org/XML/1998/namespace"
 
-SOAP_ENVELOPE_CASES = [
-    (soap_envelope.Header, "Header"),
-    (soap_envelope.Body, "Body"),
-    (soap_envelope.Envelope, "Envelope"),
-    (soap_envelope.Value, "Value"),
-    (soap_envelope.FaultReasonText, "Text"),
-    (soap_envelope.FaultReason, "Reason"),
-    (soap_envelope.SubCode, "Subcode"),
-    (soap_envelope.FaultCode, "Code"),
-    (soap_envelope.Detail, "Detail"),
-    (soap_envelope.Node, "Node"),
-    (soap_envelope.Role, "Role"),
-    (soap_envelope.Fault, "Fault"),
-    (soap_envelope.NotUnderstood, "NotUnderstood"),
-    (soap_envelope.Upgrade, "Upgrade"),
-    (soap_envelope.SupportedEnvelope, "SupportedEnvelope"),
-]
-
-
-@pytest.mark.parametrize(("clazz", "local_name"), SOAP_ENVELOPE_CASES)
-def test_default_tag(
-    clazz: type[common.ElementBase],
-    local_name: str,
-) -> None:
-    """Ensure SOAP envelope classes expose the expected TAG value."""
-    assert f"{{{soap_envelope.NAMESPACE}}}{local_name}" == clazz.TAG
-
-
-@pytest.mark.parametrize("clazz", [case[0] for case in SOAP_ENVELOPE_CASES])
-def test_default_namespace(clazz: type[common.ElementBase]) -> None:
-    """Ensure SOAP envelope classes register the expected namespace."""
-    assert clazz().nsmap[soap_envelope.PREFIX] == soap_envelope.NAMESPACE
-
-
-@pytest.mark.parametrize("clazz", [case[0] for case in SOAP_ENVELOPE_CASES])
-def test_class_lookup(clazz: type[common.ElementBase]) -> None:
-    """Ensure eventing classes can be serialized and deserialized correctly."""
-    element, target_tag = _create_envelope_element(clazz)
-    xml = lxml.etree.tostring(element)
-    parsed_element = lxml.etree.fromstring(xml, parser=clazz.PARSER)
-    if target_tag is not None:
-        found_element = parsed_element.find(target_tag)
-        if found_element is None:
-            found_element = parsed_element.find(f".//{target_tag}")
-        parsed_element = found_element
-    assert isinstance(parsed_element, clazz)
-
-
-def _create_envelope_element(  # noqa: C901, PLR0911, PLR0912
-    clazz: type[common.ElementBase],
-) -> tuple[common.ElementBase, str | None]:
-    if clazz is soap_envelope.Header:
-        return _make_header(), None
-    if clazz is soap_envelope.Body:
-        return _make_body(), None
-    if clazz is soap_envelope.Envelope:
-        envelope = soap_envelope.Envelope()
-        envelope.append(_make_header())
-        envelope.append(_make_body())
-        return envelope, None
-    if clazz is soap_envelope.Value:
-        return _make_fault(), soap_envelope.Value.TAG
-    if clazz is soap_envelope.FaultReasonText:
-        return _make_fault(), soap_envelope.FaultReasonText.TAG
-    if clazz is soap_envelope.FaultReason:
-        return _make_fault(), soap_envelope.FaultReason.TAG
-    if clazz is soap_envelope.SubCode:
-        return _make_fault(), soap_envelope.SubCode.TAG
-    if clazz is soap_envelope.FaultCode:
-        return _make_fault(), soap_envelope.FaultCode.TAG
-    if clazz is soap_envelope.Detail:
-        return _make_fault(), soap_envelope.Detail.TAG
-    if clazz is soap_envelope.Node:
-        return _make_fault(), soap_envelope.Node.TAG
-    if clazz is soap_envelope.Role:
-        return _make_fault(), soap_envelope.Role.TAG
-    if clazz is soap_envelope.Fault:
-        return _make_fault(), None
-    if clazz is soap_envelope.NotUnderstood:
-        return _make_not_understood(), None
-    if clazz is soap_envelope.Upgrade:
-        return _make_upgrade(), None
-    if clazz is soap_envelope.SupportedEnvelope:
-        return _make_upgrade(), soap_envelope.SupportedEnvelope.TAG
-    return clazz(), None
-
-
-def _make_not_understood() -> soap_envelope.NotUnderstood:
-    return soap_envelope.NotUnderstood(
-        attrib={"qname": f"{soap_envelope.PREFIX}:Envelope"},
-        nsmap={soap_envelope.PREFIX: soap_envelope.NAMESPACE},
-    )
-
-
-def _make_upgrade() -> soap_envelope.Upgrade:
-    return soap_envelope.Upgrade(
-        soap_envelope.SupportedEnvelope(
-            attrib={"qname": f"{soap_envelope.PREFIX}:Envelope"},
-            nsmap={soap_envelope.PREFIX: soap_envelope.NAMESPACE},
-        ),
-    )
-
-
-def _make_header() -> soap_envelope.Header:
-    return soap_envelope.Header(
-        addressing.Action("http://example.org/action"),
-        _make_app_sequence(),
-    )
-
-
-def _make_body() -> soap_envelope.Body:
-    return soap_envelope.Body(_make_fault())
+ACTION: str = "http://example.org/action"
+TO: str = "http://example.org/service"
+REFERENCE_PARAMETER_TAG: str = "{urn:example:refparam}SubscriptionId"
 
 
 def _make_fault_value(
@@ -185,24 +76,215 @@ def _make_fault() -> soap_envelope.Fault:
     )
 
 
+def _make_not_understood() -> soap_envelope.NotUnderstood:
+    return soap_envelope.NotUnderstood(
+        attrib={"qname": f"{soap_envelope.PREFIX}:Envelope"},
+        nsmap={soap_envelope.PREFIX: soap_envelope.NAMESPACE},
+    )
+
+
+def _make_upgrade() -> soap_envelope.Upgrade:
+    return soap_envelope.Upgrade(
+        soap_envelope.SupportedEnvelope(
+            attrib={"qname": f"{soap_envelope.PREFIX}:Envelope"},
+            nsmap={soap_envelope.PREFIX: soap_envelope.NAMESPACE},
+        ),
+    )
+
+
+def _make_app_sequence() -> discovery.AppSequence:
+    return discovery.AppSequence(
+        attrib={
+            "InstanceId": "1",
+            "SequenceId": "urn:uuid:66666666-6666-6666-6666-666666666666",
+            "MessageNumber": "1",
+        },
+    )
+
+
+def _make_reference_parameter() -> lxml.etree._Element:
+    """Build an opaque header block marked as a reference parameter (ws-addr-soap 3.2)."""
+    element = lxml.etree.Element(REFERENCE_PARAMETER_TAG)
+    element.set(addressing.IS_REFERENCE_PARAMETER_ATTR_TAG, "true")
+    element.text = "urn:uuid:22e8a584-0d18-4228-b2a8-3716fa2097fa"
+    return element
+
+
+def _make_header() -> soap_envelope.Header:
+    return soap_envelope.Header.for_action(ACTION, _make_app_sequence(), to=TO)
+
+
+def _make_body() -> soap_envelope.Body:
+    return soap_envelope.Body(_make_fault())
+
+
+def _make_envelope() -> soap_envelope.Envelope:
+    return soap_envelope.Envelope.for_action(ACTION, _make_fault(), _make_app_sequence(), to=TO)
+
+
+# Each case pairs a class with the element that must be serialized to reach it: the class itself where it is
+# a valid document root, otherwise the container it lives in.
+SOAP_ENVELOPE_CASES: list[tuple[type[common.ElementBase], str, Callable[[], common.ElementBase]]] = [
+    (soap_envelope.Header, "Header", _make_header),
+    (soap_envelope.Body, "Body", _make_body),
+    (soap_envelope.Envelope, "Envelope", _make_envelope),
+    (soap_envelope.Value, "Value", _make_fault),
+    (soap_envelope.FaultReasonText, "Text", _make_fault),
+    (soap_envelope.FaultReason, "Reason", _make_fault),
+    (soap_envelope.SubCode, "Subcode", _make_fault),
+    (soap_envelope.FaultCode, "Code", _make_fault),
+    (soap_envelope.Detail, "Detail", _make_fault),
+    (soap_envelope.Node, "Node", _make_fault),
+    (soap_envelope.Role, "Role", _make_fault),
+    (soap_envelope.Fault, "Fault", _make_fault),
+    (soap_envelope.NotUnderstood, "NotUnderstood", _make_not_understood),
+    (soap_envelope.Upgrade, "Upgrade", _make_upgrade),
+    (soap_envelope.SupportedEnvelope, "SupportedEnvelope", _make_upgrade),
+]
+
+
+@pytest.mark.parametrize(("clazz", "local_name"), [(case[0], case[1]) for case in SOAP_ENVELOPE_CASES])
+def test_default_tag(
+    clazz: type[common.ElementBase],
+    local_name: str,
+) -> None:
+    """Ensure SOAP envelope classes expose the expected TAG value."""
+    assert f"{{{soap_envelope.NAMESPACE}}}{local_name}" == clazz.TAG
+
+
+@pytest.mark.parametrize("clazz", [case[0] for case in SOAP_ENVELOPE_CASES])
+def test_default_namespace(clazz: type[common.ElementBase]) -> None:
+    """Ensure SOAP envelope classes register the expected namespace."""
+    assert clazz().nsmap[soap_envelope.PREFIX] == soap_envelope.NAMESPACE
+
+
+@pytest.mark.parametrize(
+    ("clazz", "container_factory"),
+    [(case[0], case[2]) for case in SOAP_ENVELOPE_CASES],
+)
+def test_class_lookup(
+    clazz: type[common.ElementBase],
+    container_factory: Callable[[], common.ElementBase],
+) -> None:
+    """Ensure SOAP envelope classes can be serialized and deserialized correctly."""
+    xml = lxml.etree.tostring(container_factory())
+    parsed_element = lxml.etree.fromstring(xml, parser=clazz.PARSER)
+    # ``.//`` never matches the root, so only descend when the container is not the class under test.
+    found = parsed_element if isinstance(parsed_element, clazz) else parsed_element.find(f".//{clazz.TAG}")
+    assert isinstance(found, clazz)
+
+
 def test_body_as_returns_narrowed_body() -> None:
     """``body_as`` returns the soap:Body child when it matches the requested type."""
-    envelope = soap_envelope.Envelope(_make_header(), _make_body())
-    result = envelope.body_as(soap_envelope.Fault)
+    result = _make_envelope().body_as(soap_envelope.Fault)
     assert isinstance(result, soap_envelope.Fault)
 
 
 def test_body_as_raises_on_type_mismatch() -> None:
     """``body_as`` raises ``TypeError`` when the body is not the requested type."""
-    envelope = soap_envelope.Envelope(_make_header(), _make_body())
     with pytest.raises(TypeError):
-        envelope.body_as(soap_envelope.Upgrade)
+        _make_envelope().body_as(soap_envelope.Upgrade)
 
 
-def test_body_as_returns_none_on_missing_body() -> None:
-    """``body_as`` returns ``None`` when there is no soap:Body child (R9981 permits zero)."""
-    envelope = soap_envelope.Envelope(_make_header(), soap_envelope.Body())
+def test_body_as_returns_none_on_empty_body() -> None:
+    """``body_as`` returns ``None`` when soap:Body has no child (R9981 permits zero)."""
+    envelope = soap_envelope.Envelope.for_action(ACTION)
+    assert envelope.soap_body is not None
     assert envelope.body_as(soap_envelope.Fault) is None
+
+
+def test_header_factory_orders_blocks_like_a_real_message() -> None:
+    """``Header.for_action`` emits the block order devices actually send, with extras last."""
+    header = soap_envelope.Header.for_action(
+        ACTION,
+        _make_app_sequence(),
+        to=TO,
+        relates_to="urn:uuid:3d5c8f92-1a4b-4e6d-9c8f-2b7a5e0d3f14",
+    )
+    assert [child.tag for child in header] == [
+        addressing.To.TAG,
+        addressing.Action.TAG,
+        addressing.MessageID.TAG,
+        addressing.RelatesTo.TAG,
+        discovery.AppSequence.TAG,
+    ]
+    assert header.to is not None
+    assert header.to.text == TO
+    assert header.action.text == ACTION
+
+
+def test_header_factory_generates_a_random_message_id() -> None:
+    """``Header.for_action`` mints a fresh MessageID when none is given."""
+    first = soap_envelope.Header.for_action(ACTION).message_id
+    second = soap_envelope.Header.for_action(ACTION).message_id
+    assert first is not None
+    assert second is not None
+    assert first.text is not None
+    assert first.text.startswith("urn:uuid:")
+    assert first.text != second.text
+
+
+def test_header_factory_omits_optional_blocks() -> None:
+    """``Header.for_action`` leaves out the blocks it was not given, rather than emitting empty ones."""
+    header = soap_envelope.Header.for_action(ACTION)
+    assert [child.tag for child in header] == [addressing.Action.TAG, addressing.MessageID.TAG]
+    assert header.to is None
+    assert header.relates_to is None
+    assert header.reply_to is None
+    assert header.fault_to is None
+    assert header.from_ is None
+
+
+def test_envelope_factory_wraps_the_payload() -> None:
+    """``Envelope.for_action`` puts the payload inside soap:Body, where ``body`` reads it back."""
+    payload = _make_fault()
+    envelope = soap_envelope.Envelope.for_action(ACTION, payload, to=TO)
+    soap_body = envelope.soap_body
+    assert soap_body is not None
+    assert soap_body.tag == soap_envelope.Body.TAG
+    assert envelope.body is payload
+    assert envelope.header.action.text == ACTION
+
+
+def test_envelope_factory_emits_a_mandatory_empty_body() -> None:
+    """A one-way message still needs the soap:Body the schema makes mandatory."""
+    envelope = soap_envelope.Envelope.for_action(ACTION)
+    assert isinstance(envelope.soap_body, soap_envelope.Body)
+    assert envelope.body is None
+
+
+def test_header_action_raises_when_absent() -> None:
+    """``Header.action`` raises because ws-addr-core 3.2 makes wsa:Action REQUIRED."""
+    with pytest.raises(ValueError, match="wsa:Action"):
+        _ = soap_envelope.Header().action
+
+
+def test_envelope_header_raises_when_absent() -> None:
+    """``Envelope.header`` raises on a headerless envelope, which the schema still accepts.
+
+    ``soap-envelope.xsd`` declares soap:Header ``minOccurs="0"``, so this document validates -- the
+    requirement is dpws:R5005's, not the schema's, which is why it raises instead of asserting.
+    """
+    raw = f'<s12:Envelope xmlns:s12="{soap_envelope.NAMESPACE}"><s12:Body/></s12:Envelope>'.encode()
+    envelope = lxml.etree.fromstring(raw, parser=soap_envelope.Envelope.PARSER)
+    assert isinstance(envelope, soap_envelope.Envelope)
+    with pytest.raises(ValueError, match="soap:Header"):
+        _ = envelope.header
+
+
+def test_headers_are_typed_through_the_local_parser() -> None:
+    """The module parser must resolve wsa:* headers, not hand back untyped elements.
+
+    ``find_by_element`` is an unchecked cast, so a lookup that only knows the SOAP namespace makes
+    ``Header.action`` claim to return an ``addressing.Action`` while yielding a plain element.
+    """
+    xml = lxml.etree.tostring(_make_envelope())
+    envelope = lxml.etree.fromstring(xml, parser=soap_envelope.Envelope.PARSER)
+    assert isinstance(envelope, soap_envelope.Envelope)
+    header = envelope.header
+    assert isinstance(header.action, addressing.Action)
+    assert isinstance(header.to, addressing.To)
+    assert isinstance(header.message_id, addressing.MessageID)
 
 
 def _make_biceps_parser() -> lxml.etree.XMLParser:
@@ -232,13 +314,3 @@ def test_comment_in_body_does_not_break_class_lookup() -> None:
     envelope = lxml.etree.fromstring(raw, parser=_make_biceps_parser())
     assert isinstance(envelope, soap_envelope.Envelope)
     assert isinstance(envelope.body_as(soap_envelope.Upgrade), soap_envelope.Upgrade)
-
-
-def _make_app_sequence() -> discovery.AppSequence:
-    return discovery.AppSequence(
-        attrib={
-            "InstanceId": "1",
-            "SequenceId": "urn:uuid:66666666-6666-6666-6666-666666666666",
-            "MessageNumber": "1",
-        },
-    )

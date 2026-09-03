@@ -26,6 +26,18 @@ SCHEMA_PATH: typing.Final[pathlib.Path] = pathlib.Path(__file__).parent.parent.j
 SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PATH)
 
 
+IS_REFERENCE_PARAMETER_ATTR_TAG: typing.Final[str] = f"{{{NAMESPACE}}}IsReferenceParameter"
+
+# The implied [destination] when wsa:To is absent, and the implied [address] of an absent wsa:ReplyTo.
+# See https://www.w3.org/TR/2006/REC-ws-addr-core-20060509/#msgaddrpropsinfoset.
+ANONYMOUS_URI: typing.Final[str] = f"{NAMESPACE}/anonymous"
+# The [address] marking an endpoint that discards anything sent to it.
+NONE_URI: typing.Final[str] = f"{NAMESPACE}/none"
+# The [action] designating a WS-Addressing fault, and the one for SOAP-defined faults.
+FAULT_ACTION: typing.Final[str] = f"{NAMESPACE}/fault"
+SOAP_FAULT_ACTION: typing.Final[str] = f"{NAMESPACE}/soap/fault"
+
+
 class RelationshipType(enum.StrEnum):
     REPLY = f"{NAMESPACE}/reply"
 
@@ -51,7 +63,7 @@ class AttributedURIType(common.AnyUri):
         uri: str | uuid.UUID,
         *children: str | typing.Self,
         attrib: Mapping[str, str | bytes] | None = None,
-        nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
+        nsmap: Mapping[str | None, str] | Mapping[str, str] | None = None,
     ) -> typing.Self:
         """Create an AttributedURIType from a URI string or UUID."""
         return cls(uri.urn if isinstance(uri, uuid.UUID) else uri, *children, attrib=attrib, nsmap=nsmap)
@@ -61,7 +73,7 @@ class AttributedURIType(common.AnyUri):
         cls,
         *children: str | typing.Self,
         attrib: Mapping[str, str | bytes] | None = None,
-        nsmap: Mapping[None | str, str] | Mapping[str, str] | None = None,
+        nsmap: Mapping[str | None, str] | Mapping[str, str] | None = None,
     ) -> typing.Self:
         """Create an AttributedURIType with a random UUID URN."""
         return cls.from_uri(uuid.uuid4(), *children, attrib=attrib, nsmap=nsmap)

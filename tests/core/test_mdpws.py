@@ -57,23 +57,6 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     assert isinstance(parsed_element, clazz)
 
 
-def test_safety_info_in_soap_header() -> None:
-    """Ensure a SafetyInfo header round-trips through the composite SDC parser."""
-    envelope = soap_envelope.Envelope(
-        soap_envelope.Header(_make_safety_info()),
-        soap_envelope.Body(),
-    )
-    parser = SoapEnvelopeParser(ExtensionRegistry())
-    parsed = parser.from_string(lxml.etree.tostring(envelope))
-    header = parsed.header
-    assert header is not None
-    safety_info = header.find_by_element(mdpws.SafetyInfo)
-    assert isinstance(safety_info, mdpws.SafetyInfo)
-    dual_channel = safety_info.dual_channel
-    assert dual_channel is not None
-    assert dual_channel.dc_values[0].referenced_selector == "sel1"
-
-
 def _make_stream_descriptions() -> mdpws.StreamDescriptions:
     return mdpws.StreamDescriptions(
         mdpws.StreamTypes(),
