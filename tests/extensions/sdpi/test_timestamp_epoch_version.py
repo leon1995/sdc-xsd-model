@@ -155,8 +155,19 @@ class TestExampleXml:
 
     # ── ClockState / Epochs ────────────────────────────────────────────────
 
-    def test_clock_state_type(self, clock_state: biceps_pm.ClockState) -> None:
-        """Verify xsi:type dispatch resolves pm:State to ClockState."""
+    def test_clock_state_type(self, tree: biceps_msg.GetMdibResponse) -> None:
+        """Verify xsi:type dispatch resolves pm:State to ClockState.
+
+        Derived from ``tree`` rather than the ``clock_state`` fixture, which already asserts the
+        type and would make this tautological. The tag assertion is what makes this a test of
+        xsi:type dispatch: the element is named pm:State, so only xsi:type can select ClockState.
+        """
+        md_state = tree.mdib.md_state
+        assert isinstance(md_state, biceps_pm.MdState)
+        clock_state = md_state.states[0]
+        assert clock_state.tag == f"{{{biceps_pm.NAMESPACE}}}State"
+        assert isinstance(clock_state, biceps_pm.ClockState)
+        assert clock_state.xsi_type == lxml.etree.QName(biceps_pm.NAMESPACE, "ClockState")
 
     def test_clock_state_attributes(self, clock_state: biceps_pm.ClockState) -> None:
         """Verify ClockState attributes from the example."""

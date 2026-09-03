@@ -14,6 +14,7 @@ import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
+from sdc_xsd_model import extension_registry
 from sdc_xsd_model.core import common
 from sdc_xsd_model.extension_registry import ExtensionRegistry
 
@@ -246,6 +247,83 @@ def test_get_schema_lines_returns_import_for_registered_schema(tmp_path: pathlib
     lines = registry.get_schema_lines()
     assert len(lines) == 1
     assert lines[0] == f'<xsd:import namespace="{TEST_NS}" schemaLocation="{schema_file.absolute().as_uri()}"/>'
+
+
+def test_get_schema_lines_unions_multiple_schemas_of_one_namespace(tmp_path: pathlib.Path) -> None:
+    """A namespace described by several schemas yields exactly one import, of the union document.
+
+    ``xsd:import`` binds a namespace to a single location, so emitting one import per schema makes
+    libxml2 silently drop all but the first.
+    """
+    first = tmp_path / "a.xsd"
+    second = tmp_path / "b.xsd"
+    for schema_file in (first, second):
+        schema_file.write_text(
+            f"<xsd:schema xmlns:xsd='http://www.w3.org/2001/XMLSchema' targetNamespace='{TEST_NS}'/>"
+        )
+
+    registry = ExtensionRegistry()
+    registry.register_extension(namespace=TEST_NS, prefix="multi", schema=first)
+    registry.register_extension(namespace=TEST_NS, prefix="multi", schema=second)
+
+    lines = registry.get_schema_lines()
+    assert len(lines) == 1
+    assert lines[0] == f'<xsd:import namespace="{TEST_NS}" schemaLocation="{extension_registry._union_uri(TEST_NS)}"/>'
+
+
+def test_union_uri_is_a_valid_any_uri() -> None:
+    """The synthetic location must be a valid xsd:anyURI, or libxml2 rejects the import."""
+    uri = extension_registry._union_uri(TEST_NS)
+    assert uri.startswith("urn:sdc-xsd-model:extension-union:")
+    # a nested "urn:oid:..." would carry bare colons, which are not permitted here
+    assert ":" not in uri.removeprefix("urn:sdc-xsd-model:extension-union:")
+
+
+def test_union_document_includes_every_schema_in_sorted_order(tmp_path: pathlib.Path) -> None:
+    """The union document includes each schema, ordered so it does not depend on set iteration."""
+    beta = tmp_path / "beta.xsd"
+    alpha = tmp_path / "alpha.xsd"
+    for schema_file in (beta, alpha):
+        schema_file.touch()
+
+    document = extension_registry._union_document(TEST_NS, {beta, alpha})
+
+    assert f'targetNamespace="{TEST_NS}"' in document
+    assert document.index(alpha.as_uri()) < document.index(beta.as_uri())
+    assert document.count("<xsd:include") == 2
+
+
+def test_multi_schema_namespace_resolves_and_validates(tmp_path: pathlib.Path) -> None:
+    """The union document is reachable through install_resolvers and both schemas take effect."""
+    first = tmp_path / "first.xsd"
+    first.write_text(
+        f"<xsd:schema xmlns:xsd='http://www.w3.org/2001/XMLSchema' targetNamespace='{TEST_NS}'>"
+        "<xsd:element name='First' type='xsd:unsignedInt'/></xsd:schema>"
+    )
+    second = tmp_path / "second.xsd"
+    second.write_text(
+        f"<xsd:schema xmlns:xsd='http://www.w3.org/2001/XMLSchema' targetNamespace='{TEST_NS}'>"
+        "<xsd:element name='Second' type='xsd:unsignedInt'/></xsd:schema>"
+    )
+
+    registry = ExtensionRegistry()
+    registry.register_extension(namespace=TEST_NS, prefix="multi", schema=first)
+    registry.register_extension(namespace=TEST_NS, prefix="multi", schema=second)
+
+    aggregate = (
+        '<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">'
+        f"{''.join(registry.get_schema_lines())}</xsd:schema>"
+    ).encode()
+    schema_parser = lxml.etree.XMLParser()
+    registry.install_resolvers(schema_parser)
+    schema = lxml.etree.XMLSchema(etree=lxml.etree.fromstring(aggregate, parser=schema_parser))
+
+    # Declarations from *both* documents must be present, and both must actually be enforced.
+    for local_name in ("First", "Second"):
+        assert schema.validate(lxml.etree.fromstring(f'<{local_name} xmlns="{TEST_NS}">1</{local_name}>'.encode()))
+        assert not schema.validate(
+            lxml.etree.fromstring(f'<{local_name} xmlns="{TEST_NS}">not-a-number</{local_name}>'.encode())
+        )
 
 
 def test_get_schema_lines_excludes_entries_without_schema() -> None:

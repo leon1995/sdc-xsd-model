@@ -25,8 +25,6 @@ from sdc_xsd_model.core import (
 if TYPE_CHECKING:
     from sdc_xsd_model.extension_registry import ExtensionRegistry
 
-_XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
-
 
 def sdc_schema(registry: ExtensionRegistry) -> lxml.etree.XMLSchema:
     """Get an XML schema with all SDC XSD models relevant for BICEPS messages included."""
@@ -52,7 +50,9 @@ def sdc_schema(registry: ExtensionRegistry) -> lxml.etree.XMLSchema:
     tmp.writelines([f"{line}\n" for line in registry.get_schema_lines()])
     tmp.write("</xsd:schema>")
     all_included = tmp.getvalue().encode("utf-8")
-    elem_tree = lxml.etree.fromstring(all_included)
+    schema_parser = lxml.etree.XMLParser()
+    registry.install_resolvers(schema_parser)
+    elem_tree = lxml.etree.fromstring(all_included, parser=schema_parser)
     return lxml.etree.XMLSchema(etree=elem_tree)
 
 

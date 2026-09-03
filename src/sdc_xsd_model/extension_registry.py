@@ -30,16 +30,19 @@ import dataclasses
 import pathlib
 import re
 import typing
+import urllib.parse
 
 import lxml.etree
 
 if typing.TYPE_CHECKING:
     import os
-    from collections.abc import Sequence
+    from collections.abc import Iterable, Sequence
 
     from sdc_xsd_model.core import common
 
 _TAG_RE = re.compile(r"\{(?P<ns>[^}]+)\}(?P<local>.+)")
+
+_UNION_URI_PREFIX = "urn:sdc-xsd-model:extension-union:"
 
 
 @dataclasses.dataclass
@@ -47,6 +50,31 @@ class _NamespaceInfo:
     prefix: str | None = None
     schemas: set[pathlib.Path] = dataclasses.field(default_factory=set)
     classes: dict[str, type[common.ElementBase]] = dataclasses.field(default_factory=dict)
+
+
+def _union_uri(namespace: str) -> str:
+    """Return the synthetic location under which *namespace*'s union schema is served.
+
+    The namespace is percent-encoded because a nested URI such as ``urn:oid:1.3.6...`` is not a
+    valid ``xsd:anyURI`` when embedded verbatim, and libxml2 rejects the ``xsd:import`` outright.
+    """
+    return _UNION_URI_PREFIX + urllib.parse.quote(namespace, safe="")
+
+
+def _union_document(namespace: str, schemas: Iterable[pathlib.Path]) -> str:
+    """Return a schema document for *namespace* that includes every one of *schemas*.
+
+    A namespace may be described by several schema documents, but ``xsd:import`` binds a namespace
+    to exactly one location -- libxml2 honours the first import and silently ignores the rest. The
+    documents therefore have to be combined with ``xsd:include`` into a single document, which is
+    what gets imported. Schemas are sorted so the result does not depend on set iteration order.
+    """
+    includes = "".join(f'<xsd:include schemaLocation="{schema.as_uri()}"/>' for schema in sorted(schemas))
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        f'<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="{namespace}">'
+        f"{includes}</xsd:schema>"
+    )
 
 
 def _parse_tag(tag: str) -> tuple[str, str]:
@@ -149,9 +177,39 @@ class ExtensionRegistry:
                 ns_registry[local_name] = cls
 
     def get_schema_lines(self) -> Sequence[str]:
-        """Return lines of XML schema declarations of registered extensions referencing a schema."""
-        return [
-            f'<xsd:import namespace="{ns}" schemaLocation="{schema.as_uri()}"/>'
+        """Return lines of XML schema declarations of registered extensions referencing a schema.
+
+        Exactly one ``xsd:import`` is emitted per namespace. A namespace described by several schema
+        documents is imported through a synthetic union document, which
+        :meth:`install_resolvers` serves to the parser building the schema.
+        """
+        lines = []
+        for ns, info in self._namespaces.items():
+            if not info.schemas:
+                continue
+            location = next(iter(info.schemas)).as_uri() if len(info.schemas) == 1 else _union_uri(ns)
+            lines.append(f'<xsd:import namespace="{ns}" schemaLocation="{location}"/>')
+        return lines
+
+    def install_resolvers(self, parser: lxml.etree.XMLParser) -> None:
+        """Teach *parser* to resolve the union schema of every namespace with multiple schemas.
+
+        Must be called on the parser that reads the aggregate schema document, so that the
+        synthetic locations emitted by :meth:`get_schema_lines` can be resolved from memory.
+        """
+        unions = {
+            _union_uri(ns): _union_document(ns, info.schemas)
             for ns, info in self._namespaces.items()
-            for schema in info.schemas
-        ]
+            if len(info.schemas) > 1
+        }
+
+        class _UnionResolver(lxml.etree.Resolver):
+            """Serve the in-memory union schema documents by their synthetic location."""
+
+            def resolve(self, system_url: str, public_id: str | None, context: object) -> object:  # noqa: ARG002
+                document = unions.get(system_url)
+                if document is None:
+                    return None
+                return self.resolve_string(document, context)
+
+        parser.resolvers.add(_UnionResolver())
