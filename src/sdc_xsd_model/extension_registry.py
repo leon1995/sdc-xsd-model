@@ -206,10 +206,18 @@ class ExtensionRegistry:
         class _UnionResolver(lxml.etree.Resolver):
             """Serve the in-memory union schema documents by their synthetic location."""
 
-            def resolve(self, system_url: str, public_id: str | None, context: object) -> object:  # noqa: ARG002
+            # lxml calls resolve(system_url, public_id, context) at runtime; lxml-stubs declares only
+            # the first two parameters, so the override looks incompatible to a type checker but it is actually correct.
+            def resolve(  # ty:ignore[invalid-method-override]
+                self,
+                system_url: str,
+                public_id: str | None,  # noqa: ARG002 - part of the lxml resolver contract
+                context: object,
+            ) -> object:
                 document = unions.get(system_url)
                 if document is None:
                     return None
-                return self.resolve_string(document, context)
+                # base_url is the document's own location, so anything relative inside it resolves.
+                return self.resolve_string(document, context, base_url=system_url)
 
         parser.resolvers.add(_UnionResolver())
