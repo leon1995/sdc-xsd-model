@@ -24,6 +24,18 @@ SCHEMA: typing.Final[lxml.etree.XMLSchema] = lxml.etree.XMLSchema(file=SCHEMA_PA
 
 MUST_UNDERSTAND_ATTR_TAG: typing.Final[str] = f"{{{NAMESPACE}}}MustUnderstand"
 
+IMPLIED_MUST_UNDERSTAND: typing.Final[bool] = False
+
+
+def must_understand_of(element: common.ElementBase) -> bool | None:
+    """Read ``ext:MustUnderstand`` off *element*, or None when the attribute is absent.
+
+    Raises:
+        ValueError: if the attribute is present but not a valid ``xsd:boolean`` literal.
+
+    """
+    return converter.to_bool(element.get(MUST_UNDERSTAND_ATTR_TAG))
+
 
 class Extension(common.ElementBase):
     """ExtensionType element allowing arbitrary extension children."""
@@ -31,11 +43,23 @@ class Extension(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Extension"
 
     @property
-    def must_understand(self) -> bool:
-        """Return the ext:MustUnderstand attribute, which defaults to false when absent."""
-        value = converter.to_bool(self.get(MUST_UNDERSTAND_ATTR_TAG, "false"))
-        assert value is not None
-        return value
+    def must_understand(self) -> bool | None:
+        """``ext:MustUnderstand`` as written, or None when the attribute is absent.
+
+        Prefer :attr:`must_understand_or_implied` when deciding whether to reject an unknown extension; use
+        this one only when it matters whether the attribute was on the wire, e.g. when re-serializing.
+        """
+        return must_understand_of(self)
+
+    @property
+    def must_understand_or_implied(self) -> bool:
+        """``ext:MustUnderstand``; the schema states an absent attribute means ``false``.
+
+        Goes through ``common.with_implied``, which tests ``is None``: writing ``self.must_understand or
+        False`` would happen to work here but is the pattern that inverts the numeric and boolean defaults
+        elsewhere in the model.
+        """
+        return common.with_implied(self.must_understand, IMPLIED_MUST_UNDERSTAND)
 
 
 def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:

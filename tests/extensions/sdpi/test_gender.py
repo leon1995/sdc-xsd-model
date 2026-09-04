@@ -145,7 +145,8 @@ class TestExampleXml:
         assert ext is not None
         gender = ext.find_by_element(Gender)
         assert isinstance(gender, Gender)
-        assert gender.must_understand is False
+        assert gender.must_understand is None
+        assert gender.must_understand_or_implied is False
 
     def test_core_data_given_name(self, patient_state: biceps_pm.PatientContextState) -> None:
         """Verify CoreData given name equals 'John'."""

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A wse:GetStatusResponse. Its wse:Expires is optional in the schema, unlike the one on
+  wse:SubscribeResponse. That is the only difference between the two on the wire, and it is why
+  GetStatusResponse.expires is optional while SubscribeResponse.expires is not.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:wse="http://schemas.xmlsoap.org/ws/2004/08/eventing">
+  <s12:Header>
+    <wsa:To>http://www.w3.org/2005/08/addressing/anonymous</wsa:To>
+    <wsa:Action>http://schemas.xmlsoap.org/ws/2004/08/eventing/GetStatusResponse</wsa:Action>
+    <wsa:MessageID>urn:uuid:1a2b3c4d-0004-4000-8000-000000000004</wsa:MessageID>
+    <wsa:RelatesTo>urn:uuid:1a2b3c4d-0009-4000-8000-000000000009</wsa:RelatesTo>
+  </s12:Header>
+  <s12:Body>
+    <wse:GetStatusResponse>
+      <wse:Expires>PT22M30S</wse:Expires>
+    </wse:GetStatusResponse>
+  </s12:Body>
+</s12:Envelope>

@@ -54,6 +54,15 @@ class DiscoveryTypeValues(enum.StrEnum):
 class LocalizedStringType(common.ElementBase):
     """A string with optional xml:lang attribute."""
 
+    @property
+    def lang(self) -> str | None:
+        """``xml:lang`` of this string, or None when absent.
+
+        DPWS repeats these elements once per language, so a consumer picking a display string has to read the
+        tag to choose between them. Mirrors ``eventing.LanguageSpecificStringType.lang``.
+        """
+        return self.get("{http://www.w3.org/XML/1998/namespace}lang")
+
 
 class Manufacturer(LocalizedStringType):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Manufacturer"

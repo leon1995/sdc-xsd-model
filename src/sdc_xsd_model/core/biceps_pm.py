@@ -231,6 +231,13 @@ class MetricRelationKind(enum.StrEnum):
     OTH = "Oth"
 
 
+class Criticality(enum.StrEnum):
+    """Anonymous enumeration of pm:ClinicalInfo/pm:Criticality: how critical the clinical information is."""
+
+    LO = "Lo"
+    HI = "Hi"
+
+
 # ── BICEPS implied values ─────────────────────────────────────────────────────────────────────────
 # BICEPS states defaults in xsd:documentation prose ("The implied value SHALL be ...") rather than as an XSD
 # ``default``, so an absent optional attribute does NOT mean "unknown". Each constant below backs an
@@ -885,6 +892,20 @@ class AbstractDeviceComponentDescriptor(AbstractDescriptor):
 class AbstractComplexDeviceComponentDescriptor(AbstractDeviceComponentDescriptor):
     """Descriptor with optional alert system and SCO."""
 
+    @property
+    def alert_system(self) -> AlertSystemDescriptor | None:
+        """The ALERT SYSTEM of this component (``pm:AlertSystem``, 0..1)."""
+        return self.find_by_element(AlertSystemDescriptor)
+
+    @property
+    def sco(self) -> ScoDescriptor | None:
+        """The SERVICE CONTROL OBJECT of this component (``pm:Sco``, 0..1).
+
+        glue:R0002 requires a provider to describe every remote-control capability transported via MDPWS
+        here, so this is where a consumer discovers what a device can be asked to do.
+        """
+        return self.find_by_element(ScoDescriptor)
+
 
 class MdsDescriptor(AbstractComplexDeviceComponentDescriptor):
     """Descriptor for a Medical Device System."""
@@ -956,6 +977,16 @@ class ScoDescriptor(AbstractDeviceComponentDescriptor):
     """Descriptor for Service Control Object."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Sco"
+
+    @property
+    def operations(self) -> Sequence[AbstractOperationDescriptor]:
+        """The operations this SCO offers (``pm:Operation``, 0..*).
+
+        The element is declared as ``pm:AbstractOperationDescriptor`` and the concrete kind comes from
+        ``xsi:type``, so entries are the concrete subclasses rather than the base class. The base declares no
+        ``TAG`` for that reason, so this searches the element name instead of using ``findall_by_element``.
+        """
+        return typing.cast("Sequence[AbstractOperationDescriptor]", self.findall(f"{{{NAMESPACE}}}Operation"))
 
 
 # ── Device component states ───────────────────────────────────────────────────────────────────────
@@ -1156,6 +1187,19 @@ class AlertSystemDescriptor(AbstractAlertDescriptor):
     """Descriptor for an alert system."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertSystem"
+
+    @property
+    def alert_conditions(self) -> Sequence[AlertConditionDescriptor]:
+        """The ALERT CONDITIONs this system can detect (``pm:AlertCondition``, 0..*).
+
+        ``pm:LimitAlertConditionDescriptor`` instances appear here too, distinguished by ``xsi:type``.
+        """
+        return self.findall_by_element(AlertConditionDescriptor)
+
+    @property
+    def alert_signals(self) -> Sequence[AlertSignalDescriptor]:
+        """The ALERT SIGNALs this system can emit (``pm:AlertSignal``, 0..*)."""
+        return self.findall_by_element(AlertSignalDescriptor)
 
     @property
     def max_physiological_parallel_alarms(self) -> int | None:
@@ -1928,9 +1972,44 @@ class SetAlertStateOperationState(AbstractOperationState):
 
 
 class SystemContextDescriptor(AbstractDeviceComponentDescriptor):
-    """Descriptor for system context."""
+    """Descriptor for system context.
+
+    The presence of a context descriptor is what states that a provider can process that kind of contextual
+    information, which is why BICEPS R0106 forbids removing one from or adding one to the MDIB during runtime
+    except when the hosting MDS itself is removed or added: a consumer may rely on the set being stable.
+    """
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}SystemContext"
+
+    @property
+    def patient_context(self) -> PatientContextDescriptor | None:
+        """``pm:PatientContext`` (0..1)."""
+        return self.find_by_element(PatientContextDescriptor)
+
+    @property
+    def location_context(self) -> LocationContextDescriptor | None:
+        """``pm:LocationContext`` (0..1)."""
+        return self.find_by_element(LocationContextDescriptor)
+
+    @property
+    def ensemble_contexts(self) -> Sequence[EnsembleContextDescriptor]:
+        """``pm:EnsembleContext`` (0..*)."""
+        return self.findall_by_element(EnsembleContextDescriptor)
+
+    @property
+    def operator_contexts(self) -> Sequence[OperatorContextDescriptor]:
+        """``pm:OperatorContext`` (0..*)."""
+        return self.findall_by_element(OperatorContextDescriptor)
+
+    @property
+    def workflow_contexts(self) -> Sequence[WorkflowContextDescriptor]:
+        """``pm:WorkflowContext`` (0..*)."""
+        return self.findall_by_element(WorkflowContextDescriptor)
+
+    @property
+    def means_contexts(self) -> Sequence[MeansContextDescriptor]:
+        """``pm:MeansContext`` (0..*)."""
+        return self.findall_by_element(MeansContextDescriptor)
 
 
 class AbstractContextDescriptor(AbstractDescriptor):
@@ -2201,6 +2280,11 @@ class WorkflowContextState(AbstractContextState):
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}WorkflowContextState"
 
+    @property
+    def workflow_detail(self) -> WorkflowDetail | None:
+        """The workflow step (``pm:WorkflowDetail``, 0..1); ``WorkflowDetail`` is defined further down."""
+        return self.find_by_element(WorkflowDetail)
+
 
 class OperatorContextState(AbstractContextState):
     """Operator context information."""
@@ -2223,20 +2307,115 @@ class EnsembleContextState(AbstractContextState):
 # ── Miscellaneous types ───────────────────────────────────────────────────────────────────────────
 
 
-class CauseInfo(common.ElementBase):
-    """Cause information for an alert condition."""
-
-    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CauseInfo"
-
-
 class RemedyInfo(common.ElementBase):
     """Remedy information for a cause of an alert condition."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}RemedyInfo"
 
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def descriptions(self) -> Sequence[LocalizedText]:
+        """Textual descriptions of the remedy (``pm:Description``, 0..*)."""
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Description"))
+
+
+class CauseInfo(common.ElementBase):
+    """Cause information for an alert condition."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}CauseInfo"
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def remedy_info(self) -> RemedyInfo | None:
+        """Remedy for this cause (``pm:RemedyInfo``, 0..1)."""
+        return self.find_by_element(RemedyInfo)
+
+    @property
+    def descriptions(self) -> Sequence[LocalizedText]:
+        """Textual descriptions of the cause (``pm:Description``, 0..*)."""
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Description"))
+
+
+class ReferenceRange(common.ElementBase):
+    """A reference range for a related measurement, with the meaning of that range."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ReferenceRange"
+
+    @property
+    def range(self) -> Range:
+        """The range itself (``pm:Range``, required)."""
+        value = typing.cast("Range | None", self.find(f"{{{NAMESPACE}}}Range"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def meaning(self) -> CodedValue | None:
+        """What the range means (``pm:Meaning``, 0..1)."""
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Meaning"))
+
+
+class RelatedMeasurement(common.ElementBase):
+    """A measurement related to a clinical observation, optionally with reference ranges."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}RelatedMeasurement"
+
+    @property
+    def validity(self) -> MeasurementValidity | None:
+        return converter.to_enum(self.get("Validity"), MeasurementValidity)
+
+    @property
+    def value(self) -> Measurement:
+        """The measured value (``pm:Value``, required)."""
+        value = typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Value"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def reference_ranges(self) -> Sequence[ReferenceRange]:
+        """Reference ranges for the value (``pm:ReferenceRange``, 0..*)."""
+        return self.findall_by_element(ReferenceRange)
+
 
 class ClinicalInfo(common.ElementBase):
-    """Minimal clinical observation."""
+    """Minimal clinical observation.
+
+    Reached under two element names -- ``pm:RelevantClinicalInfo`` on the workflow detail and
+    ``pm:ResultingClinicalInfo`` on a performed order detail -- so this class declares no ``TAG``.
+    """
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def type(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+
+    @property
+    def code(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Code"))
+
+    @property
+    def criticality(self) -> Criticality | None:
+        """How critical the observation is (``pm:Criticality``, 0..1)."""
+        node = self.find(f"{{{NAMESPACE}}}Criticality")
+        return None if node is None else converter.to_enum(node.text, Criticality)
+
+    @property
+    def descriptions(self) -> Sequence[LocalizedText]:
+        """Textual descriptions of the observation (``pm:Description``, 0..*)."""
+        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Description"))
+
+    @property
+    def related_measurements(self) -> Sequence[RelatedMeasurement]:
+        """Measurements related to the observation (``pm:RelatedMeasurement``, 0..*)."""
+        return self.findall_by_element(RelatedMeasurement)
 
 
 class ImagingProcedure(common.ElementBase):
@@ -2244,9 +2423,168 @@ class ImagingProcedure(common.ElementBase):
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ImagingProcedure"
 
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def accession_identifier(self) -> InstanceIdentifier:
+        """``pm:AccessionIdentifier`` (required)."""
+        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}AccessionIdentifier"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def requested_procedure_id(self) -> InstanceIdentifier:
+        """``pm:RequestedProcedureId`` (required)."""
+        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}RequestedProcedureId"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def study_instance_uid(self) -> InstanceIdentifier:
+        """``pm:StudyInstanceUid`` (required)."""
+        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}StudyInstanceUid"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def scheduled_procedure_step_id(self) -> InstanceIdentifier:
+        """``pm:ScheduledProcedureStepId`` (required)."""
+        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}ScheduledProcedureStepId"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def modality(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Modality"))
+
+    @property
+    def protocol_code(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}ProtocolCode"))
+
 
 class OrderDetail(common.ElementBase):
-    """Details of an order."""
+    """Details of an order.
+
+    BICEPS never uses this type as an element directly; it is the base of the two anonymous extensions
+    ``pm:RequestedOrderDetail`` and ``pm:PerformedOrderDetail``, modelled below. It therefore declares no
+    ``TAG``.
+    """
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def start(self) -> datetime.datetime | None:
+        """When the order starts (``pm:Start``, 0..1)."""
+        node = self.find(f"{{{NAMESPACE}}}Start")
+        if node is None or node.text is None:
+            return None
+        return converter.DateTimeConverter.deserialize(node.text)
+
+    @property
+    def end(self) -> datetime.datetime | None:
+        """When the order ends (``pm:End``, 0..1)."""
+        node = self.find(f"{{{NAMESPACE}}}End")
+        if node is None or node.text is None:
+            return None
+        return converter.DateTimeConverter.deserialize(node.text)
+
+    @property
+    def performers(self) -> Sequence[PersonParticipation]:
+        """People performing the order (``pm:Performer``, 0..*)."""
+        return typing.cast("Sequence[PersonParticipation]", self.findall(f"{{{NAMESPACE}}}Performer"))
+
+    @property
+    def services(self) -> Sequence[CodedValue]:
+        """Services requested or performed (``pm:Service``, 0..*)."""
+        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}Service"))
+
+    @property
+    def imaging_procedures(self) -> Sequence[ImagingProcedure]:
+        """Imaging procedures of the order (``pm:ImagingProcedure``, 0..*)."""
+        return self.findall_by_element(ImagingProcedure)
+
+
+class RequestedOrderDetail(OrderDetail):
+    """An order as requested, extending :class:`OrderDetail` with the requesting parties."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}RequestedOrderDetail"
+
+    @property
+    def referring_physician(self) -> PersonReference | None:
+        return typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}ReferringPhysician"))
+
+    @property
+    def requesting_physician(self) -> PersonReference | None:
+        return typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}RequestingPhysician"))
+
+    @property
+    def placer_order_number(self) -> InstanceIdentifier:
+        """``pm:PlacerOrderNumber`` (required)."""
+        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}PlacerOrderNumber"))
+        assert value is not None  # schema enforces presence
+        return value
+
+
+class PerformedOrderDetail(OrderDetail):
+    """An order as performed, extending :class:`OrderDetail` with the outcome."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}PerformedOrderDetail"
+
+    @property
+    def filler_order_number(self) -> InstanceIdentifier | None:
+        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}FillerOrderNumber"))
+
+    @property
+    def resulting_clinical_infos(self) -> Sequence[ClinicalInfo]:
+        """Clinical information resulting from the order (``pm:ResultingClinicalInfo``, 0..*)."""
+        return typing.cast("Sequence[ClinicalInfo]", self.findall(f"{{{NAMESPACE}}}ResultingClinicalInfo"))
+
+
+class WorkflowDetail(common.ElementBase):
+    """The workflow step a device participates in, carried by :class:`WorkflowContextState`."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}WorkflowDetail"
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+    @property
+    def patient(self) -> PersonReference:
+        """Subject of the order (``pm:Patient``, required)."""
+        value = typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}Patient"))
+        assert value is not None  # schema enforces presence
+        return value
+
+    @property
+    def assigned_location(self) -> LocationReference | None:
+        return typing.cast("LocationReference | None", self.find(f"{{{NAMESPACE}}}AssignedLocation"))
+
+    @property
+    def visit_number(self) -> InstanceIdentifier | None:
+        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}VisitNumber"))
+
+    @property
+    def danger_codes(self) -> Sequence[CodedValue]:
+        """``pm:DangerCode`` (0..*)."""
+        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}DangerCode"))
+
+    @property
+    def relevant_clinical_infos(self) -> Sequence[ClinicalInfo]:
+        """``pm:RelevantClinicalInfo`` (0..*)."""
+        return typing.cast("Sequence[ClinicalInfo]", self.findall(f"{{{NAMESPACE}}}RelevantClinicalInfo"))
+
+    @property
+    def requested_order_detail(self) -> RequestedOrderDetail | None:
+        return self.find_by_element(RequestedOrderDetail)
+
+    @property
+    def performed_order_detail(self) -> PerformedOrderDetail | None:
+        return self.find_by_element(PerformedOrderDetail)
 
 
 class ContainmentTreeEntry(common.ElementBase):
@@ -2409,6 +2747,15 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # n
     ns["CauseInfo"] = CauseInfo
     ns["RemedyInfo"] = RemedyInfo
     ns["ImagingProcedure"] = ImagingProcedure
+    # Workflow / order / clinical-info branch. ClinicalInfo declares no TAG because BICEPS reaches it under two
+    # element names, and OrderDetail is only ever the base of the two extensions registered here.
+    ns["WorkflowDetail"] = WorkflowDetail
+    ns["RequestedOrderDetail"] = RequestedOrderDetail
+    ns["PerformedOrderDetail"] = PerformedOrderDetail
+    ns["RelevantClinicalInfo"] = ClinicalInfo
+    ns["ResultingClinicalInfo"] = ClinicalInfo
+    ns["RelatedMeasurement"] = RelatedMeasurement
+    ns["ReferenceRange"] = ReferenceRange
     ns["LocationDetail"] = LocationDetail
     ns["CoreData"] = PatientDemographicsCoreData
     ns["OperatorDetails"] = BaseDemographics

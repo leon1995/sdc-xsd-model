@@ -54,6 +54,11 @@ BICEPS_PM_CASES = [
     (biceps_pm.CauseInfo, "CauseInfo"),
     (biceps_pm.RemedyInfo, "RemedyInfo"),
     (biceps_pm.ImagingProcedure, "ImagingProcedure"),
+    (biceps_pm.WorkflowDetail, "WorkflowDetail"),
+    (biceps_pm.RequestedOrderDetail, "RequestedOrderDetail"),
+    (biceps_pm.PerformedOrderDetail, "PerformedOrderDetail"),
+    (biceps_pm.RelatedMeasurement, "RelatedMeasurement"),
+    (biceps_pm.ReferenceRange, "ReferenceRange"),
     (biceps_pm.LocationDetail, "LocationDetail"),
     (biceps_pm.PatientDemographicsCoreData, "CoreData"),
     (biceps_pm.ContainmentTreeEntry, "Entry"),
@@ -335,3 +340,195 @@ def test_meta_data_date_rejects_shorter_form() -> None:
     element = _meta_data(ManufactureDate="2020")
     with pytest.raises(ValueError, match="xsd:gYear literal"):
         _ = element.manufacture_date
+
+
+# ── workflow / order / clinical-info branch ────────────────────────────────────────────────────────
+# BICEPS reaches this branch only through pm:WorkflowContextState/pm:WorkflowDetail. Every node below is
+# typed by an element-name registration rather than by xsi:type, and find_by_element is an unchecked cast,
+# so these tests assert the concrete classes -- an unregistered name would otherwise yield a plain
+# _Element whose properties silently do not exist.
+
+_WORKFLOW_DETAIL = f"""<dom:WorkflowDetail xmlns:dom="{biceps_pm.NAMESPACE}">
+  <dom:Patient><dom:Identification Root="urn:oid:1.2.3" Extension="P-42"/></dom:Patient>
+  <dom:AssignedLocation><dom:Identification Extension="OR-1"/></dom:AssignedLocation>
+  <dom:VisitNumber Extension="V-7"/>
+  <dom:DangerCode Code="1234"/>
+  <dom:RelevantClinicalInfo>
+    <dom:Type Code="111"/>
+    <dom:Code Code="222" CodingSystem="urn:oid:9.9"/>
+    <dom:Criticality>Hi</dom:Criticality>
+    <dom:Description Lang="en">elevated lactate</dom:Description>
+    <dom:RelatedMeasurement Validity="Vld">
+      <dom:Value MeasuredValue="4.2"><dom:MeasurementUnit Code="263762"/></dom:Value>
+      <dom:ReferenceRange>
+        <dom:Range Lower="0.5" Upper="2.2"/>
+        <dom:Meaning Code="normal"/>
+      </dom:ReferenceRange>
+    </dom:RelatedMeasurement>
+  </dom:RelevantClinicalInfo>
+  <dom:RequestedOrderDetail>
+    <dom:Start>2026-09-04T08:30:00Z</dom:Start>
+    <dom:Performer><dom:Identification Extension="DR-1"/><dom:Role Code="perf"/></dom:Performer>
+    <dom:Service Code="svc-1"/>
+    <dom:ImagingProcedure>
+      <dom:AccessionIdentifier Extension="ACC-1"/>
+      <dom:RequestedProcedureId Extension="RP-1"/>
+      <dom:StudyInstanceUid Extension="1.2.840.1"/>
+      <dom:ScheduledProcedureStepId Extension="SPS-1"/>
+      <dom:Modality Code="CT"/>
+    </dom:ImagingProcedure>
+    <dom:RequestingPhysician><dom:Identification Extension="DR-2"/></dom:RequestingPhysician>
+    <dom:PlacerOrderNumber Extension="PON-9"/>
+  </dom:RequestedOrderDetail>
+  <dom:PerformedOrderDetail>
+    <dom:FillerOrderNumber Extension="FON-3"/>
+    <dom:ResultingClinicalInfo><dom:Criticality>Lo</dom:Criticality></dom:ResultingClinicalInfo>
+  </dom:PerformedOrderDetail>
+</dom:WorkflowDetail>"""
+
+
+def _workflow_detail() -> biceps_pm.WorkflowDetail:
+    element = _parse(_WORKFLOW_DETAIL)
+    assert isinstance(element, biceps_pm.WorkflowDetail)
+    return element
+
+
+def test_workflow_detail_references_are_typed() -> None:
+    """The reference children resolve to their distinct classes, not all to a common base."""
+    element = _workflow_detail()
+    assert isinstance(element.patient, biceps_pm.PersonReference)
+    assert isinstance(element.assigned_location, biceps_pm.LocationReference)
+    assert isinstance(element.visit_number, biceps_pm.InstanceIdentifier)
+    assert element.visit_number.extension_attr == "V-7"
+    assert [code.code for code in element.danger_codes] == ["1234"]
+    assert all(isinstance(code, biceps_pm.CodedValue) for code in element.danger_codes)
+
+
+def test_workflow_detail_reached_from_context_state() -> None:
+    """pm:WorkflowDetail is only ever a child of pm:WorkflowContextState, which is how callers get here."""
+    element = _parse(
+        f'<dom:WorkflowContextState xmlns:dom="{biceps_pm.NAMESPACE}" Handle="wf.0" DescriptorHandle="wf">'
+        f"<dom:WorkflowDetail><dom:Patient/></dom:WorkflowDetail>"
+        f"</dom:WorkflowContextState>"
+    )
+    assert isinstance(element, biceps_pm.WorkflowContextState)
+    assert isinstance(element.workflow_detail, biceps_pm.WorkflowDetail)
+
+
+def test_workflow_detail_without_detail_is_none() -> None:
+    """pm:WorkflowDetail is minOccurs=0."""
+    element = _parse(
+        f'<dom:WorkflowContextState xmlns:dom="{biceps_pm.NAMESPACE}" Handle="wf.0" DescriptorHandle="wf"/>'
+    )
+    assert isinstance(element, biceps_pm.WorkflowContextState)
+    assert element.workflow_detail is None
+
+
+def test_clinical_info_properties() -> None:
+    """pm:ClinicalInfo has no TAG of its own -- it is registered under both of its element names."""
+    clinical_info = _workflow_detail().relevant_clinical_infos[0]
+    assert isinstance(clinical_info, biceps_pm.ClinicalInfo)
+    assert clinical_info.type is not None
+    assert clinical_info.type.code == "111"
+    assert clinical_info.code is not None
+    assert clinical_info.code.coding_system == "urn:oid:9.9"
+    assert clinical_info.criticality is biceps_pm.Criticality.HI
+    assert [text.text for text in clinical_info.descriptions] == ["elevated lactate"]
+
+
+def test_clinical_info_criticality_absent_is_none() -> None:
+    """pm:Criticality is minOccurs=0, and it is element content rather than an attribute."""
+    element = _parse(f'<dom:RelevantClinicalInfo xmlns:dom="{biceps_pm.NAMESPACE}"/>')
+    assert isinstance(element, biceps_pm.ClinicalInfo)
+    assert element.criticality is None
+
+
+def test_clinical_info_criticality_rejects_unknown_value() -> None:
+    """The enumeration only permits "Lo" and "Hi"; anything else is a lexical error, not a silent None."""
+    element = _parse(
+        f'<dom:RelevantClinicalInfo xmlns:dom="{biceps_pm.NAMESPACE}">'
+        f"<dom:Criticality>Medium</dom:Criticality></dom:RelevantClinicalInfo>"
+    )
+    assert isinstance(element, biceps_pm.ClinicalInfo)
+    with pytest.raises(ValueError, match="not a valid Criticality value"):
+        _ = element.criticality
+
+
+def test_related_measurement_and_reference_range() -> None:
+    """pm:Value is pm:Measurement here, and the nested pm:Range keeps decimal precision."""
+    measurement = _workflow_detail().relevant_clinical_infos[0].related_measurements[0]
+    assert isinstance(measurement, biceps_pm.RelatedMeasurement)
+    assert measurement.validity is biceps_pm.MeasurementValidity.VLD
+    assert isinstance(measurement.value, biceps_pm.Measurement)
+    assert measurement.value.measured_value == decimal.Decimal("4.2")
+    reference_range = measurement.reference_ranges[0]
+    assert isinstance(reference_range, biceps_pm.ReferenceRange)
+    assert isinstance(reference_range.range, biceps_pm.Range)
+    assert reference_range.range.lower == decimal.Decimal("0.5")
+    assert reference_range.meaning is not None
+    assert reference_range.meaning.code == "normal"
+
+
+def test_requested_order_detail_inherits_order_detail() -> None:
+    """pm:RequestedOrderDetail extends pm:OrderDetail, so the base properties have to work too."""
+    order = _workflow_detail().requested_order_detail
+    assert isinstance(order, biceps_pm.RequestedOrderDetail)
+    assert isinstance(order, biceps_pm.OrderDetail)
+    # inherited from OrderDetail
+    assert order.start == datetime.datetime(2026, 9, 4, 8, 30, tzinfo=datetime.UTC)
+    assert order.end is None
+    assert all(isinstance(person, biceps_pm.PersonParticipation) for person in order.performers)
+    assert [service.code for service in order.services] == ["svc-1"]
+    # declared by RequestedOrderDetail
+    assert isinstance(order.requesting_physician, biceps_pm.PersonReference)
+    assert order.referring_physician is None
+    assert order.placer_order_number.extension_attr == "PON-9"
+
+
+def test_imaging_procedure_identifiers() -> None:
+    """The four identifiers are required by the schema; the two coded values are not."""
+    procedure = _workflow_detail().requested_order_detail.imaging_procedures[0]
+    assert isinstance(procedure, biceps_pm.ImagingProcedure)
+    assert procedure.accession_identifier.extension_attr == "ACC-1"
+    assert procedure.requested_procedure_id.extension_attr == "RP-1"
+    assert procedure.study_instance_uid.extension_attr == "1.2.840.1"
+    assert procedure.scheduled_procedure_step_id.extension_attr == "SPS-1"
+    assert procedure.modality is not None
+    assert procedure.modality.code == "CT"
+    assert procedure.protocol_code is None
+
+
+def test_performed_order_detail() -> None:
+    """pm:ResultingClinicalInfo is the second element name pm:ClinicalInfo is registered under."""
+    order = _workflow_detail().performed_order_detail
+    assert isinstance(order, biceps_pm.PerformedOrderDetail)
+    assert isinstance(order, biceps_pm.OrderDetail)
+    assert order.filler_order_number is not None
+    assert order.filler_order_number.extension_attr == "FON-3"
+    resulting = order.resulting_clinical_infos[0]
+    assert isinstance(resulting, biceps_pm.ClinicalInfo)
+    assert resulting.criticality is biceps_pm.Criticality.LO
+
+
+def test_cause_info_carries_remedy_and_descriptions() -> None:
+    """pm:CauseInfo nests pm:RemedyInfo, and both carry pm:Description sequences."""
+    element = _parse(
+        f'<dom:CauseInfo xmlns:dom="{biceps_pm.NAMESPACE}">'
+        f"<dom:RemedyInfo><dom:Description>replace sensor</dom:Description></dom:RemedyInfo>"
+        f"<dom:Description>sensor detached</dom:Description>"
+        f"</dom:CauseInfo>"
+    )
+    assert isinstance(element, biceps_pm.CauseInfo)
+    assert [text.text for text in element.descriptions] == ["sensor detached"]
+    remedy = element.remedy_info
+    assert isinstance(remedy, biceps_pm.RemedyInfo)
+    assert [text.text for text in remedy.descriptions] == ["replace sensor"]
+    assert all(isinstance(text, biceps_pm.LocalizedText) for text in remedy.descriptions)
+
+
+def test_cause_info_without_remedy_is_none() -> None:
+    """pm:RemedyInfo is minOccurs=0."""
+    element = _parse(f'<dom:CauseInfo xmlns:dom="{biceps_pm.NAMESPACE}"/>')
+    assert isinstance(element, biceps_pm.CauseInfo)
+    assert element.remedy_info is None
+    assert list(element.descriptions) == []

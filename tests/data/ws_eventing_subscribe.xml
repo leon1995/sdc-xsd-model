@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A wse:Subscribe as an SDC SERVICE CONSUMER sends it, exercising the parts SDC constrains beyond the
+  WS-Eventing schema:
+
+    wse:Delivery/@Mode  = the DPWS push mode
+    wse:Filter/@Dialect = "sdc.filter://Handle", the Handle-based Filter Dialect of glue:R0038, whose
+                          content is a whitespace-delimited list of pm:HandleRef
+    wse:Expires         = a duration, not an absolute time: SDPi R1018 forbids the date/time form
+    wse:EndTo           = present so the provider can report a delivery failure (glue:R0036's NOTE)
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:wse="http://schemas.xmlsoap.org/ws/2004/08/eventing">
+  <s12:Header>
+    <wsa:To>https://192.168.0.11:6464/StateEventService</wsa:To>
+    <wsa:Action>http://schemas.xmlsoap.org/ws/2004/08/eventing/Subscribe</wsa:Action>
+    <wsa:MessageID>urn:uuid:1a2b3c4d-0001-4000-8000-000000000001</wsa:MessageID>
+    <wsa:ReplyTo>
+      <wsa:Address>http://www.w3.org/2005/08/addressing/anonymous</wsa:Address>
+    </wsa:ReplyTo>
+  </s12:Header>
+  <s12:Body>
+    <wse:Subscribe>
+      <wse:EndTo>
+        <wsa:Address>https://192.168.0.42:6464/client/subscription-end</wsa:Address>
+      </wse:EndTo>
+      <wse:Delivery Mode="http://schemas.xmlsoap.org/ws/2004/08/eventing/DeliveryModes/Push">
+        <wse:NotifyTo>
+          <wsa:Address>https://192.168.0.42:6464/client/reports</wsa:Address>
+          <wsa:ReferenceParameters>
+            <wsa:To>urn:uuid:1a2b3c4d-0001-4000-8000-00000000000f</wsa:To>
+          </wsa:ReferenceParameters>
+        </wse:NotifyTo>
+      </wse:Delivery>
+      <wse:Expires>PT1H</wse:Expires>
+      <wse:Filter Dialect="sdc.filter://Handle">numeric0 numeric1 string0</wse:Filter>
+    </wse:Subscribe>
+  </s12:Body>
+</s12:Envelope>

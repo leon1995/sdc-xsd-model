@@ -90,6 +90,18 @@ class Header(common.ElementBase):
     def app_sequence(self) -> discovery.AppSequence | None:
         return self.find_by_element(discovery.AppSequence)
 
+    @property
+    def safety_info(self) -> mdpws.SafetyInfo | None:
+        """Return the mdpws:SafetyInfo block, or ``None``.
+
+        MDPWS 9.4.2 transports safety information in the MESSAGE header: the dual-channel representation of
+        safety-relevant values (``mdpws:DualChannel``) and the safety context they were determined in
+        (``mdpws:SafetyContext``). A provider announces that it requires them per operation with an
+        ``mdpws:SafetyReq`` in the operation descriptor's ``ext:Extension`` (glue:R0027), so a consumer
+        invoking such an operation has to put this block in the request header.
+        """
+        return self.find_by_element(mdpws.SafetyInfo)
+
     @classmethod
     def for_action(
         cls,
@@ -351,14 +363,20 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 def get_parser() -> lxml.etree.XMLParser:
     """Get soap envelope parser.
 
-    WS-Addressing is registered alongside SOAP because every ``Header`` property but one returns a
-    ``wsa:*`` class: without it ``find_by_element`` casts a plain ``_Element`` to ``addressing.Action`` and
-    the type error surfaces far from here. Validity is unaffected -- ``soap-envelope.xsd`` does not import
-    ``ws-addr.xsd``, so the ``processContents="lax"`` wildcard skips ``wsa:*`` either way. The remaining
-    namespaces (``wsd``, ``mdpws``, ``wse``) only resolve through ``parser.sdc_parser``.
+    Every namespace ``Header`` returns a class from is registered here, because ``find_by_element`` is an
+    unchecked cast: without the registration it hands back a plain ``_Element`` typed as the expected class,
+    and the error surfaces far from here rather than at the property. That means WS-Addressing (all but two
+    ``Header`` properties), WS-Discovery (``app_sequence``) and MDPWS (``safety_info``).
+
+    Validity is unaffected -- ``soap-envelope.xsd`` imports none of these schemas, so the
+    ``processContents="lax"`` wildcard skips those blocks either way. A *body* in one of these namespaces
+    still only resolves through ``parser.sdc_parser``, which registers every module and validates against the
+    whole schema set.
     """
     lookup = lxml.etree.ElementNamespaceClassLookup()
     addressing.set_lookup(lookup)
+    discovery.set_lookup(lookup)
+    mdpws.set_lookup(lookup)
     set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
     xml_parser.set_element_class_lookup(lookup)

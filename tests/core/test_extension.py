@@ -65,19 +65,25 @@ def test_must_understand(raw: str, expected: bool) -> None:  # noqa: FBT001
 
 
 def test_must_understand_defaults_to_false() -> None:
-    """The schema declares default="false", so an absent attribute reads as False, not None."""
+    """The schema declares default="false", but libxml2 does not write it into the tree during validation.
+
+    So the literal reading stays None and the default is supplied by ``must_understand_or_implied``, exactly
+    as for the prose-stated defaults elsewhere in the model.
+    """
     xml = f'<Extension xmlns="{extension.NAMESPACE}"/>'.encode()
     element = lxml.etree.fromstring(xml, parser=extension.Extension.PARSER)
     assert isinstance(element, extension.Extension)
-    assert element.must_understand is False
+    assert element.must_understand is None
+    assert element.must_understand_or_implied is False
 
 
 def test_must_understand_default_without_schema_validation() -> None:
-    """The default is applied by the property, so it holds under a non-validating parser too."""
+    """The default comes from the property, not the parser, so it reads the same without validation."""
     xml = f'<Extension xmlns="{extension.NAMESPACE}"/>'.encode()
     element = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
     assert isinstance(element, extension.Extension)
-    assert element.must_understand is False
+    assert element.must_understand is None
+    assert element.must_understand_or_implied is False
 
 
 def test_must_understand_rejects_invalid_literal() -> None:

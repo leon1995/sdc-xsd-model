@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:wsd="http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01">
+  <s12:Header>
+    <wsa:To>urn:docs-oasis-open-org:ws-dd:ns:discovery:2009:01</wsa:To>
+    <wsa:Action>http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01/Bye</wsa:Action>
+    <wsa:MessageID>urn:uuid:5c2e9a71-8b3f-4d6a-b1c0-9e8f7a6d5c4b</wsa:MessageID>
+    <wsd:AppSequence InstanceId="1077004800" MessageNumber="42"/>
+  </s12:Header>
+  <s12:Body>
+    <wsd:Bye>
+      <wsa:EndpointReference>
+        <wsa:Address>urn:uuid:98190dc2-0890-4ef8-ac9a-5940995e6119</wsa:Address>
+      </wsa:EndpointReference>
+    </wsd:Bye>
+  </s12:Body>
+</s12:Envelope>

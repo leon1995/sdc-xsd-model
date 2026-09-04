@@ -43,8 +43,11 @@ class Gender(common.ElementBase):
         return value
 
     @property
-    def must_understand(self) -> bool:
-        """Return the ext:MustUnderstand attribute, which defaults to false when absent."""
-        value = converter.to_bool(self.get(extension.MUST_UNDERSTAND_ATTR_TAG, "false"))
-        assert value is not None
-        return value
+    def must_understand(self) -> bool | None:
+        """``ext:MustUnderstand`` as written, or None when absent; see :attr:`must_understand_or_implied`."""
+        return extension.must_understand_of(self)
+
+    @property
+    def must_understand_or_implied(self) -> bool:
+        """``ext:MustUnderstand``; the schema states an absent attribute means ``false``."""
+        return common.with_implied(self.must_understand, extension.IMPLIED_MUST_UNDERSTAND)

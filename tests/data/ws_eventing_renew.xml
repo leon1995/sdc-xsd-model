@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A wse:Renew and the subscription identifier that makes it addressable. The identifier travels as a
+  wsa:ReferenceParameters child of the subscription manager EPR, so on the wire it appears as a plain header
+  block: soap_envelope.Header models only the closed SDC set, so wse:Identifier is reached with
+  find_by_element rather than a named property.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:wse="http://schemas.xmlsoap.org/ws/2004/08/eventing">
+  <s12:Header>
+    <wsa:To>https://192.168.0.11:6464/StateEventService</wsa:To>
+    <wsa:Action>http://schemas.xmlsoap.org/ws/2004/08/eventing/Renew</wsa:Action>
+    <wsa:MessageID>urn:uuid:1a2b3c4d-0003-4000-8000-000000000003</wsa:MessageID>
+    <wse:Identifier>urn:uuid:1a2b3c4d-5555-4000-8000-00000000dead</wse:Identifier>
+  </s12:Header>
+  <s12:Body>
+    <wse:Renew>
+      <wse:Expires>PT1H</wse:Expires>
+    </wse:Renew>
+  </s12:Body>
+</s12:Envelope>

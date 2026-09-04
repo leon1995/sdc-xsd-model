@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A SOAP Fault reply, carrying the header blocks no WS-Discovery message exercises: ReplyTo, FaultTo, From
+  and a reference parameter. dpws:R0040 requires the wsa:RelatesTo of relationship type reply.
+  The reference parameter is a made-up opaque element, which is what a reference parameter really is:
+  wse:Identifier cannot be used here because eventing.xsd declares it as xs:anyURI, a simple type that
+  admits no attributes, so wsa:IsReferenceParameter on it would not validate.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:ex="urn:example:refparam">
+  <s12:Header>
+    <wsa:To>http://www.w3.org/2005/08/addressing/anonymous</wsa:To>
+    <wsa:Action>http://www.w3.org/2005/08/addressing/soap/fault</wsa:Action>
+    <wsa:MessageID>urn:uuid:4f2e8a71-9c3b-4d6e-8a15-2b7c9e0d3f42</wsa:MessageID>
+    <wsa:RelatesTo RelationshipType="http://www.w3.org/2005/08/addressing/reply">urn:uuid:3d5c8f92-1a4b-4e6d-9c8f-2b7a5e0d3f14</wsa:RelatesTo>
+    <wsa:From>
+      <wsa:Address>http://192.168.0.11/device/GetService</wsa:Address>
+    </wsa:From>
+    <wsa:ReplyTo>
+      <wsa:Address>http://192.168.0.42/client/replies</wsa:Address>
+    </wsa:ReplyTo>
+    <wsa:FaultTo>
+      <wsa:Address>http://192.168.0.42/client/faults</wsa:Address>
+    </wsa:FaultTo>
+    <ex:SubscriptionId wsa:IsReferenceParameter="true">urn:uuid:22e8a584-0d18-4228-b2a8-3716fa2097fa</ex:SubscriptionId>
+  </s12:Header>
+  <s12:Body>
+    <s12:Fault>
+      <s12:Code>
+        <s12:Value>s12:Sender</s12:Value>
+        <s12:Subcode>
+          <s12:Value>wsa:ActionNotSupported</s12:Value>
+        </s12:Subcode>
+      </s12:Code>
+      <s12:Reason>
+        <s12:Text xml:lang="en">The [action] cannot be processed at the receiver</s12:Text>
+      </s12:Reason>
+    </s12:Fault>
+  </s12:Body>
+</s12:Envelope>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A GET SERVICE containment-tree response. msg:ContainmentTree is typed pm:ContainmentTree but declared in the
+  *message* namespace, while its Entry children are declared in the participant schema and so stay pm:Entry.
+  That split is what a wrong TAG namespace silently breaks: containment_tree simply read None.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message"
+    xmlns:pm="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant">
+  <s12:Header>
+    <wsa:To>http://192.168.0.11/device/GetService</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/GetService/GetContainmentTreeResponse</wsa:Action>
+    <wsa:MessageID>urn:uuid:6f0b8b2c-3d51-4a7e-9c1b-2f5a8e0d4c73</wsa:MessageID>
+    <wsa:RelatesTo>urn:uuid:1c4d9e7a-8b25-4f36-a0d8-5e2b7c1f9a04</wsa:RelatesTo>
+  </s12:Header>
+  <s12:Body>
+    <msg:GetContainmentTreeResponse MdibVersion="4" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772">
+      <msg:ContainmentTree HandleRef="mds0" ChildrenCount="2" EntryType="pm:MdsDescriptor">
+        <pm:Entry HandleRef="vmd0" ParentHandleRef="mds0" ChildrenCount="1" EntryType="pm:VmdDescriptor"/>
+        <pm:Entry HandleRef="vmd1" ParentHandleRef="mds0"/>
+      </msg:ContainmentTree>
+    </msg:GetContainmentTreeResponse>
+  </s12:Body>
+</s12:Envelope>

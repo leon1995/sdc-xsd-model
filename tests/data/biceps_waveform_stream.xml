@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A msg:WaveformStream, the real-time sample delivery of the BICEPS WAVEFORM SERVICE and the only message
+  whose payload is bulk numeric data.
+
+  What no other fixture covers:
+
+    * pm:SampleArrayValue/@Samples is a whitespace-delimited list of decimals, so it exercises list-valued
+      *attribute* content (the discovery fixtures cover list-valued element content).
+    * two waveforms in one message with different array lengths, which is normal: a stream packet carries
+      whatever samples accrued in the period.
+    * pm:ApplyAnnotation binds an annotation to one sample by index (@SampleIndex) rather than to the whole
+      value, and @AnnotationIndex points into the state's own pm:Annotation list.
+    * glue:R0040 requires wsa:From in every STREAMING message so a consumer can attribute a packet to a
+      provider even when several run on one network node, which is why it appears here and nowhere else.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message"
+    xmlns:pm="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant">
+  <s12:Header>
+    <wsa:To>urn:docs-oasis-open-org:ws-dd:ns:dpws:2009:01:StreamSink</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/WaveformService/WaveformStream</wsa:Action>
+    <wsa:MessageID>urn:uuid:6d4f0b23-0001-4000-8000-0000000000e1</wsa:MessageID>
+    <wsa:From>
+      <wsa:Address>urn:uuid:98190dc2-0890-4ef8-ac9a-5940995e6119</wsa:Address>
+    </wsa:From>
+  </s12:Header>
+  <s12:Body>
+    <msg:WaveformStream MdibVersion="19" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772">
+      <msg:State xsi:type="pm:RealTimeSampleArrayMetricState"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 DescriptorHandle="vmd0.ch0.ecg" StateVersion="132" ActivationState="On">
+        <pm:MetricValue DeterminationTime="1700000001000"
+                        Samples="0.01 0.02 0.05 0.30 0.95 0.31 0.04 -0.02 -0.01 0.00">
+          <pm:MetricQuality Validity="Vld"/>
+          <pm:Annotation>
+            <pm:Type Code="196616"/>
+          </pm:Annotation>
+          <pm:ApplyAnnotation AnnotationIndex="0" SampleIndex="4"/>
+        </pm:MetricValue>
+      </msg:State>
+      <msg:State xsi:type="pm:RealTimeSampleArrayMetricState"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 DescriptorHandle="vmd0.ch0.pleth" StateVersion="132" ActivationState="On">
+        <pm:MetricValue DeterminationTime="1700000001000" Samples="12.5 13.0 13.5 14.0">
+          <pm:MetricQuality Validity="Qst" Qi="0.5"/>
+        </pm:MetricValue>
+      </msg:State>
+    </msg:WaveformStream>
+  </s12:Body>
+</s12:Envelope>

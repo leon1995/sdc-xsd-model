@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A msg:SetValue invocation carrying mdpws:SafetyInfo, i.e. the safety-critical shape of an SDC remote-control
+  request. It is the only fixture where a header block outside WS-Addressing carries structured content, and
+  the only one exercising the BICEPS SET SERVICE.
+
+  MDPWS 9.4.2 puts both halves in the header:
+
+    mdpws:DualChannel/mdpws:DcValue    the second-channel representation of each protected value. Every
+                                       @ReferencedSelector names an mdpws:Selector/@Id that the provider
+                                       declared in the operation descriptor's mdpws:DualChannelDef
+                                       (glue:R0027), so a provider can re-derive and compare the values.
+    mdpws:SafetyContext/mdpws:CtxtValue the MDIB content the consumer based the invocation on. glue:R0057
+                                       roots those selectors at pm:Mdib.
+
+  The two DcValues here are the Base64 SHA-1 digests of the requested value and the operation handle, which
+  are exactly the two selectors MDPWS's own example protects for a set operation.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:mdpws="http://standards.ieee.org/downloads/11073/11073-20702-2016"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message">
+  <s12:Header>
+    <wsa:To>https://192.168.0.11:6464/SetService</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/SetService/SetValue</wsa:Action>
+    <wsa:MessageID>urn:uuid:5c1d9e04-0001-4000-8000-0000000000b1</wsa:MessageID>
+    <wsa:ReplyTo>
+      <wsa:Address>http://www.w3.org/2005/08/addressing/anonymous</wsa:Address>
+    </wsa:ReplyTo>
+    <mdpws:SafetyInfo>
+      <mdpws:DualChannel>
+        <mdpws:DcValue ReferencedSelector="SELECTOR_1">m6JlmEUEQKZVs9UYQZWDvXlSJ2M=</mdpws:DcValue>
+        <mdpws:DcValue ReferencedSelector="SELECTOR_2">2jmj7l5rSw0yVb-vlWAYkK-YBwk=</mdpws:DcValue>
+      </mdpws:DualChannel>
+      <mdpws:SafetyContext>
+        <mdpws:CtxtValue ReferencedSelector="SELECTOR_3">263762</mdpws:CtxtValue>
+        <mdpws:CtxtValue ReferencedSelector="SELECTOR_4">72.5</mdpws:CtxtValue>
+      </mdpws:SafetyContext>
+    </mdpws:SafetyInfo>
+  </s12:Header>
+  <s12:Body>
+    <msg:SetValue>
+      <msg:OperationHandleRef>sco.vmd0.set_rate</msg:OperationHandleRef>
+      <msg:RequestedNumericValue>12.5</msg:RequestedNumericValue>
+    </msg:SetValue>
+  </s12:Body>
+</s12:Envelope>

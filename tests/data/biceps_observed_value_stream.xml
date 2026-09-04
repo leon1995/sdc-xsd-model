@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  An observed-value stream. Both the wrapper and the samples it holds are named msg:Value, so only the parent
+  distinguishes them; the wrapper's @Metric is schema-required and is what binds the samples to a metric.
+  The second entry omits @StateVersion, whose implied value is "0".
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message"
+    xmlns:pm="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant">
+  <s12:Header>
+    <wsa:To>http://192.168.0.42/client/streams</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/WaveformService/ObservedValueStream</wsa:Action>
+    <wsa:MessageID>urn:uuid:2b8e5f04-7c19-4d63-a5f8-0e7b3c26d914</wsa:MessageID>
+  </s12:Header>
+  <s12:Body>
+    <msg:ObservedValueStream MdibVersion="23" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772">
+      <msg:Value Metric="waveform0" StateVersion="9">
+        <msg:Value DeterminationTime="1700000001000" Samples="0.10 0.25 0.40 0.25">
+          <pm:MetricQuality Validity="Vld"/>
+          <pm:ApplyAnnotation AnnotationIndex="0" SampleIndex="2"/>
+        </msg:Value>
+      </msg:Value>
+      <msg:Value Metric="waveform1">
+        <msg:Value Samples="1.5 1.5">
+          <pm:MetricQuality Validity="Ong" Mode="Test"/>
+        </msg:Value>
+      </msg:Value>
+    </msg:ObservedValueStream>
+  </s12:Body>
+</s12:Envelope>

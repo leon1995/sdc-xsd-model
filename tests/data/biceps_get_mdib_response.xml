@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A msg:GetMdibResponse: the first message an SDC SERVICE CONSUMER retrieves, and the one that exercises the
+  largest classes in the participant model. Nothing else in tests/data reaches pm:Mdib, pm:MdDescription,
+  pm:MdState or pm:MdsDescriptor at all.
+
+  Deliberately included because each is only reachable here:
+
+    * the four-layer CONTAINMENT TREE (Mds / Vmd / Channel / Metric) with descriptors and their matching
+      states in pm:MdState, linked by @Handle to @DescriptorHandle.
+    * pm:SystemContext with three context descriptors, one of which carries a multi-state: context states use
+      @Handle as well as @DescriptorHandle, unlike single states.
+    * pm:WorkflowContextState/pm:WorkflowDetail, the whole workflow / order / clinical-info branch, including
+      pm:RelevantClinicalInfo and pm:ResultingClinicalInfo (the two element names pm:ClinicalInfo is reached
+      under) and both pm:OrderDetail extensions.
+    * pm:Sco with a set operation whose ext:Extension carries an mdpws:SafetyReq, which is how glue:R0027 has
+      a provider announce the safety information a consumer must transmit. Its mdpws:Selector/@Id values are
+      the ones mdpws_safety_info_set_value.xml then references.
+    * msg:Retrievability in a descriptor extension, per glue:R0005.
+    * the three version counters R0046 ties together: pm:MdDescription/@DescriptionVersion,
+      pm:MdState/@StateVersion and pm:Mdib/@MdibVersion.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message"
+    xmlns:pm="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant"
+    xmlns:ext="http://standards.ieee.org/downloads/11073/11073-10207-2017/extension"
+    xmlns:mdpws="http://standards.ieee.org/downloads/11073/11073-20702-2016">
+  <s12:Header>
+    <wsa:To>http://www.w3.org/2005/08/addressing/anonymous</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/GetService/GetMdibResponse</wsa:Action>
+    <wsa:MessageID>urn:uuid:3e5a1f90-0001-4000-8000-0000000000c1</wsa:MessageID>
+    <wsa:RelatesTo>urn:uuid:3e5a1f90-0000-4000-8000-0000000000c0</wsa:RelatesTo>
+  </s12:Header>
+  <s12:Body>
+    <msg:GetMdibResponse MdibVersion="17" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772">
+      <msg:Mdib MdibVersion="17" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772" InstanceId="1">
+        <pm:MdDescription DescriptionVersion="4">
+          <pm:Mds Handle="mds0" DescriptorVersion="2" SafetyClassification="MedA">
+            <ext:Extension>
+              <msg:Retrievability>
+                <msg:By Method="Get"/>
+                <msg:By Method="Ep"/>
+              </msg:Retrievability>
+            </ext:Extension>
+            <pm:Type Code="69857"/>
+            <pm:AlertSystem Handle="mds0.alerts" SelfCheckPeriod="PT30S">
+              <pm:AlertCondition Handle="mds0.alerts.cond0" Kind="Phy" Priority="Hi">
+                <pm:Type Code="196616"/>
+                <pm:Source>vmd0.ch0.numeric0</pm:Source>
+                <pm:CauseInfo>
+                  <pm:RemedyInfo>
+                    <pm:Description Lang="en">reattach the sensor</pm:Description>
+                  </pm:RemedyInfo>
+                  <pm:Description Lang="en">sensor detached</pm:Description>
+                </pm:CauseInfo>
+              </pm:AlertCondition>
+              <pm:AlertSignal Handle="mds0.alerts.sig0" ConditionSignaled="mds0.alerts.cond0"
+                              Manifestation="Aud" Latching="false"/>
+            </pm:AlertSystem>
+            <pm:Sco Handle="mds0.sco">
+              <pm:Operation xsi:type="pm:SetValueOperationDescriptor" Handle="sco.vmd0.set_rate"
+                            OperationTarget="vmd0.ch0.numeric0" SafetyClassification="MedB">
+                <ext:Extension>
+                  <mdpws:SafetyReq>
+                    <mdpws:DualChannelDef Algorithm="mdpws:Base64SHA1" Transform="mdpws:xml-exc-c14n">
+                      <mdpws:Selector Id="SELECTOR_1">/msg:SetValue/msg:RequestedNumericValue/text()</mdpws:Selector>
+                      <mdpws:Selector Id="SELECTOR_2">/msg:SetValue/msg:OperationHandleRef/text()</mdpws:Selector>
+                    </mdpws:DualChannelDef>
+                    <mdpws:SafetyContextDef>
+                      <mdpws:Selector Id="SELECTOR_3">//pm:Mds/pm:Vmd/pm:Channel/pm:Metric/pm:Unit/@Code</mdpws:Selector>
+                      <mdpws:Selector Id="SELECTOR_4">//pm:MdState/pm:State/pm:MetricValue/@Value</mdpws:Selector>
+                    </mdpws:SafetyContextDef>
+                  </mdpws:SafetyReq>
+                </ext:Extension>
+                <pm:Type Code="128784"/>
+              </pm:Operation>
+            </pm:Sco>
+            <pm:MetaData>
+              <pm:Manufacturer>Example Medical Systems</pm:Manufacturer>
+              <pm:ModelName>PM-3000</pm:ModelName>
+              <pm:ModelNumber>3000</pm:ModelNumber>
+              <pm:SerialNumber>SN-0000-4711</pm:SerialNumber>
+            </pm:MetaData>
+            <pm:SystemContext Handle="mds0.sc">
+              <pm:PatientContext Handle="mds0.sc.patient"/>
+              <pm:LocationContext Handle="mds0.sc.location"/>
+              <pm:WorkflowContext Handle="mds0.sc.workflow"/>
+            </pm:SystemContext>
+            <pm:Vmd Handle="vmd0" DescriptorVersion="1">
+              <pm:Type Code="69965"/>
+              <pm:Channel Handle="vmd0.ch0">
+                <pm:Type Code="70001"/>
+                <pm:Metric xsi:type="pm:NumericMetricDescriptor" Handle="vmd0.ch0.numeric0"
+                           MetricCategory="Msrmt" MetricAvailability="Cont" Resolution="0.1"
+                           DeterminationPeriod="PT1S">
+                  <pm:Type Code="150456"/>
+                  <pm:Unit Code="262688"/>
+                  <pm:TechnicalRange Lower="0" Upper="300"/>
+                </pm:Metric>
+                <pm:Metric xsi:type="pm:StringMetricDescriptor" Handle="vmd0.ch0.string0"
+                           MetricCategory="Set" MetricAvailability="Intr">
+                  <pm:Type Code="184301"/>
+                  <pm:Unit Code="262656"/>
+                </pm:Metric>
+              </pm:Channel>
+            </pm:Vmd>
+          </pm:Mds>
+        </pm:MdDescription>
+        <pm:MdState StateVersion="9">
+          <pm:State xsi:type="pm:MdsState" DescriptorHandle="mds0" StateVersion="1"
+                    ActivationState="On" OperatingMode="Nml"/>
+          <pm:State xsi:type="pm:VmdState" DescriptorHandle="vmd0" ActivationState="On"/>
+          <pm:State xsi:type="pm:ChannelState" DescriptorHandle="vmd0.ch0"/>
+          <pm:State xsi:type="pm:NumericMetricState" DescriptorHandle="vmd0.ch0.numeric0" StateVersion="5">
+            <pm:MetricValue Value="72.5" DeterminationTime="1700000000000">
+              <pm:MetricQuality Validity="Vld"/>
+            </pm:MetricValue>
+          </pm:State>
+          <pm:State xsi:type="pm:StringMetricState" DescriptorHandle="vmd0.ch0.string0">
+            <pm:MetricValue Value="auto">
+              <pm:MetricQuality Validity="Vld"/>
+            </pm:MetricValue>
+          </pm:State>
+          <pm:State xsi:type="pm:AlertSystemState" DescriptorHandle="mds0.alerts" ActivationState="On"/>
+          <pm:State xsi:type="pm:AlertConditionState" DescriptorHandle="mds0.alerts.cond0"
+                    ActivationState="On" Presence="false"/>
+          <pm:State xsi:type="pm:AlertSignalState" DescriptorHandle="mds0.alerts.sig0"
+                    ActivationState="Off" Presence="Off"/>
+          <pm:State xsi:type="pm:SetValueOperationState" DescriptorHandle="sco.vmd0.set_rate"
+                    OperatingMode="En"/>
+          <pm:State xsi:type="pm:SystemContextState" DescriptorHandle="mds0.sc"/>
+          <pm:State xsi:type="pm:PatientContextState" DescriptorHandle="mds0.sc.patient"
+                    Handle="mds0.sc.patient.0" ContextAssociation="Assoc">
+            <pm:Identification Root="urn:oid:1.2.3" Extension="P-42"/>
+            <pm:CoreData>
+              <pm:Givenname>Alex</pm:Givenname>
+              <pm:Familyname>Doe</pm:Familyname>
+              <pm:Sex>Unspec</pm:Sex>
+              <pm:PatientType>Ad</pm:PatientType>
+            </pm:CoreData>
+          </pm:State>
+          <pm:State xsi:type="pm:LocationContextState" DescriptorHandle="mds0.sc.location"
+                    Handle="mds0.sc.location.0" ContextAssociation="Assoc">
+            <pm:LocationDetail Facility="Example Hospital" Bed="3" Room="ICU-1"/>
+          </pm:State>
+          <pm:State xsi:type="pm:WorkflowContextState" DescriptorHandle="mds0.sc.workflow"
+                    Handle="mds0.sc.workflow.0" ContextAssociation="Assoc">
+            <pm:WorkflowDetail>
+              <pm:Patient>
+                <pm:Identification Root="urn:oid:1.2.3" Extension="P-42"/>
+              </pm:Patient>
+              <pm:AssignedLocation>
+                <pm:Identification Extension="OR-1"/>
+              </pm:AssignedLocation>
+              <pm:VisitNumber Extension="V-7"/>
+              <pm:DangerCode Code="1234"/>
+              <pm:RelevantClinicalInfo>
+                <pm:Type Code="111"/>
+                <pm:Code Code="222" CodingSystem="urn:oid:9.9"/>
+                <pm:Criticality>Hi</pm:Criticality>
+                <pm:Description Lang="en">elevated lactate</pm:Description>
+                <pm:RelatedMeasurement Validity="Vld">
+                  <pm:Value MeasuredValue="4.2">
+                    <pm:MeasurementUnit Code="263762"/>
+                  </pm:Value>
+                  <pm:ReferenceRange>
+                    <pm:Range Lower="0.5" Upper="2.2"/>
+                    <pm:Meaning Code="normal"/>
+                  </pm:ReferenceRange>
+                </pm:RelatedMeasurement>
+              </pm:RelevantClinicalInfo>
+              <pm:RequestedOrderDetail>
+                <pm:Start>2026-09-04T08:30:00Z</pm:Start>
+                <pm:Performer>
+                  <pm:Identification Extension="DR-1"/>
+                  <pm:Role Code="perf"/>
+                </pm:Performer>
+                <pm:Service Code="svc-1"/>
+                <pm:ImagingProcedure>
+                  <pm:AccessionIdentifier Extension="ACC-1"/>
+                  <pm:RequestedProcedureId Extension="RP-1"/>
+                  <pm:StudyInstanceUid Extension="1.2.840.1"/>
+                  <pm:ScheduledProcedureStepId Extension="SPS-1"/>
+                  <pm:Modality Code="CT"/>
+                </pm:ImagingProcedure>
+                <pm:RequestingPhysician>
+                  <pm:Identification Extension="DR-2"/>
+                </pm:RequestingPhysician>
+                <pm:PlacerOrderNumber Extension="PON-9"/>
+              </pm:RequestedOrderDetail>
+              <pm:PerformedOrderDetail>
+                <pm:FillerOrderNumber Extension="FON-3"/>
+                <pm:ResultingClinicalInfo>
+                  <pm:Criticality>Lo</pm:Criticality>
+                </pm:ResultingClinicalInfo>
+              </pm:PerformedOrderDetail>
+            </pm:WorkflowDetail>
+          </pm:State>
+        </pm:MdState>
+      </msg:Mdib>
+    </msg:GetMdibResponse>
+  </s12:Body>
+</s12:Envelope>

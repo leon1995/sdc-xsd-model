@@ -128,7 +128,8 @@ class TestExampleXml:
         assert ext is not None
         equip_id = ext.find_by_element(EquipmentIdentifier)
         assert isinstance(equip_id, EquipmentIdentifier)
-        assert equip_id.must_understand is False
+        assert equip_id.must_understand is None
+        assert equip_id.must_understand_or_implied is False
 
     def test_md_state_present(self, tree: biceps_msg.GetMdibResponse) -> None:
         """Verify the MdState element is present in the Mdib."""

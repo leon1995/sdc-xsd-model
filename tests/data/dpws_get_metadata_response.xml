@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The mex:Metadata a DPWS device returns for a mex:GetMetadata, carrying all three device metadata dialects
+  in one message. This is the message an SDC SERVICE CONSUMER uses to learn what a discovered device is and
+  which BICEPS services it hosts, so it exercises several things no other fixture does:
+
+    * mex:MetadataSection/@Dialect selects the payload; the three dialect URIs are the ones dpws models as
+      DeviceMetadataDialectURIs, and the section content is in a different namespace from the section itself.
+    * dpws:Relationship/@Type is "/host": one dpws:Host for the device and one dpws:Hosted per service.
+    * dpws:Hosted/dpws:Types is a whitespace-delimited QName list whose prefixes have to resolve against the
+      document's namespace map, and it carries the SDC port types.
+    * dpws:ThisModel and dpws:ThisDevice repeat localized strings, so the properties are sequences: two
+      xml:lang variants each.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:mex="http://schemas.xmlsoap.org/ws/2004/09/mex"
+    xmlns:dpws="http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01"
+    xmlns:sdc="http://standards.ieee.org/downloads/11073/11073-20701-2018"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace">
+  <s12:Header>
+    <wsa:To>http://www.w3.org/2005/08/addressing/anonymous</wsa:To>
+    <wsa:Action>http://schemas.xmlsoap.org/ws/2004/09/transfer/GetResponse</wsa:Action>
+    <wsa:MessageID>urn:uuid:7f0e2b31-0001-4000-8000-0000000000a1</wsa:MessageID>
+    <wsa:RelatesTo>urn:uuid:7f0e2b31-0000-4000-8000-0000000000a0</wsa:RelatesTo>
+  </s12:Header>
+  <s12:Body>
+    <mex:Metadata>
+      <mex:MetadataSection Dialect="http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01/ThisModel">
+        <dpws:ThisModel>
+          <dpws:Manufacturer xml:lang="en">Example Medical Systems</dpws:Manufacturer>
+          <dpws:Manufacturer xml:lang="de">Beispiel Medizintechnik</dpws:Manufacturer>
+          <dpws:ManufacturerUrl>https://example.com</dpws:ManufacturerUrl>
+          <dpws:ModelName xml:lang="en">Patient Monitor</dpws:ModelName>
+          <dpws:ModelName xml:lang="de">Patientenmonitor</dpws:ModelName>
+          <dpws:ModelNumber>PM-3000</dpws:ModelNumber>
+          <dpws:ModelUrl>https://example.com/pm3000</dpws:ModelUrl>
+          <dpws:PresentationUrl>https://192.168.0.11/ui</dpws:PresentationUrl>
+        </dpws:ThisModel>
+      </mex:MetadataSection>
+      <mex:MetadataSection Dialect="http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01/ThisDevice">
+        <dpws:ThisDevice>
+          <dpws:FriendlyName xml:lang="en">ICU Bed 3 Monitor</dpws:FriendlyName>
+          <dpws:FriendlyName xml:lang="de">Monitor Intensivbett 3</dpws:FriendlyName>
+          <dpws:FirmwareVersion>4.2.1</dpws:FirmwareVersion>
+          <dpws:SerialNumber>SN-0000-4711</dpws:SerialNumber>
+        </dpws:ThisDevice>
+      </mex:MetadataSection>
+      <mex:MetadataSection Dialect="http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01/Relationship">
+        <dpws:Relationship Type="http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01/host">
+          <dpws:Host>
+            <wsa:EndpointReference>
+              <wsa:Address>urn:uuid:98190dc2-0890-4ef8-ac9a-5940995e6119</wsa:Address>
+            </wsa:EndpointReference>
+            <dpws:Types>dpws:Device sdc:ServiceProvider</dpws:Types>
+          </dpws:Host>
+          <dpws:Hosted>
+            <wsa:EndpointReference>
+              <wsa:Address>https://192.168.0.11:6464/GetService</wsa:Address>
+            </wsa:EndpointReference>
+            <dpws:Types>sdc:GetService sdc:ContainmentTreeService</dpws:Types>
+            <dpws:ServiceId>urn:uuid:98190dc2-0890-4ef8-ac9a-5940995e6119/GetService</dpws:ServiceId>
+          </dpws:Hosted>
+          <dpws:Hosted>
+            <wsa:EndpointReference>
+              <wsa:Address>https://192.168.0.11:6464/StateEventService</wsa:Address>
+            </wsa:EndpointReference>
+            <dpws:Types>sdc:StateEventService sdc:WaveformService</dpws:Types>
+            <dpws:ServiceId>urn:uuid:98190dc2-0890-4ef8-ac9a-5940995e6119/StateEventService</dpws:ServiceId>
+          </dpws:Hosted>
+        </dpws:Relationship>
+      </mex:MetadataSection>
+    </mex:Metadata>
+  </s12:Body>
+</s12:Envelope>

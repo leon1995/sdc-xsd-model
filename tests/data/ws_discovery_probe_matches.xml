@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:wsd="http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01"
+    xmlns:dpws="http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01">
+  <s12:Header>
+    <wsa:To>http://www.w3.org/2005/08/addressing/anonymous</wsa:To>
+    <wsa:Action>http://docs.oasis-open.org/ws-dd/ns/discovery/2009/01/ProbeMatches</wsa:Action>
+    <wsa:MessageID>urn:uuid:e8f9c1a4-6b3d-4c5e-8f21-7a0b9d4e2c11</wsa:MessageID>
+    <wsa:RelatesTo>urn:uuid:3d5c8f92-1a4b-4e6d-9c8f-2b7a5e0d3f14</wsa:RelatesTo>
+    <wsd:AppSequence InstanceId="1077004800" MessageNumber="12"/>
+  </s12:Header>
+  <s12:Body>
+    <wsd:ProbeMatches>
+      <wsd:ProbeMatch>
+        <wsa:EndpointReference>
+          <wsa:Address>urn:uuid:98190dc2-0890-4ef8-ac9a-5940995e6119</wsa:Address>
+        </wsa:EndpointReference>
+        <wsd:Types>dpws:Device</wsd:Types>
+        <wsd:Scopes>http://example.com/ward/icu</wsd:Scopes>
+        <wsd:XAddrs>http://192.168.0.11/device</wsd:XAddrs>
+        <wsd:MetadataVersion>2</wsd:MetadataVersion>
+      </wsd:ProbeMatch>
+      <wsd:ProbeMatch>
+        <wsa:EndpointReference>
+          <wsa:Address>urn:uuid:6b1d7f30-52c4-4c8b-9f1e-8d3a4c5b6e7f</wsa:Address>
+        </wsa:EndpointReference>
+        <wsd:Types>dpws:Device</wsd:Types>
+        <wsd:XAddrs>http://192.168.0.12/device</wsd:XAddrs>
+        <wsd:MetadataVersion>7</wsd:MetadataVersion>
+      </wsd:ProbeMatch>
+    </wsd:ProbeMatches>
+  </s12:Body>
+</s12:Envelope>

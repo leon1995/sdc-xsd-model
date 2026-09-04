@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A wse:SubscriptionEnd sent to the wse:EndTo of the original Subscribe. wse:Status is an *open* union of the
+  three enumerated codes and xs:anyURI, so a value outside the enumeration stays valid; here it is the
+  enumerated DeliveryFailure, which glue:R0036 makes a provider send after it stops delivering to a consumer
+  whose endpoint failed.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:wse="http://schemas.xmlsoap.org/ws/2004/08/eventing"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace">
+  <s12:Header>
+    <wsa:To>https://192.168.0.42:6464/client/subscription-end</wsa:To>
+    <wsa:Action>http://schemas.xmlsoap.org/ws/2004/08/eventing/SubscriptionEnd</wsa:Action>
+    <wsa:MessageID>urn:uuid:1a2b3c4d-0006-4000-8000-000000000006</wsa:MessageID>
+  </s12:Header>
+  <s12:Body>
+    <wse:SubscriptionEnd>
+      <wse:SubscriptionManager>
+        <wsa:Address>https://192.168.0.11:6464/StateEventService</wsa:Address>
+        <wsa:ReferenceParameters>
+          <wse:Identifier>urn:uuid:1a2b3c4d-5555-4000-8000-00000000dead</wse:Identifier>
+        </wsa:ReferenceParameters>
+      </wse:SubscriptionManager>
+      <wse:Status>http://schemas.xmlsoap.org/ws/2004/08/eventing/DeliveryFailure</wse:Status>
+      <wse:Reason xml:lang="en">notification delivery to the event sink failed</wse:Reason>
+    </wse:SubscriptionEnd>
+  </s12:Body>
+</s12:Envelope>

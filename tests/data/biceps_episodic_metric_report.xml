@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  An episodic metric report carrying the two things a metric value is meaningless without: pm:MetricQuality,
+  whose @Validity is schema-required, and the generation mode. Deliberately mixed across the three states:
+
+    numeric0  Validity="Vld"  @Mode absent  -> the implied "Real", i.e. a real measurement
+    numeric1  Validity="Qst"  Mode="Demo"   -> a demo value that must never be read as real
+                              Qi="0"        -> worst quality; must not read back as the implied 1
+    string0   Validity="Inv"                -> plus an Annotation, and @ActivationState absent (implied "On")
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message"
+    xmlns:pm="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant">
+  <s12:Header>
+    <wsa:To>http://192.168.0.42/client/reports</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/StateEventService/EpisodicMetricReport</wsa:Action>
+    <wsa:MessageID>urn:uuid:9d3f7c81-4b2e-4a56-8f70-6c1d5e93b2a8</wsa:MessageID>
+  </s12:Header>
+  <s12:Body>
+    <msg:EpisodicMetricReport MdibVersion="17" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772">
+      <msg:ReportPart>
+        <msg:MetricState xsi:type="pm:NumericMetricState" DescriptorHandle="numeric0" StateVersion="5"
+                         ActivationState="On">
+          <pm:MetricValue xsi:type="pm:NumericMetricValue" DeterminationTime="1700000000000" Value="72.5">
+            <pm:MetricQuality Validity="Vld"/>
+          </pm:MetricValue>
+        </msg:MetricState>
+        <msg:MetricState xsi:type="pm:NumericMetricState" DescriptorHandle="numeric1">
+          <pm:MetricValue xsi:type="pm:NumericMetricValue" DeterminationTime="1700000000500" Value="0">
+            <pm:MetricQuality Validity="Qst" Mode="Demo" Qi="0"/>
+          </pm:MetricValue>
+        </msg:MetricState>
+        <msg:MetricState xsi:type="pm:StringMetricState" DescriptorHandle="string0">
+          <pm:MetricValue xsi:type="pm:StringMetricValue" Value="SpO2 sensor off">
+            <pm:MetricQuality Validity="Inv"/>
+            <pm:Annotation>
+              <pm:Type Code="196616"/>
+            </pm:Annotation>
+          </pm:MetricValue>
+        </msg:MetricState>
+      </msg:ReportPart>
+    </msg:EpisodicMetricReport>
+  </s12:Body>
+</s12:Envelope>

@@ -151,7 +151,8 @@ class TestExampleXml:
         assert ext is not None
         epoch_support = ext.find_by_element(EpochSupport)
         assert epoch_support is not None
-        assert epoch_support.must_understand is False
+        assert epoch_support.must_understand is None
+        assert epoch_support.must_understand_or_implied is False
 
     # ── ClockState / Epochs ────────────────────────────────────────────────
 

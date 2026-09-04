@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A msg:OperationInvokedReport carrying two report parts for one transaction, which is how the SET SERVICE
+  reports progress: BICEPS 7.4.3 models an invocation as a sequence of msg:InvocationState steps, so a
+  consumer sees "Start" and then a terminal state under the same msg:TransactionId.
+
+  The states here are deliberately the interesting pair:
+
+    transaction 4711  Start -> Fin       the successful path, ending with no msg:InvocationError
+    transaction 4712  Fail              with InvocationError="Inv" and a human-readable message, which is
+                                        what glue:R0003 has a provider send when it rejects an invocation
+
+  msg:InvocationSource is a pm:InstanceIdentifier, and glue:R0077/R0078 fix its @Root: the value used here is
+  the "unknown participant" identifier, the one a provider uses when it cannot attribute the invocation.
+-->
+<s12:Envelope
+    xmlns:s12="http://www.w3.org/2003/05/soap-envelope"
+    xmlns:wsa="http://www.w3.org/2005/08/addressing"
+    xmlns:msg="http://standards.ieee.org/downloads/11073/11073-10207-2017/message"
+    xmlns:pm="http://standards.ieee.org/downloads/11073/11073-10207-2017/participant">
+  <s12:Header>
+    <wsa:To>https://192.168.0.42:6464/client/reports</wsa:To>
+    <wsa:Action>http://standards.ieee.org/downloads/11073/11073-20701-2018/SetService/OperationInvokedReport</wsa:Action>
+    <wsa:MessageID>urn:uuid:8b2c6a15-0001-4000-8000-0000000000d1</wsa:MessageID>
+  </s12:Header>
+  <s12:Body>
+    <msg:OperationInvokedReport MdibVersion="18" SequenceId="urn:uuid:369a7d7b-5f87-48a4-aa9a-189edf2a8772">
+      <msg:ReportPart OperationHandleRef="sco.vmd0.set_rate" OperationTarget="vmd0.ch0.numeric0">
+        <msg:SourceMds>mds0</msg:SourceMds>
+        <msg:InvocationInfo>
+          <msg:TransactionId>4711</msg:TransactionId>
+          <msg:InvocationState>Start</msg:InvocationState>
+        </msg:InvocationInfo>
+        <msg:InvocationSource Root="http://standards.ieee.org/downloads/11073/11073-20701-2018"
+                              Extension="AnonymousSdcParticipant"/>
+      </msg:ReportPart>
+      <msg:ReportPart OperationHandleRef="sco.vmd0.set_rate" OperationTarget="vmd0.ch0.numeric0">
+        <msg:SourceMds>mds0</msg:SourceMds>
+        <msg:InvocationInfo>
+          <msg:TransactionId>4712</msg:TransactionId>
+          <msg:InvocationState>Fail</msg:InvocationState>
+          <msg:InvocationError>Inv</msg:InvocationError>
+          <msg:InvocationErrorMessage Lang="en">requested value outside the allowed range</msg:InvocationErrorMessage>
+        </msg:InvocationInfo>
+        <msg:InvocationSource Root="http://standards.ieee.org/downloads/11073/11073-20701-2018"
+                              Extension="AnonymousSdcParticipant"/>
+      </msg:ReportPart>
+    </msg:OperationInvokedReport>
+  </s12:Body>
+</s12:Envelope>
