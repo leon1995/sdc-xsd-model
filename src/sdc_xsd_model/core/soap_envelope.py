@@ -90,7 +90,6 @@ class Header(common.ElementBase):
     def app_sequence(self) -> discovery.AppSequence | None:
         return self.find_by_element(discovery.AppSequence)
 
-
     @classmethod
     def for_action(
         cls,
@@ -148,14 +147,9 @@ class Envelope(common.ElementBase):
         return header
 
     @property
-    def soap_body(self) -> Body | None:
-        """Return the soap:Body wrapper itself, where ``body`` returns the payload inside it."""
-        return self.find_by_element(Body)
-
-    @property
     def body(self) -> common.ElementBase | None:
         # R9981: An ENVELOPE MUST have exactly zero or one child elements of the soap:Body element.
-        body = self.soap_body
+        body = self.find_by_element(Body)
         if body is None:
             return None
         # ``findall("*")`` matches element children only; comments and processing instructions are
@@ -172,7 +166,7 @@ class Envelope(common.ElementBase):
             raise TypeError(msg)
         return child
 
-    def body_as[B: common.ElementBase](self, element: type[B]) -> B | None:
+    def body_as[B: common.ElementBase](self, element: type[B]) -> B:
         """Return the ``soap:Body`` child, checked to be an instance of *element*.
 
         Returns ``None`` if the envelope has no ``soap:Body`` child (permitted by R9981).
@@ -180,7 +174,8 @@ class Envelope(common.ElementBase):
         """
         body = self.body
         if body is None:
-            return None
+            msg = f"Soap envelope {self!s} expected a soap:Body child but has none."
+            raise TypeError(msg)
         if not isinstance(body, element):
             actual = type(body).__name__
             msg = f"Soap envelope {self!s} expected a soap:Body child of type {element.__name__}, got {actual}."

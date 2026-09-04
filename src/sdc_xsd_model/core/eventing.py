@@ -221,8 +221,8 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
     eventing_namespace["Identifier"] = Identifier
     eventing_namespace["SupportedDeliveryMode"] = SupportedDeliveryMode
     eventing_namespace["SupportedDialect"] = SupportedDialect
-    eventing_namespace["LanguageSpecificString"] = LanguageSpecificStringType
-    eventing_namespace["OpenSubscriptionEndCodeType"] = OpenSubscriptionEndCodeType
+    # LanguageSpecificStringType and OpenSubscriptionEndCodeType are the types of wse:Reason and wse:Status,
+    # not element names, so they are registered through those elements below rather than under a type name.
     eventing_namespace["Status"] = Status
     eventing_namespace["SubscriptionEnd"] = SubscriptionEnd
     eventing_namespace["SubscribeResponse"] = SubscribeResponse

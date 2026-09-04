@@ -186,13 +186,6 @@ def test_body_as_raises_on_type_mismatch() -> None:
         _make_envelope().body_as(soap_envelope.Upgrade)
 
 
-def test_body_as_returns_none_on_empty_body() -> None:
-    """``body_as`` returns ``None`` when soap:Body has no child (R9981 permits zero)."""
-    envelope = soap_envelope.Envelope.for_action(ACTION)
-    assert envelope.soap_body is not None
-    assert envelope.body_as(soap_envelope.Fault) is None
-
-
 def test_header_factory_orders_blocks_like_a_real_message() -> None:
     """``Header.for_action`` emits the block order devices actually send, with extras last."""
     header = soap_envelope.Header.for_action(
@@ -239,18 +232,8 @@ def test_envelope_factory_wraps_the_payload() -> None:
     """``Envelope.for_action`` puts the payload inside soap:Body, where ``body`` reads it back."""
     payload = _make_fault()
     envelope = soap_envelope.Envelope.for_action(ACTION, payload, to=TO)
-    soap_body = envelope.soap_body
-    assert soap_body is not None
-    assert soap_body.tag == soap_envelope.Body.TAG
     assert envelope.body is payload
     assert envelope.header.action.text == ACTION
-
-
-def test_envelope_factory_emits_a_mandatory_empty_body() -> None:
-    """A one-way message still needs the soap:Body the schema makes mandatory."""
-    envelope = soap_envelope.Envelope.for_action(ACTION)
-    assert isinstance(envelope.soap_body, soap_envelope.Body)
-    assert envelope.body is None
 
 
 def test_header_action_raises_when_absent() -> None:

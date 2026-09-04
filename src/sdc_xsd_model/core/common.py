@@ -85,6 +85,17 @@ class QNameListType(ElementBase):
         ]
 
 
+def with_implied[T](value: T | None, implied: T) -> T:
+    """Return *value*, or *implied* when the attribute it came from was absent.
+
+    BICEPS states defaults in ``xsd:documentation`` prose ("The implied value SHALL be ...") rather than as an
+    XSD ``default``, so an absent optional attribute does **not** mean "unknown" -- it means the stated value.
+    Accessors that apply one are named ``<name>_or_implied`` and sit beside the literal reading, so a caller can
+    still tell whether the attribute was on the wire.
+    """
+    return implied if value is None else value
+
+
 def _all_subclasses(cls: type[ElementBase]) -> set[type[ElementBase]]:
     """Recursively collect all subclasses of *cls*."""
     result: set[type[ElementBase]] = set()

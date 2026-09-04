@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import enum
 import functools
 import pathlib
@@ -14,7 +15,6 @@ from sdc_xsd_model.core import biceps_pm, common, extension
 from sdc_xsd_model.core.extension import Extension
 
 if typing.TYPE_CHECKING:
-    import datetime
     import decimal
     from collections.abc import Sequence
 
@@ -60,6 +60,12 @@ class RetrievabilityMethod(enum.StrEnum):
     PER = "Per"
     EP = "Ep"
     STRM = "Strm"
+
+
+# ── BICEPS implied values ─────────────────────────────────────────────────────────────────────────
+# See ``common.with_implied``; the participant-model constants live in ``biceps_pm``.
+IMPLIED_MODIFICATION_TYPE: typing.Final[DescriptionModificationType] = DescriptionModificationType.UPT
+IMPLIED_UPDATE_PERIOD: typing.Final[datetime.timedelta] = datetime.timedelta(seconds=1)
 
 
 class InvocationInfo(common.ElementBase):
@@ -119,6 +125,11 @@ class AbstractGetResponse(common.ElementBase):
         return converter.to_int(self.get("MdibVersion"))
 
     @property
+    def mdib_version_or_implied(self) -> int:
+        """``@MdibVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.mdib_version, biceps_pm.IMPLIED_VERSION_COUNTER)
+
+    @property
     def sequence_id(self) -> str:
         value = self.get("SequenceId")
         assert value is not None
@@ -154,6 +165,11 @@ class AbstractReport(common.ElementBase):
     @property
     def mdib_version(self) -> int | None:
         return converter.to_int(self.get("MdibVersion"))
+
+    @property
+    def mdib_version_or_implied(self) -> int:
+        """``@MdibVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.mdib_version, biceps_pm.IMPLIED_VERSION_COUNTER)
 
     @property
     def sequence_id(self) -> str:
@@ -197,6 +213,11 @@ class AbstractSetResponse(common.ElementBase):
     @property
     def mdib_version(self) -> int | None:
         return converter.to_int(self.get("MdibVersion"))
+
+    @property
+    def mdib_version_or_implied(self) -> int:
+        """``@MdibVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.mdib_version, biceps_pm.IMPLIED_VERSION_COUNTER)
 
     @property
     def sequence_id(self) -> str:
@@ -252,6 +273,11 @@ class RetrievabilityInfo(common.ElementBase):
     def update_period(self) -> datetime.timedelta | None:
         value = self.get("UpdatePeriod")
         return converter.DurationConverter.deserialize(value) if value is not None else None
+
+    @property
+    def update_period_or_implied(self) -> datetime.timedelta:
+        """``@UpdatePeriod``; BICEPS states the implied value SHALL be "PT1S"."""
+        return common.with_implied(self.update_period, IMPLIED_UPDATE_PERIOD)
 
 
 class ReportPart(AbstractReportPart):
@@ -330,6 +356,11 @@ class ReportPart(AbstractReportPart):
     @property
     def modification_type(self) -> DescriptionModificationType | None:
         return converter.to_enum(self.get("ModificationType"), DescriptionModificationType)
+
+    @property
+    def modification_type_or_implied(self) -> DescriptionModificationType:
+        """``@ModificationType``; BICEPS states the implied value SHALL be "Upt"."""
+        return common.with_implied(self.modification_type, IMPLIED_MODIFICATION_TYPE)
 
 
 # ── Abstract report subtypes ──────────────────────────────────────────────────────────────────────
@@ -738,12 +769,46 @@ class GetContainmentTree(AbstractGet):
         return [biceps_pm.HandleRef(node.text) for node in self.findall(f"{{{NAMESPACE}}}HandleRef")]
 
 
+class ContainmentTree(common.ElementBase):
+    """Containment tree of an MDS.
+
+    Typed ``pm:ContainmentTree`` but declared in the *message* namespace, because
+    ``BICEPS_MessageModel.xsd`` is the only place the type is used -- as
+    ``msg:GetContainmentTreeResponse/msg:ContainmentTree``. Its ``Entry`` children are declared inside the
+    participant schema, so they stay ``pm:Entry`` (see ``biceps_pm.ContainmentTreeEntry``).
+    """
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ContainmentTree"
+
+    @property
+    def entries(self) -> Sequence[biceps_pm.ContainmentTreeEntry]:
+        return self.findall_by_element(biceps_pm.ContainmentTreeEntry)
+
+    @property
+    def handle_ref(self) -> biceps_pm.HandleRef | None:
+        value = self.get("HandleRef")
+        return biceps_pm.HandleRef(value) if value is not None else None
+
+    @property
+    def parent_handle_ref(self) -> biceps_pm.HandleRef | None:
+        value = self.get("ParentHandleRef")
+        return biceps_pm.HandleRef(value) if value is not None else None
+
+    @property
+    def entry_type(self) -> lxml.etree.QName | None:
+        return converter.to_qname(self.get("EntryType"), self.nsmap)
+
+    @property
+    def children_count(self) -> int | None:
+        return converter.to_int(self.get("ChildrenCount"))
+
+
 class GetContainmentTreeResponse(AbstractGetResponse):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}GetContainmentTreeResponse"
 
     @property
-    def containment_tree(self) -> biceps_pm.ContainmentTree | None:
-        return self.find_by_element(biceps_pm.ContainmentTree)
+    def containment_tree(self) -> ContainmentTree | None:
+        return self.find_by_element(ContainmentTree)
 
 
 class GetDescriptor(AbstractGet):
@@ -827,13 +892,45 @@ class WaveformStream(AbstractReport):
         )
 
 
+class ObservedValue(common.ElementBase):
+    """One observed value in an ``msg:ObservedValueStream``, bound to the metric it was observed on.
+
+    Both this element and the ``pm:SampleArrayValue`` it wraps are named ``msg:Value``, so they are told apart
+    by parent context rather than element name -- see ``element_class_lookup.BicepsElementClassLookup``.
+    """
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Value"
+
+    @property
+    def metric(self) -> biceps_pm.HandleRef:
+        """Handle of the metric this value was observed on, without which the value cannot be attributed."""
+        value = self.get("Metric")
+        # schema enforces presence
+        assert value is not None
+        return biceps_pm.HandleRef(value)
+
+    @property
+    def state_version(self) -> int | None:
+        """The literal ``@StateVersion``, or ``None`` when absent -- see ``state_version_or_implied``."""
+        return converter.to_int(self.get("StateVersion"))
+
+    @property
+    def state_version_or_implied(self) -> int:
+        """``@StateVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.state_version, biceps_pm.IMPLIED_VERSION_COUNTER)
+
+    @property
+    def value(self) -> biceps_pm.SampleArrayValue | None:
+        """The wrapped samples. Shares this element's tag, so it is found as a child, not by element name."""
+        return typing.cast("biceps_pm.SampleArrayValue | None", self.find(f"{{{NAMESPACE}}}Value"))
+
+
 class ObservedValueStream(AbstractReport):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ObservedValueStream"
 
     @property
-    def values(self) -> Sequence[common.ElementBase]:
-        # TODO: return proper type  # noqa: FIX002, TD002, TD003
-        return typing.cast("Sequence[common.ElementBase]", self.findall(f"{{{NAMESPACE}}}Value"))
+    def values(self) -> Sequence[ObservedValue]:
+        return self.findall_by_element(ObservedValue)
 
 
 # ── Retrievability Section ─────────────────────────────────────────────────────────────────────────
@@ -891,6 +988,12 @@ def _register_get_context_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     # ContainmentTree section
     ns["GetContainmentTree"] = GetContainmentTree
     ns["GetContainmentTreeResponse"] = GetContainmentTreeResponse
+    ns["ContainmentTree"] = ContainmentTree
+    # msg:ObservedValueStream/msg:Value. The nested msg:Value is a pm:SampleArrayValue, reached through the
+    # parent-context dispatch in ``element_class_lookup``, which resolves the type name in *this* registry --
+    # hence the pm class registered here under its type name.
+    ns["Value"] = ObservedValue
+    ns["SampleArrayValue"] = biceps_pm.SampleArrayValue
     ns["GetDescriptor"] = GetDescriptor
     ns["GetDescriptorResponse"] = GetDescriptorResponse
 

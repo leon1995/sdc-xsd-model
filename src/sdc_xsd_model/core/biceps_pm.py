@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import datetime
+import decimal
 import enum
 import functools
 import pathlib
@@ -14,8 +16,6 @@ from sdc_xsd_model.core import common, extension
 from sdc_xsd_model.core.extension import Extension
 
 if typing.TYPE_CHECKING:
-    import datetime
-    import decimal
     from collections.abc import Sequence
 
 PREFIX: typing.Final[str] = "pm"
@@ -231,6 +231,42 @@ class MetricRelationKind(enum.StrEnum):
     OTH = "Oth"
 
 
+# ── BICEPS implied values ─────────────────────────────────────────────────────────────────────────
+# BICEPS states defaults in xsd:documentation prose ("The implied value SHALL be ...") rather than as an XSD
+# ``default``, so an absent optional attribute does NOT mean "unknown". Each constant below backs an
+# ``<name>_or_implied`` accessor that sits beside the literal reading; see ``common.with_implied``.
+
+# Every pm:VersionCounter attribute shares one implied value: @MdibVersion, @DescriptionVersion,
+# @StateVersion and @DescriptorVersion alike.
+IMPLIED_VERSION_COUNTER: typing.Final[int] = 0
+# A pm:CodedValue with no @CodingSystem is an ISO/IEEE 11073-10101 code. Comparing codes without applying this
+# silently fails to match, the same way an unprefixed QName does when the default namespace is ignored.
+IMPLIED_CODING_SYSTEM: typing.Final[str] = "urn:oid:1.2.840.10004.1.1.1.0.0.1"
+# R0135: a PARTICIPANT SHALL encode the instance identifier root by the URI "biceps.uri.unk" if and only if
+# its value is unknown -- the null-flavor "unknown" that pm:InstanceIdentifier/@Root implies when absent.
+IMPLIED_INSTANCE_IDENTIFIER_ROOT: typing.Final[str] = "biceps.uri.unk"
+IMPLIED_SAFETY_CLASSIFICATION: typing.Final[SafetyClassification] = SafetyClassification.INF
+IMPLIED_CALIBRATION_TYPE: typing.Final[CalibrationType] = CalibrationType.UNSPEC
+IMPLIED_COMPONENT_ACTIVATION: typing.Final[ComponentActivation] = ComponentActivation.ON
+IMPLIED_LANG: typing.Final[str] = "en"
+IMPLIED_MDS_OPERATING_MODE: typing.Final[MdsOperatingMode] = MdsOperatingMode.NML
+IMPLIED_ALERT_CONDITION_PRESENCE: typing.Final[bool] = False
+IMPLIED_AUTO_LIMIT_SUPPORTED: typing.Final[bool] = False
+IMPLIED_SIGNAL_DELEGATION_SUPPORTED: typing.Final[bool] = False
+IMPLIED_ACKNOWLEDGEMENT_SUPPORTED: typing.Final[bool] = False
+IMPLIED_ALERT_SIGNAL_PRESENCE: typing.Final[AlertSignalPresence] = AlertSignalPresence.OFF
+IMPLIED_ALERT_SIGNAL_PRIMARY_LOCATION: typing.Final[AlertSignalPrimaryLocation] = AlertSignalPrimaryLocation.LOC
+IMPLIED_GENERATION_MODE: typing.Final[GenerationMode] = GenerationMode.REAL
+IMPLIED_QUALITY_INDICATOR: typing.Final[decimal.Decimal] = decimal.Decimal(1)
+IMPLIED_RETRIGGERABLE: typing.Final[bool] = True
+IMPLIED_ACCESS_LEVEL: typing.Final[AccessLevel] = AccessLevel.USR
+IMPLIED_CRITICAL_USE: typing.Final[bool] = False
+IMPLIED_CONTEXT_ASSOCIATION: typing.Final[ContextAssociation] = ContextAssociation.NO
+# Both pm:AlertConditionDescriptor/@DefaultConditionGenerationDelay and
+# pm:AlertSignalDescriptor/@DefaultSignalGenerationDelay declare an implied "PT0S".
+IMPLIED_GENERATION_DELAY: typing.Final[datetime.timedelta] = datetime.timedelta(0)
+
+
 # ── Common complex types ──────────────────────────────────────────────────────────────────────────
 
 
@@ -340,6 +376,11 @@ class CodedValue(common.ElementBase):
         return self.get("CodingSystem")
 
     @property
+    def coding_system_or_implied(self) -> str:
+        """``@CodingSystem``; the implied value is the ISO/IEEE 11073-10101 nomenclature (see R0128's NOTE)."""
+        return common.with_implied(self.coding_system, IMPLIED_CODING_SYSTEM)
+
+    @property
     def coding_system_version(self) -> str | None:
         return self.get("CodingSystemVersion")
 
@@ -361,6 +402,11 @@ class InstanceIdentifier(common.ElementBase):
     @property
     def root(self) -> str | None:
         return self.get("Root")
+
+    @property
+    def root_or_implied(self) -> str:
+        """``@Root``; BICEPS states the implied value SHALL be the URI "biceps.uri.unk" (R0135)."""
+        return common.with_implied(self.root, IMPLIED_INSTANCE_IDENTIFIER_ROOT)
 
     @property
     def extension(self) -> Extension | None:
@@ -498,6 +544,11 @@ class CalibrationInfo(common.ElementBase):
         return converter.to_enum(self.get("Type"), CalibrationType)
 
     @property
+    def calibration_type_or_implied(self) -> CalibrationType:
+        """``@Type``; BICEPS states the implied value SHALL be "Unspec"."""
+        return common.with_implied(self.calibration_type, IMPLIED_CALIBRATION_TYPE)
+
+    @property
     def time(self) -> Timestamp | None:
         value = converter.to_int(self.get("Time"))
         return Timestamp(value) if value is not None else None
@@ -583,6 +634,11 @@ class MdDescription(common.ElementBase):
     def description_version(self) -> int | None:
         return converter.to_int(self.get("DescriptionVersion"))
 
+    @property
+    def description_version_or_implied(self) -> int:
+        """``@DescriptionVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.description_version, IMPLIED_VERSION_COUNTER)
+
 
 class MdState(common.ElementBase):
     """Root container for the state part of the MDIB."""
@@ -601,6 +657,11 @@ class MdState(common.ElementBase):
     def state_version(self) -> int | None:
         return converter.to_int(self.get("StateVersion"))
 
+    @property
+    def state_version_or_implied(self) -> int:
+        """``@StateVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.state_version, IMPLIED_VERSION_COUNTER)
+
 
 class Mdib(common.ElementBase):
     """Root object comprising MdDescription and MdState."""
@@ -618,6 +679,11 @@ class Mdib(common.ElementBase):
     @property
     def mdib_version(self) -> int | None:
         return converter.to_int(self.get("MdibVersion"))
+
+    @property
+    def mdib_version_or_implied(self) -> int:
+        """``@MdibVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.mdib_version, IMPLIED_VERSION_COUNTER)
 
     @property
     def sequence_id(self) -> str:
@@ -651,8 +717,18 @@ class AbstractDescriptor(common.ElementBase):
         return converter.to_int(self.get("DescriptorVersion"))
 
     @property
+    def descriptor_version_or_implied(self) -> int:
+        """``@DescriptorVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.descriptor_version, IMPLIED_VERSION_COUNTER)
+
+    @property
     def safety_classification(self) -> SafetyClassification | None:
         return converter.to_enum(self.get("SafetyClassification"), SafetyClassification)
+
+    @property
+    def safety_classification_or_implied(self) -> SafetyClassification:
+        """``@SafetyClassification``; BICEPS states the implied value SHALL be "Inf"."""
+        return common.with_implied(self.safety_classification, IMPLIED_SAFETY_CLASSIFICATION)
 
     @property
     def extension(self) -> Extension | None:
@@ -676,6 +752,11 @@ class AbstractState(common.ElementBase):
         return converter.to_int(self.get("StateVersion"))
 
     @property
+    def state_version_or_implied(self) -> int:
+        """``@StateVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.state_version, IMPLIED_VERSION_COUNTER)
+
+    @property
     def descriptor_handle(self) -> HandleRef:
         value = self.get("DescriptorHandle")
         assert value is not None
@@ -684,6 +765,11 @@ class AbstractState(common.ElementBase):
     @property
     def descriptor_version(self) -> int | None:
         return converter.to_int(self.get("DescriptorVersion"))
+
+    @property
+    def descriptor_version_or_implied(self) -> int:
+        """``@DescriptorVersion``; BICEPS states the implied value SHALL be "0"."""
+        return common.with_implied(self.descriptor_version, IMPLIED_VERSION_COUNTER)
 
     @property
     def extension(self) -> Extension | None:
@@ -883,6 +969,11 @@ class AbstractDeviceComponentState(AbstractState):
         return converter.to_enum(self.get("ActivationState"), ComponentActivation)
 
     @property
+    def activation_state_or_implied(self) -> ComponentActivation:
+        """``@ActivationState``; BICEPS states the implied value SHALL be "On"."""
+        return common.with_implied(self.activation_state, IMPLIED_COMPONENT_ACTIVATION)
+
+    @property
     def operating_hours(self) -> int | None:
         return converter.to_int(self.get("OperatingHours"))
 
@@ -917,8 +1008,18 @@ class MdsState(AbstractComplexDeviceComponentState):
         return self.get("Lang")
 
     @property
+    def lang_or_implied(self) -> str:
+        """``@Lang``; BICEPS states the implied value SHALL be "en"."""
+        return common.with_implied(self.lang, IMPLIED_LANG)
+
+    @property
     def operating_mode(self) -> MdsOperatingMode | None:
         return converter.to_enum(self.get("OperatingMode"), MdsOperatingMode)
+
+    @property
+    def operating_mode_or_implied(self) -> MdsOperatingMode:
+        """``@OperatingMode``; BICEPS states the implied value SHALL be "Nml"."""
+        return common.with_implied(self.operating_mode, IMPLIED_MDS_OPERATING_MODE)
 
     @property
     def operating_jurisdiction(self) -> OperatingJurisdiction | None:
@@ -974,6 +1075,11 @@ class ClockState(AbstractDeviceComponentState):
     def critical_use(self) -> bool | None:
         return converter.to_bool(self.get("CriticalUse"))
 
+    @property
+    def critical_use_or_implied(self) -> bool:
+        """``@CriticalUse``; BICEPS states the implied value SHALL be "false"."""
+        return common.with_implied(self.critical_use, IMPLIED_CRITICAL_USE)
+
 
 class BatteryState(AbstractDeviceComponentState):
     """State of a battery."""
@@ -989,10 +1095,38 @@ class BatteryState(AbstractDeviceComponentState):
         return converter.to_int(self.get("ChargeCycles"))
 
 
+class OperationGroup(common.ElementBase):
+    """A group of operations within an SCO, sharing a type and an operating mode."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}OperationGroup"
+
+    @property
+    def type(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+
+    @property
+    def operating_mode(self) -> OperatingMode | None:
+        return converter.to_enum(self.get("OperatingMode"), OperatingMode)
+
+    @property
+    def operations(self) -> Sequence[HandleRef]:
+        """Handles of the operations in this group (``pm:OperationRef``, a whitespace-separated list)."""
+        value = self.get("Operations")
+        return [HandleRef(entry) for entry in value.split()] if value is not None else []
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
 class ScoState(AbstractDeviceComponentState):
     """State of an SCO."""
 
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}ScoState"
+
+    @property
+    def operation_groups(self) -> Sequence[OperationGroup]:
+        return self.findall_by_element(OperationGroup)
 
     @property
     def invocation_requested(self) -> Sequence[HandleRef]:
@@ -1043,6 +1177,16 @@ class AlertConditionDescriptor(AbstractAlertDescriptor):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}AlertCondition"
 
     @property
+    def sources(self) -> Sequence[HandleRef]:
+        """Handle references to the descriptors this alert condition observes (``pm:Source``, 0..*)."""
+        return [HandleRef(text) for node in self.findall(f"{{{NAMESPACE}}}Source") if (text := node.text) is not None]
+
+    @property
+    def cause_infos(self) -> Sequence[CauseInfo]:
+        """Causes and remedies for this alert condition (``pm:CauseInfo``, 0..*)."""
+        return self.findall_by_element(CauseInfo)
+
+    @property
     def kind(self) -> AlertConditionKind:
         value = converter.to_enum(self.get("Kind"), AlertConditionKind)
         assert value is not None
@@ -1060,6 +1204,11 @@ class AlertConditionDescriptor(AbstractAlertDescriptor):
         return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
+    def default_condition_generation_delay_or_implied(self) -> datetime.timedelta:
+        """``@DefaultConditionGenerationDelay``; BICEPS states the implied value SHALL be "PT0S"."""
+        return common.with_implied(self.default_condition_generation_delay, IMPLIED_GENERATION_DELAY)
+
+    @property
     def can_escalate(self) -> CanEscalate | None:
         return converter.to_enum(self.get("CanEscalate"), CanEscalate)
 
@@ -1074,6 +1223,11 @@ class LimitAlertConditionDescriptor(AlertConditionDescriptor):
     @property
     def auto_limit_supported(self) -> bool | None:
         return converter.to_bool(self.get("AutoLimitSupported"))
+
+    @property
+    def auto_limit_supported_or_implied(self) -> bool:
+        """``@AutoLimitSupported``; BICEPS states the implied value SHALL be "false"."""
+        return common.with_implied(self.auto_limit_supported, IMPLIED_AUTO_LIMIT_SUPPORTED)
 
 
 class AlertSignalDescriptor(AbstractAlertDescriptor):
@@ -1104,12 +1258,37 @@ class AlertSignalDescriptor(AbstractAlertDescriptor):
         return converter.DurationConverter.deserialize(value) if value is not None else None
 
     @property
+    def default_signal_generation_delay_or_implied(self) -> datetime.timedelta:
+        """``@DefaultSignalGenerationDelay``; BICEPS states the implied value SHALL be "PT0S"."""
+        return common.with_implied(self.default_signal_generation_delay, IMPLIED_GENERATION_DELAY)
+
+    @property
+    def min_signal_generation_delay(self) -> datetime.timedelta | None:
+        value = self.get("MinSignalGenerationDelay")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
+
+    @property
+    def max_signal_generation_delay(self) -> datetime.timedelta | None:
+        value = self.get("MaxSignalGenerationDelay")
+        return converter.DurationConverter.deserialize(value) if value is not None else None
+
+    @property
     def signal_delegation_supported(self) -> bool | None:
         return converter.to_bool(self.get("SignalDelegationSupported"))
 
     @property
+    def signal_delegation_supported_or_implied(self) -> bool:
+        """``@SignalDelegationSupported``; BICEPS states the implied value SHALL be "false"."""
+        return common.with_implied(self.signal_delegation_supported, IMPLIED_SIGNAL_DELEGATION_SUPPORTED)
+
+    @property
     def acknowledgement_supported(self) -> bool | None:
         return converter.to_bool(self.get("AcknowledgementSupported"))
+
+    @property
+    def acknowledgement_supported_or_implied(self) -> bool:
+        """``@AcknowledgementSupported``; BICEPS states the implied value SHALL be "false"."""
+        return common.with_implied(self.acknowledgement_supported, IMPLIED_ACKNOWLEDGEMENT_SUPPORTED)
 
     @property
     def acknowledge_timeout(self) -> datetime.timedelta | None:
@@ -1178,6 +1357,11 @@ class AlertConditionState(AbstractAlertState):
         return converter.to_bool(self.get("Presence"))
 
     @property
+    def presence_or_implied(self) -> bool:
+        """``@Presence``; BICEPS states the implied value SHALL be "false"."""
+        return common.with_implied(self.presence, IMPLIED_ALERT_CONDITION_PRESENCE)
+
+    @property
     def determination_time(self) -> Timestamp | None:
         value = converter.to_int(self.get("DeterminationTime"))
         return Timestamp(value) if value is not None else None
@@ -1210,8 +1394,18 @@ class AlertSignalState(AbstractAlertState):
         return converter.to_enum(self.get("Presence"), AlertSignalPresence)
 
     @property
+    def presence_or_implied(self) -> AlertSignalPresence:
+        """``@Presence``; BICEPS states the implied value SHALL be "Off"."""
+        return common.with_implied(self.presence, IMPLIED_ALERT_SIGNAL_PRESENCE)
+
+    @property
     def location(self) -> AlertSignalPrimaryLocation | None:
         return converter.to_enum(self.get("Location"), AlertSignalPrimaryLocation)
+
+    @property
+    def location_or_implied(self) -> AlertSignalPrimaryLocation:
+        """``@Location``; BICEPS states the implied value SHALL be "Loc"."""
+        return common.with_implied(self.location, IMPLIED_ALERT_SIGNAL_PRIMARY_LOCATION)
 
     @property
     def slot(self) -> int | None:
@@ -1221,8 +1415,76 @@ class AlertSignalState(AbstractAlertState):
 # ── Metric value types ────────────────────────────────────────────────────────────────────────────
 
 
+class MetricQuality(common.ElementBase):
+    """Whether a metric value is valid, how it was generated, and how good it is.
+
+    ``minOccurs`` defaults to 1 on ``pm:AbstractMetricValue/MetricQuality``, so every metric value on the wire
+    carries one, and ``@Validity`` is ``use="required"`` within it. A measurement therefore always arrives with
+    a validity, and reading the value without it says nothing about whether it may be acted on.
+    """
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}MetricQuality"
+
+    @property
+    def validity(self) -> MeasurementValidity:
+        value = converter.to_enum(self.get("Validity"), MeasurementValidity)
+        # schema enforces presence
+        assert value is not None
+        return value
+
+    @property
+    def mode(self) -> GenerationMode | None:
+        """The literal ``@Mode``, or ``None`` when absent -- see ``mode_or_implied``."""
+        return converter.to_enum(self.get("Mode"), GenerationMode)
+
+    @property
+    def mode_or_implied(self) -> GenerationMode:
+        """``@Mode``; BICEPS states the implied value SHALL be "Real", i.e. a real measurement."""
+        return common.with_implied(self.mode, IMPLIED_GENERATION_MODE)
+
+    @property
+    def qi(self) -> decimal.Decimal | None:
+        """The literal ``@Qi`` in [0, 1], or ``None`` when absent -- see ``qi_or_implied``."""
+        return converter.to_decimal(self.get("Qi"))
+
+    @property
+    def qi_or_implied(self) -> decimal.Decimal:
+        """``@Qi``; BICEPS states the implied value SHALL be "1"."""
+        return common.with_implied(self.qi, IMPLIED_QUALITY_INDICATOR)
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
+class Annotation(common.ElementBase):
+    """An annotation attached to a metric value, identified by a coded value."""
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Annotation"
+
+    @property
+    def type(self) -> CodedValue | None:
+        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+
+    @property
+    def extension(self) -> Extension | None:
+        return self.find_by_element(Extension)
+
+
 class AbstractMetricValue(common.ElementBase):
     """Abstract metric value."""
+
+    @property
+    def metric_quality(self) -> MetricQuality:
+        """The mandatory ``pm:MetricQuality`` child, carrying the required ``@Validity``."""
+        value = self.find_by_element(MetricQuality)
+        # schema enforces presence
+        assert value is not None
+        return value
+
+    @property
+    def annotations(self) -> Sequence[Annotation]:
+        return self.findall_by_element(Annotation)
 
     @property
     def start_time(self) -> Timestamp | None:
@@ -1462,6 +1724,11 @@ class AbstractMetricState(AbstractState):
         return converter.to_enum(self.get("ActivationState"), ComponentActivation)
 
     @property
+    def activation_state_or_implied(self) -> ComponentActivation:
+        """``@ActivationState``; BICEPS states the implied value SHALL be "On"."""
+        return common.with_implied(self.activation_state, IMPLIED_COMPONENT_ACTIVATION)
+
+    @property
     def active_determination_period(self) -> datetime.timedelta | None:
         value = self.get("ActiveDeterminationPeriod")
         return converter.DurationConverter.deserialize(value) if value is not None else None
@@ -1566,8 +1833,18 @@ class AbstractOperationDescriptor(AbstractDescriptor):
         return converter.to_bool(self.get("Retriggerable"))
 
     @property
+    def retriggerable_or_implied(self) -> bool:
+        """``@Retriggerable``; BICEPS states the implied value SHALL be "true"."""
+        return common.with_implied(self.retriggerable, IMPLIED_RETRIGGERABLE)
+
+    @property
     def access_level(self) -> AccessLevel | None:
         return converter.to_enum(self.get("AccessLevel"), AccessLevel)
+
+    @property
+    def access_level_or_implied(self) -> AccessLevel:
+        """``@AccessLevel``; BICEPS states the implied value SHALL be "Usr"."""
+        return common.with_implied(self.access_level, IMPLIED_ACCESS_LEVEL)
 
 
 class AbstractSetStateOperationDescriptor(AbstractOperationDescriptor):
@@ -1713,6 +1990,11 @@ class AbstractContextState(AbstractMultiState):
     @property
     def context_association(self) -> ContextAssociation | None:
         return converter.to_enum(self.get("ContextAssociation"), ContextAssociation)
+
+    @property
+    def context_association_or_implied(self) -> ContextAssociation:
+        """``@ContextAssociation``; BICEPS states the implied value SHALL be "No"."""
+        return common.with_implied(self.context_association, IMPLIED_CONTEXT_ASSOCIATION)
 
     @property
     def binding_mdib_version(self) -> int | None:
@@ -1967,30 +2249,6 @@ class OrderDetail(common.ElementBase):
     """Details of an order."""
 
 
-class ContainmentTree(common.ElementBase):
-    """Containment tree of an MDS."""
-
-    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ContainmentTree"
-
-    @property
-    def handle_ref(self) -> HandleRef | None:
-        value = self.get("HandleRef")
-        return HandleRef(value) if value is not None else None
-
-    @property
-    def parent_handle_ref(self) -> HandleRef | None:
-        value = self.get("ParentHandleRef")
-        return HandleRef(value) if value is not None else None
-
-    @property
-    def entry_type(self) -> lxml.etree.QName | None:
-        return converter.to_qname(self.get("EntryType"), self.nsmap)
-
-    @property
-    def children_count(self) -> int | None:
-        return converter.to_int(self.get("ChildrenCount"))
-
-
 class ContainmentTreeEntry(common.ElementBase):
     """An entry in a containment tree."""
 
@@ -2126,9 +2384,9 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "HeadCircumference",
         "CapacityFullCharge",
         "CapacitySpecified",
-        "VolTAGeSpecified",
+        "VoltageSpecified",
         "CapacityRemaining",
-        "VolTAGe",
+        "Voltage",
         "Current",
         "Temperature",
         "RemainingBatteryTime",
@@ -2156,6 +2414,13 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # n
     ns["OperatorDetails"] = BaseDemographics
     ns["Name"] = BaseDemographics
     ns["Entry"] = ContainmentTreeEntry
+    ns["MetaData"] = MetaData
+    ns["Udi"] = UDI
+    ns["AllowedValue"] = AllowedValue
+    ns["ApplyAnnotation"] = ApplyAnnotation
+    ns["MetricQuality"] = MetricQuality
+    ns["Annotation"] = Annotation
+    ns["OperationGroup"] = OperationGroup
     # Person/Location references
     ns["Patient"] = PersonReference
     ns["Mother"] = PersonReference

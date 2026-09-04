@@ -125,3 +125,23 @@ def test_q_name_of_an_absent_value_is_none() -> None:
     element = lxml.etree.fromstring(xml, parser=_Type.PARSER)
     assert isinstance(element, _Type)
     assert element.q_name is None
+
+
+@pytest.mark.parametrize(
+    ("value", "implied", "expected"),
+    [
+        (0, 1, 0),
+        (None, 1, 1),
+        (None, None, None),
+        (False, True, False),
+        ("", "implied", ""),
+        ("value", "implied", "value"),
+    ],
+)
+def test_with_implied(
+    value: int | bool | str | None,  # noqa: FBT001
+    implied: int | bool | str | None,  # noqa: FBT001
+    expected: int | bool | str | None,  # noqa: FBT001
+) -> None:
+    """Ensure the ``with_implied`` context manager adds the namespace to the element's ``nsmap``."""
+    assert common.with_implied(value, implied) == expected

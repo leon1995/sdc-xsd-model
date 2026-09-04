@@ -45,6 +45,12 @@ class BicepsElementClassLookup(lxml.etree.PythonElementClassLookup):
         ):
             dispatcher[(parent_type, "MetricValue")] = type_name
 
+        # ``msg:ObservedValueStream/msg:Value/msg:Value``: the outer element carries @Metric and resolves by
+        # element name to ``biceps_msg.ObservedValue``, while the inner one is a ``pm:SampleArrayValue``. Both
+        # are ``{msg}Value``, so only the parent distinguishes them. This is the sole Value-inside-Value nesting
+        # in either BICEPS schema, which is what makes the bare ``("Value", "Value")`` key unambiguous.
+        dispatcher[("Value", "Value")] = "SampleArrayValue"
+
         return dispatcher
 
     def _resolve_xsi_type(self, element: lxml.etree._Element) -> tuple[str | None, str | None]:
