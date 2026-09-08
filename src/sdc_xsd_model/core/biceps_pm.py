@@ -885,8 +885,41 @@ class MetaData(common.ElementBase):
         return [node.text for node in self.findall(f"{{{NAMESPACE}}}SerialNumber") if node.text is not None]
 
 
+class ProductionSpecification(common.ElementBase):
+    """A production specification of a device component, e.g. a serial or part number.
+
+    The schema declares this inline on ``pm:AbstractDeviceComponentDescriptor``, so the type is anonymous
+    and only the element name identifies it.
+    """
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}ProductionSpecification"
+
+    @property
+    def spec_type(self) -> CodedValue:
+        node = self.find(f"{{{NAMESPACE}}}SpecType")
+        # schema enforces presence
+        assert isinstance(node, CodedValue)
+        return node
+
+    @property
+    def production_spec(self) -> str:
+        node = self.find(f"{{{NAMESPACE}}}ProductionSpec")
+        # schema enforces presence
+        assert node is not None
+        assert node.text is not None
+        return node.text
+
+    @property
+    def component_id(self) -> InstanceIdentifier | None:
+        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}ComponentId"))
+
+
 class AbstractDeviceComponentDescriptor(AbstractDescriptor):
     """Base descriptor for device components."""
+
+    @property
+    def production_specifications(self) -> Sequence[ProductionSpecification]:
+        return self.findall_by_element(ProductionSpecification)
 
 
 class AbstractComplexDeviceComponentDescriptor(AbstractDeviceComponentDescriptor):
@@ -1907,8 +1940,39 @@ class SetStringOperationDescriptor(AbstractOperationDescriptor):
         return converter.to_int(self.get("MaxLength"))
 
 
+class Argument(common.ElementBase):
+    """An argument of an activate operation: what it is, and the type its value has.
+
+    The schema declares this inline on ``pm:ActivateOperationDescriptor``, so the type is anonymous and only
+    the element name identifies it.
+    """
+
+    TAG: typing.Final[str] = f"{{{NAMESPACE}}}Argument"
+
+    @property
+    def arg_name(self) -> CodedValue:
+        node = self.find(f"{{{NAMESPACE}}}ArgName")
+        # schema enforces presence
+        assert isinstance(node, CodedValue)
+        return node
+
+    @property
+    def arg(self) -> lxml.etree.QName:
+        """The QName of the type an argument value has."""
+        node = self.find(f"{{{NAMESPACE}}}Arg")
+        # schema enforces presence
+        assert node is not None
+        q_name = converter.to_qname(node.text, node.nsmap)
+        assert q_name is not None
+        return q_name
+
+
 class ActivateOperationDescriptor(AbstractSetStateOperationDescriptor):
     """Descriptor for an activate operation."""
+
+    @property
+    def arguments(self) -> Sequence[Argument]:
+        return self.findall_by_element(Argument)
 
 
 class SetContextStateOperationDescriptor(AbstractSetStateOperationDescriptor):
@@ -2763,6 +2827,11 @@ def _register_specific_elements(ns: lxml.etree._NamespaceRegistry) -> None:  # n
     ns["Entry"] = ContainmentTreeEntry
     ns["MetaData"] = MetaData
     ns["Udi"] = UDI
+    ns["ProductionSpecification"] = ProductionSpecification
+    ns["Argument"] = Argument
+    ns["SpecType"] = CodedValue
+    ns["ArgName"] = CodedValue
+    ns["ComponentId"] = InstanceIdentifier
     ns["AllowedValue"] = AllowedValue
     ns["ApplyAnnotation"] = ApplyAnnotation
     ns["MetricQuality"] = MetricQuality

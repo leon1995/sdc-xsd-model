@@ -51,6 +51,13 @@ class BicepsElementClassLookup(lxml.etree.PythonElementClassLookup):
         # in either BICEPS schema, which is what makes the bare ``("Value", "Value")`` key unambiguous.
         dispatcher[("Value", "Value")] = "SampleArrayValue"
 
+        # ``msg:WaveformStream/msg:State``: unlike every other state-carrying element, the schema declares
+        # this one as a concrete ``pm:RealTimeSampleArrayMetricState``, so providers send no ``xsi:type`` and
+        # the element name resolves to the ``pm:AbstractState`` that ``{msg}State`` is registered as. Without
+        # this entry a waveform state arrives abstract, with no access to its samples. ``biceps_msg``
+        # registers the target name in the msg namespace so this table can reach it.
+        dispatcher[("WaveformStream", "State")] = "RealTimeSampleArrayMetricState"
+
         return dispatcher
 
     def _resolve_xsi_type(self, element: lxml.etree._Element) -> tuple[str | None, str | None]:
@@ -65,19 +72,38 @@ class BicepsElementClassLookup(lxml.etree.PythonElementClassLookup):
             return None, None
         return q_name.namespace, q_name.localname
 
+    def _effective_type_name(self, element: lxml.etree._Element) -> str:
+        """Return the name of the type an element has, as far as the document can tell.
+
+        In order: the local part of its ``xsi:type``; else the type this same table gives it for the parent
+        it sits in; else its own tag local name.
+
+        The middle step is what makes a chain work. ``msg:WaveformStream/msg:State`` takes its type from this
+        table, and the ``pm:MetricValue`` inside it then needs that type to resolve to a
+        ``pm:SampleArrayValue``. Reading only the parent's element name would give ``State``, match nothing,
+        and leave the sample array untyped. The parent's resolved *class* cannot be used instead, because a
+        lookup is handed read-only proxies, which never carry a custom class.
+        """
+        _, xsi_type = self._resolve_xsi_type(element)
+        if xsi_type is not None:
+            return xsi_type
+        local_name = lxml.etree.QName(element.tag).localname
+        parent = element.getparent()
+        if parent is not None and isinstance(parent.tag, str):
+            from_parent = self._parent_dispatch.get((lxml.etree.QName(parent.tag).localname, local_name))
+            if from_parent is not None:
+                return from_parent
+        return local_name
+
     def _resolve_parent_type(
         self, parent: lxml.etree._Element, child: lxml.etree._Element
     ) -> tuple[str | None, str | None]:
         """Resolve a parent-context class.
 
-        When a child element with *child_local_name* appears inside a parent whose resolved type is *parent_type*
-        (the local part of the parent's ``xsi:type`` or, if absent, the parent's tag local name), resolve it
-        via *type_name* in the child's namespace registry instead of the default tag-based lookup.
+        When a child element with *child_local_name* appears inside a parent whose resolved type is *parent_type*,
+        resolve it via *type_name* in the child's namespace registry instead of the default tag-based lookup.
         """
-        # Determine parent's effective type: xsi:type local name, or tag local name.
-        _, parent_type = self._resolve_xsi_type(parent)
-        if parent_type is None:
-            parent_type = lxml.etree.QName(parent.tag).localname
+        parent_type = self._effective_type_name(parent)
         child_local = lxml.etree.QName(child.tag).localname
         type_name = self._parent_dispatch.get((parent_type, child_local))
         child_ns = lxml.etree.QName(child.tag).namespace if type_name is not None else None

@@ -19,7 +19,7 @@ import typing
 import lxml.etree
 import pytest
 
-from sdc_xsd_model.core import common
+from sdc_xsd_model.core import biceps_pm, common
 
 DPWS: typing.Final[str] = "http://docs.oasis-open.org/ws-dd/ns/dpws/2009/01"
 NAMESPACE: typing.Final[str] = "urn:test:common"
@@ -145,3 +145,22 @@ def test_with_implied(
 ) -> None:
     """Ensure the ``with_implied`` context manager adds the namespace to the element's ``nsmap``."""
     assert common.with_implied(value, implied) == expected
+
+
+def test_text_is_writable() -> None:
+    """Re-declaring ``text`` as a property must not drop lxml's setter.
+
+    Without the setter every caller that builds or copies an element has to reach for lxml's own descriptor.
+    """
+    element = biceps_pm.LocalizedText()
+    element.text = "hello"
+    assert element.text == "hello"
+    assert b">hello<" in lxml.etree.tostring(element)
+
+
+def test_text_can_be_cleared() -> None:
+    """Assigning None removes the text content again."""
+    element = biceps_pm.LocalizedText()
+    element.text = "hello"
+    element.text = None
+    assert element.text is None

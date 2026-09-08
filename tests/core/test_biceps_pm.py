@@ -6,7 +6,7 @@ import decimal
 import lxml.etree
 import pytest
 
-from sdc_xsd_model import converter
+from sdc_xsd_model import converter, element_class_lookup
 from sdc_xsd_model.core import biceps_pm, common, extension
 
 
@@ -25,6 +25,23 @@ def _get_lookup_parser() -> lxml.etree.XMLParser:
 
 
 _LOOKUP_PARSER = _get_lookup_parser()
+
+
+def _get_xsi_parser() -> lxml.etree.XMLParser:
+    """Non-validating parser that also dispatches on ``xsi:type``.
+
+    Needed wherever a class is reached the way BICEPS actually reaches it: under a generic element name with
+    the concrete type in ``xsi:type``. The plain namespace lookup above resolves element names only.
+    """
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    extension.set_lookup(lookup)
+    biceps_pm.set_lookup(lookup)
+    parser = lxml.etree.XMLParser()
+    parser.set_element_class_lookup(element_class_lookup.BicepsElementClassLookup(lookup))
+    return parser
+
+
+_XSI_PARSER = _get_xsi_parser()
 
 # (class, local element name) for classes with TAG set
 BICEPS_PM_CASES = [
@@ -62,6 +79,8 @@ BICEPS_PM_CASES = [
     (biceps_pm.LocationDetail, "LocationDetail"),
     (biceps_pm.PatientDemographicsCoreData, "CoreData"),
     (biceps_pm.ContainmentTreeEntry, "Entry"),
+    (biceps_pm.ProductionSpecification, "ProductionSpecification"),
+    (biceps_pm.Argument, "Argument"),
 ]
 
 
@@ -532,3 +551,85 @@ def test_cause_info_without_remedy_is_none() -> None:
     assert isinstance(element, biceps_pm.CauseInfo)
     assert element.remedy_info is None
     assert list(element.descriptions) == []
+
+
+# ── production specification and activate operation arguments ──────────────────────────────────────
+# Both types are declared inline in the schema, so only their element name identifies them, and both are
+# reached through a container whose own type comes from an xsi:type.
+
+_PRODUCTION_SPEC_CODES = ("68543", "68186")
+_ARGUMENT_CODES = ("12345", "67890")
+
+_MDS_WITH_PRODUCTION_SPEC = f"""<dom:Mds xmlns:dom="{biceps_pm.NAMESPACE}" Handle="mds0">
+  <dom:ProductionSpecification>
+    <dom:SpecType Code="68543"/>
+    <dom:ProductionSpec>urn:oid:1.3.6.1.4.1.3592.2.1.2.1</dom:ProductionSpec>
+  </dom:ProductionSpecification>
+  <dom:ProductionSpecification>
+    <dom:SpecType Code="68186"/>
+    <dom:ProductionSpec>SERIAL-1</dom:ProductionSpec>
+    <dom:ComponentId Root="urn:oid:1.2.3" Extension="C-1"/>
+  </dom:ProductionSpecification>
+</dom:Mds>""".encode()
+
+
+def test_production_specifications_are_typed() -> None:
+    """An unregistered element name would yield a plain _Element whose properties do not exist."""
+    mds = lxml.etree.fromstring(_MDS_WITH_PRODUCTION_SPEC, parser=_LOOKUP_PARSER)
+    specs = mds.production_specifications
+    assert len(specs) == len(_PRODUCTION_SPEC_CODES)
+    assert all(isinstance(spec, biceps_pm.ProductionSpecification) for spec in specs)
+
+
+def test_production_specification_children() -> None:
+    """SpecType and ComponentId are participant model types, not plain text."""
+    mds = lxml.etree.fromstring(_MDS_WITH_PRODUCTION_SPEC, parser=_LOOKUP_PARSER)
+    first, second = mds.production_specifications
+    assert isinstance(first.spec_type, biceps_pm.CodedValue)
+    assert first.spec_type.code == "68543"
+    assert first.production_spec == "urn:oid:1.3.6.1.4.1.3592.2.1.2.1"
+    assert first.component_id is None
+    assert isinstance(second.component_id, biceps_pm.InstanceIdentifier)
+    assert second.component_id.extension_attr == "C-1"
+
+
+def test_production_specifications_absent() -> None:
+    """The element is minOccurs=0, so a component without any reads as an empty sequence."""
+    mds = lxml.etree.fromstring(f'<Mds xmlns="{biceps_pm.NAMESPACE}" Handle="mds0"/>'.encode(), parser=_LOOKUP_PARSER)
+    assert mds.production_specifications == []
+
+
+_ACTIVATE_WITH_ARGUMENTS = f"""<dom:Operation xmlns:dom="{biceps_pm.NAMESPACE}"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xsi:type="dom:ActivateOperationDescriptor" Handle="act0" OperationTarget="target0">
+  <dom:Argument><dom:ArgName Code="12345"/><dom:Arg>xsd:string</dom:Arg></dom:Argument>
+  <dom:Argument><dom:ArgName Code="67890"/><dom:Arg>dom:CodedValue</dom:Arg></dom:Argument>
+</dom:Operation>""".encode()
+
+
+def test_activate_operation_arguments_are_typed() -> None:
+    """An unregistered Argument name would give a plain _Element with no arg_name or arg."""
+    operation = lxml.etree.fromstring(_ACTIVATE_WITH_ARGUMENTS, parser=_XSI_PARSER)
+    assert isinstance(operation, biceps_pm.ActivateOperationDescriptor)
+    assert len(operation.arguments) == len(_ARGUMENT_CODES)
+    assert all(isinstance(argument, biceps_pm.Argument) for argument in operation.arguments)
+
+
+def test_activate_operation_argument_children() -> None:
+    """Arg is an xsd:QName, so its prefix is resolved against the element's namespace map."""
+    operation = lxml.etree.fromstring(_ACTIVATE_WITH_ARGUMENTS, parser=_XSI_PARSER)
+    first, second = operation.arguments
+    assert isinstance(first.arg_name, biceps_pm.CodedValue)
+    assert first.arg_name.code == "12345"
+    assert first.arg == lxml.etree.QName("http://www.w3.org/2001/XMLSchema", "string")
+    assert second.arg == lxml.etree.QName(biceps_pm.NAMESPACE, "CodedValue")
+
+
+def test_activate_operation_arguments_absent() -> None:
+    """The element is minOccurs=0, so an operation without arguments reads as an empty sequence."""
+    xml = (
+        f'<Operation xmlns="{biceps_pm.NAMESPACE}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+        f' xsi:type="ActivateOperationDescriptor" Handle="act0" OperationTarget="t0"/>'
+    ).encode()
+    operation = lxml.etree.fromstring(xml, parser=_XSI_PARSER)
+    assert operation.arguments == []

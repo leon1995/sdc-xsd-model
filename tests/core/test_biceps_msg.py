@@ -1,8 +1,11 @@
 """Tests for the BICEPS MessageModel model classes."""
 
+import decimal
+
 import lxml.etree
 import pytest
 
+from sdc_xsd_model import element_class_lookup
 from sdc_xsd_model.core import biceps_msg, biceps_pm, common, extension
 
 
@@ -18,6 +21,20 @@ def _get_lookup_parser() -> lxml.etree.XMLParser:
 
 
 _LOOKUP_PARSER = _get_lookup_parser()
+
+
+def _get_xsi_parser() -> lxml.etree.XMLParser:
+    """Non-validating parser that also dispatches on ``xsi:type`` and parent context."""
+    lookup = lxml.etree.ElementNamespaceClassLookup()
+    extension.set_lookup(lookup)
+    biceps_pm.set_lookup(lookup)
+    biceps_msg.set_lookup(lookup)
+    parser = lxml.etree.XMLParser()
+    parser.set_element_class_lookup(element_class_lookup.BicepsElementClassLookup(lookup))
+    return parser
+
+
+_XSI_PARSER = _get_xsi_parser()
 
 # (class, local element name) for classes with TAG set
 BICEPS_MSG_CASES = [
@@ -102,3 +119,86 @@ def test_class_lookup(clazz: type[common.ElementBase]) -> None:
     xml = lxml.etree.tostring(element)
     parsed_element = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
     assert isinstance(parsed_element, clazz)
+
+
+# ── locally declared children ──────────────────────────────────────────────────────────────────────
+# The message schema declares several children inside a message rather than globally, which puts their name
+# in the message namespace while their type stays a participant model one. Reading them as {pm}Name finds
+# nothing, and leaving them unregistered yields a plain _Element.
+
+
+def test_get_md_description_response_reads_the_message_namespace_child() -> None:
+    """The child is {msg}MdDescription on the wire, not {pm}MdDescription."""
+    xml = (
+        f'<GetMdDescriptionResponse xmlns="{biceps_msg.NAMESPACE}" SequenceId="urn:uuid:1">'
+        f"<MdDescription/></GetMdDescriptionResponse>"
+    ).encode()
+    response = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
+    assert isinstance(response.md_description, biceps_pm.MdDescription)
+
+
+def test_get_md_state_response_reads_the_message_namespace_child() -> None:
+    """The child is {msg}MdState on the wire, not {pm}MdState."""
+    xml = (
+        f'<GetMdStateResponse xmlns="{biceps_msg.NAMESPACE}" SequenceId="urn:uuid:1"><MdState/></GetMdStateResponse>'
+    ).encode()
+    response = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
+    assert isinstance(response.md_state, biceps_pm.MdState)
+
+
+def test_get_context_states_by_identification_identification_is_typed() -> None:
+    """{msg}Identification is declared pm:InstanceIdentifier."""
+    xml = (
+        f'<GetContextStatesByIdentification xmlns="{biceps_msg.NAMESPACE}">'
+        f'<Identification Root="urn:oid:1.2.3" Extension="P-42"/></GetContextStatesByIdentification>'
+    ).encode()
+    request = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
+    identifications = request.findall(f"{{{biceps_msg.NAMESPACE}}}Identification")
+    assert all(isinstance(node, biceps_pm.InstanceIdentifier) for node in identifications)
+    assert identifications[0].extension_attr == "P-42"
+
+
+def test_invocation_error_message_is_a_localized_text() -> None:
+    """The schema declares it pm:LocalizedText, so it carries @Lang and the rest, not just text."""
+    xml = (
+        f'<InvocationInfo xmlns="{biceps_msg.NAMESPACE}"><TransactionId>1</TransactionId>'
+        f"<InvocationState>Fail</InvocationState>"
+        f'<InvocationErrorMessage Lang="en">it failed</InvocationErrorMessage></InvocationInfo>'
+    ).encode()
+    info = lxml.etree.fromstring(xml, parser=_LOOKUP_PARSER)
+    message = info.invocation_error_messages[0]
+    assert isinstance(message, biceps_pm.LocalizedText)
+    assert message.lang == "en"
+    assert message.text == "it failed"
+
+
+# ── waveform stream states ─────────────────────────────────────────────────────────────────────────
+# msg:WaveformStream/msg:State is the one state-carrying element the schema declares with a concrete type,
+# so no xsi:type is sent and only the parent tells the lookup what it is.
+
+_WAVEFORM_STREAM = (
+    f'<WaveformStream xmlns="{biceps_msg.NAMESPACE}" xmlns:dom="{biceps_pm.NAMESPACE}" SequenceId="urn:uuid:1">'
+    f'<State DescriptorHandle="wf0">'
+    f'<dom:MetricValue Samples="1 2 3"><dom:MetricQuality Validity="Vld"/></dom:MetricValue>'
+    f"</State></WaveformStream>"
+).encode()
+
+
+def test_waveform_stream_state_carries_no_xsi_type() -> None:
+    """Pins why the parent-context entry is needed at all."""
+    stream = lxml.etree.fromstring(_WAVEFORM_STREAM, parser=_XSI_PARSER)
+    assert stream.states[0].get("{http://www.w3.org/2001/XMLSchema-instance}type") is None
+
+
+def test_waveform_stream_state_is_a_real_time_sample_array_state() -> None:
+    """Resolved from the parent-context table, since the wire carries no xsi:type."""
+    stream = lxml.etree.fromstring(_WAVEFORM_STREAM, parser=_XSI_PARSER)
+    assert isinstance(stream.states[0], biceps_pm.RealTimeSampleArrayMetricState)
+
+
+def test_waveform_stream_metric_value_is_a_sample_array() -> None:
+    """Resolving this needs the state's own type, which itself came from the parent-context table."""
+    stream = lxml.etree.fromstring(_WAVEFORM_STREAM, parser=_XSI_PARSER)
+    metric_value = stream.states[0].metric_value
+    assert isinstance(metric_value, biceps_pm.SampleArrayValue)
+    assert list(metric_value.samples) == [decimal.Decimal(1), decimal.Decimal(2), decimal.Decimal(3)]

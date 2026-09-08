@@ -440,7 +440,9 @@ class GetMdDescriptionResponse(AbstractGetResponse):
 
     @property
     def md_description(self) -> biceps_pm.MdDescription | None:
-        return self.find_by_element(biceps_pm.MdDescription)
+        # the schema declares this child locally, so its name is in the message namespace even though its
+        # type comes from the participant model; find_by_element would look for {pm}MdDescription
+        return typing.cast("biceps_pm.MdDescription | None", self.find(f"{{{NAMESPACE}}}MdDescription"))
 
 
 class GetMdState(AbstractGet):
@@ -460,7 +462,8 @@ class GetMdStateResponse(AbstractGetResponse):
 
     @property
     def md_state(self) -> biceps_pm.MdState | None:
-        return self.find_by_element(biceps_pm.MdState)
+        # locally declared, so {msg}MdState on the wire — see GetMdDescriptionResponse.md_description
+        return typing.cast("biceps_pm.MdState | None", self.find(f"{{{NAMESPACE}}}MdState"))
 
 
 # ── Context Section ────────────────────────────────────────────────────────────────────────────────
@@ -1033,6 +1036,10 @@ def _register_set_report_elements(ns: lxml.etree._NamespaceRegistry) -> None:
 
 def _register_child_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["Mdib"] = biceps_pm.Mdib
+    # locally declared children: the name is in the message namespace, the type is a participant model one
+    ns["MdDescription"] = biceps_pm.MdDescription
+    ns["MdState"] = biceps_pm.MdState
+    ns["Identification"] = biceps_pm.InstanceIdentifier
     ns["Text"] = biceps_pm.LocalizedText
     ns["ReportPart"] = ReportPart
     ns["InvocationInfo"] = InvocationInfo
@@ -1050,6 +1057,9 @@ def _register_child_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["ProposedAlertState"] = biceps_pm.AbstractAlertState
     ns["ProposedComponentState"] = biceps_pm.AbstractDeviceComponentState
     ns["ProposedMetricState"] = biceps_pm.AbstractMetricState
+    # msg:WaveformStream/msg:State is declared as a concrete pm:RealTimeSampleArrayMetricState, so no
+    # xsi:type is on the wire and the parent-context table in element_class_lookup resolves it by this name
+    ns["RealTimeSampleArrayMetricState"] = biceps_pm.RealTimeSampleArrayMetricState
     # Child elements that are simple text/type wrappers
     # msg-namespace child elements with known types
     ns["DescriptorRevisions"] = VersionFrame
@@ -1057,13 +1067,13 @@ def _register_child_elements(ns: lxml.etree._NamespaceRegistry) -> None:
     ns["TimeFrame"] = TimeFrame
     ns["ErrorCode"] = biceps_pm.CodedValue
     ns["ErrorInfo"] = biceps_pm.LocalizedText
+    ns["InvocationErrorMessage"] = biceps_pm.LocalizedText
     ns["InvocationSource"] = biceps_pm.InstanceIdentifier
     # Child elements that are simple text/type wrappers
     for name in (
         "TransactionId",
         "InvocationState",
         "InvocationError",
-        "InvocationErrorMessage",
         "HandleRef",
         "SourceMds",
         "OperationHandleRef",
