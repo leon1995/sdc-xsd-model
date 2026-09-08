@@ -25,9 +25,28 @@ from sdc_xsd_model.core import (
 if TYPE_CHECKING:
     from sdc_xsd_model.extension_registry import ExtensionRegistry
 
+# Every module whose elements a BICEPS message can contain. ``sdc_lookup`` registers all of them, so no
+# caller has to know the list.
+_MODULES = (
+    addressing,
+    discovery,
+    eventing,
+    soap_envelope,
+    extension,
+    biceps_pm,
+    biceps_msg,
+    metadata_exchange,
+    dpws,
+    mdpws,
+)
+
 
 def sdc_schema(registry: ExtensionRegistry) -> lxml.etree.XMLSchema:
-    """Get an XML schema with all SDC XSD models relevant for BICEPS messages included."""
+    """Get an XML schema with all SDC XSD models relevant for BICEPS messages included.
+
+    Compiling this is the expensive part of building a validating parser, so a caller that creates parsers
+    repeatedly should compile it once and hand it to :func:`sdc_parser`.
+    """
     xsd_dir = pathlib.Path(__file__).parent.joinpath("xsd").absolute()
     tmp = io.StringIO()
     tmp.writelines(
@@ -56,31 +75,68 @@ def sdc_schema(registry: ExtensionRegistry) -> lxml.etree.XMLSchema:
     return lxml.etree.XMLSchema(etree=elem_tree)
 
 
-def sdc_parser(registry: ExtensionRegistry) -> lxml.etree.XMLParser:
-    """Get an XML parser with registered SDC XSD models relevant for BICEPS messages."""
+def sdc_lookup(registry: ExtensionRegistry) -> lxml.etree.ElementClassLookup:
+    """Get the element class lookup that resolves every SDC namespace to its typed classes.
+
+    Useful on its own to a caller that needs an XML parser configured differently from the one
+    :func:`sdc_parser` builds: the set of modules to register lives here rather than in every caller.
+    """
     ns_lookup = lxml.etree.ElementNamespaceClassLookup()
-    addressing.set_lookup(ns_lookup)
-    discovery.set_lookup(ns_lookup)
-    eventing.set_lookup(ns_lookup)
-    soap_envelope.set_lookup(ns_lookup)
-    extension.set_lookup(ns_lookup)
-    biceps_pm.set_lookup(ns_lookup)
-    biceps_msg.set_lookup(ns_lookup)
-    metadata_exchange.set_lookup(ns_lookup)
-    dpws.set_lookup(ns_lookup)
-    mdpws.set_lookup(ns_lookup)
+    for module in _MODULES:
+        module.set_lookup(ns_lookup)
     registry.set_lookup(ns_lookup)
-    custom_lookup = element_class_lookup.BicepsElementClassLookup(ns_lookup)
-    xml_parser = lxml.etree.XMLParser(schema=sdc_schema(registry))
-    xml_parser.set_element_class_lookup(custom_lookup)
+    return element_class_lookup.BicepsElementClassLookup(ns_lookup)
+
+
+def sdc_parser(
+    registry: ExtensionRegistry,
+    *,
+    validate: bool = True,
+    schema: lxml.etree.XMLSchema | None = None,
+) -> lxml.etree.XMLParser:
+    """Get an XML parser with registered SDC XSD models relevant for BICEPS messages.
+
+    :param registry: the extension registry whose namespaces the parser knows about
+    :param validate: whether the parser rejects a document that does not satisfy the schemas. Devices do send
+        documents that do not, so a reader that has to tolerate them wants False. Elements come back typed
+        either way: the class lookup does not depend on validation.
+    :param schema: an already compiled schema to validate against, so that a caller building parsers
+        repeatedly - one per thread, say - need not recompile it each time. Ignored when validate is False.
+
+    Comments and processing instructions are dropped, because they carry no meaning in an SDC message and
+    keeping them would put them among an element's children for every caller to skip. Entities are not
+    resolved.
+    """
+    if validate and schema is None:
+        schema = sdc_schema(registry)
+    xml_parser = lxml.etree.XMLParser(
+        schema=schema if validate else None,
+        resolve_entities=False,
+        remove_comments=True,
+        remove_pis=True,
+    )
+    xml_parser.set_element_class_lookup(sdc_lookup(registry))
     return xml_parser
 
 
 class SoapEnvelopeParser:
     """Parse a Soap envelope XML file."""
 
-    def __init__(self, registry: ExtensionRegistry) -> None:
-        self._parser = sdc_parser(registry)
+    def __init__(
+        self,
+        registry: ExtensionRegistry,
+        *,
+        validate: bool = True,
+        schema: lxml.etree.XMLSchema | None = None,
+    ) -> None:
+        """Create a parser for SOAP envelopes.
+
+        :param registry: the extension registry whose namespaces the parser knows about
+        :param validate: whether to reject an envelope that does not satisfy the schemas
+        :param schema: an already compiled schema, so a caller creating one of these per thread does not
+            recompile it each time. Ignored when validate is False.
+        """
+        self._parser = sdc_parser(registry, validate=validate, schema=schema)
 
     def from_string(self, raw_envelope: str | bytes) -> soap_envelope.Envelope:
         """Parse an XML string and return an Envelope object."""
