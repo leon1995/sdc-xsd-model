@@ -98,6 +98,19 @@ def _create_eventing_element(  # noqa: C901, PLR0911, PLR0912
     return clazz(), None
 
 
+def test_delivery_notify_to() -> None:
+    """Push delivery names the endpoint notifications go to, and it comes back typed."""
+    subscribe = lxml.etree.fromstring(lxml.etree.tostring(_make_subscribe()), parser=eventing.Subscribe.PARSER)
+    notify_to = subscribe.delivery.notify_to
+    assert isinstance(notify_to, eventing.NotifyTo)
+    assert notify_to.address.text is not None
+
+
+def test_delivery_notify_to_absent() -> None:
+    """The schema declares the content of wse:Delivery as xs:any, so a delivery may name no endpoint."""
+    assert eventing.DeliveryType().notify_to is None
+
+
 def _make_eventing_endpoint(
     endpoint_cls: type[addressing.EndpointReference],
 ) -> addressing.EndpointReference:

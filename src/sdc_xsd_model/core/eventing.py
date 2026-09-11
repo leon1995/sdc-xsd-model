@@ -47,6 +47,16 @@ class DeliveryType(common.ElementBase):
     def mode(self) -> str | None:
         return self.get("Mode")
 
+    @property
+    def notify_to(self) -> NotifyTo | None:
+        """Where the event source delivers notifications, for the Push delivery mode.
+
+        The schema declares the content of wse:Delivery as ``xs:any``, because what a delivery needs depends
+        on its mode, so this can be absent even in a valid document; WS-Eventing states the element in prose
+        for the Push mode instead.
+        """
+        return self.find_by_element(NotifyTo)
+
 
 class FilterType(common.ElementBase):
     TAG: typing.Final[str] = f"{{{NAMESPACE}}}Filter"
