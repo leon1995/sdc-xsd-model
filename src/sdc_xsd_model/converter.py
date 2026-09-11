@@ -36,7 +36,7 @@ _INTEGER_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r"[+-]?[0-9]+")
 _DECIMAL_PATTERN: typing.Final[re.Pattern[str]] = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
 
 
-def _collapse(value: str) -> str:
+def collapse(value: str) -> str:
     """Apply the ``whiteSpace="collapse"`` facet: trim and fold internal whitespace runs into single spaces."""
     return " ".join(value.split())
 
@@ -54,7 +54,7 @@ def to_bool(value: str | None) -> bool | None:
     """
     if value is None:
         return None
-    collapsed = _collapse(value)
+    collapsed = collapse(value)
     if collapsed in TRUE_LEXICAL_VALUES:
         return True
     if collapsed in FALSE_LEXICAL_VALUES:
@@ -79,7 +79,7 @@ def to_int(value: str | None) -> int | None:
     """
     if value is None:
         return None
-    collapsed = _collapse(value)
+    collapsed = collapse(value)
     if _INTEGER_PATTERN.fullmatch(collapsed) is None:
         msg = f"{value!r} is not a valid xsd:integer literal, expected an optionally signed sequence of digits"
         raise ValueError(msg)
@@ -99,7 +99,7 @@ def to_decimal(value: str | None) -> decimal.Decimal | None:
     """
     if value is None:
         return None
-    collapsed = _collapse(value)
+    collapsed = collapse(value)
     if _DECIMAL_PATTERN.fullmatch(collapsed) is None:
         msg = f"{value!r} is not a valid xsd:decimal literal, exponents and Infinity/NaN are not permitted"
         raise ValueError(msg)
@@ -125,7 +125,7 @@ def to_qname(value: str | None, nsmap: Mapping[str | None, str]) -> lxml.etree.Q
     """
     if value is None:
         return None
-    collapsed = _collapse(value)
+    collapsed = collapse(value)
     if collapsed.startswith("{"):
         try:
             return lxml.etree.QName(collapsed)
@@ -387,7 +387,7 @@ class XsdDateTime:
             ValueError: if *value* is outside the lexical space of all four types.
 
         """
-        match = _DATE_TIME_PATTERN.fullmatch(_collapse(value))
+        match = _DATE_TIME_PATTERN.fullmatch(collapse(value))
         if match is None:
             msg = (
                 f"{value!r} is not a valid xsd:dateTime, xsd:date, xsd:gYearMonth or xsd:gYear literal, "

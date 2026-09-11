@@ -322,7 +322,8 @@ class LocalizedText(common.ElementBase):
 
     @property
     def lang(self) -> str | None:
-        return self.get("Lang")
+        lang = self.get("Lang")
+        return converter.collapse(lang) if lang is not None else None
 
     @property
     def version(self) -> int | None:
