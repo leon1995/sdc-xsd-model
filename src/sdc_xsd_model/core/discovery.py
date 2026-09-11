@@ -306,9 +306,17 @@ def set_lookup(lookup: lxml.etree.ElementNamespaceClassLookup) -> None:
 
 @functools.cache
 def get_parser() -> lxml.etree.XMLParser:
-    """Get discovery parser."""
+    """Get discovery parser.
+
+    Registers ``addressing`` alongside this module: a module-local lookup types only the namespaces it
+    registers and leaves every other child a plain ``lxml.etree._Element``.
+
+    ``wsd:Hello``, ``wsd:Bye`` and ``wsd:ProbeMatch`` all carry a ``wsa:EndpointReference``, so the five
+    accessors annotated with one need the WS-Addressing classes registered here as well.
+    """
     lookup = lxml.etree.ElementNamespaceClassLookup()
     set_lookup(lookup)
+    addressing.set_lookup(lookup)
     xml_parser = lxml.etree.XMLParser(schema=SCHEMA)
     xml_parser.set_element_class_lookup(lookup)
     return xml_parser

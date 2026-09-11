@@ -366,11 +366,11 @@ class CodedValue(common.ElementBase):
 
     @property
     def coding_system_names(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}CodingSystemName"))
+        return self.findall_child(f"{{{NAMESPACE}}}CodingSystemName", LocalizedText)
 
     @property
     def concept_descriptions(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}ConceptDescription"))
+        return self.findall_child(f"{{{NAMESPACE}}}ConceptDescription", LocalizedText)
 
     @property
     def code(self) -> CodeIdentifier:
@@ -399,7 +399,7 @@ class CodedValue(common.ElementBase):
 
     @property
     def translations(self) -> Sequence[Translation]:
-        return typing.cast("Sequence[Translation]", self.findall(f"{{{NAMESPACE}}}Translation"))
+        return self.findall_child(f"{{{NAMESPACE}}}Translation", Translation)
 
 
 class InstanceIdentifier(common.ElementBase):
@@ -426,11 +426,11 @@ class InstanceIdentifier(common.ElementBase):
 
     @property
     def identifier_names(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}IdentifierName"))
+        return self.findall_child(f"{{{NAMESPACE}}}IdentifierName", LocalizedText)
 
     @property
     def type(self) -> CodedValue | None:
-        return typing.cast("CodedValue", self.find(f"{{{NAMESPACE}}}Type"))
+        return self.find_child(f"{{{NAMESPACE}}}Type", CodedValue)
 
 
 class Range(common.ElementBase):
@@ -472,7 +472,7 @@ class Measurement(common.ElementBase):
 
     @property
     def measurement_unit(self) -> CodedValue:
-        value = typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}MeasurementUnit"))
+        value = self.find_child(f"{{{NAMESPACE}}}MeasurementUnit", CodedValue)
         # schema enforces presence
         assert value is not None
         return value
@@ -489,7 +489,7 @@ class PhysicalConnectorInfo(common.ElementBase):
 
     @property
     def labels(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Label"))
+        return self.findall_child(f"{{{NAMESPACE}}}Label", LocalizedText)
 
     @property
     def number(self) -> int | None:
@@ -503,13 +503,13 @@ class CalibrationResult(common.ElementBase):
 
     @property
     def code(self) -> CodedValue:
-        result = typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Code"))
+        result = self.find_child(f"{{{NAMESPACE}}}Code", CodedValue)
         assert result is not None
         return result
 
     @property
     def value(self) -> Measurement:
-        result = typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Value"))
+        result = self.find_child(f"{{{NAMESPACE}}}Value", Measurement)
         assert result is not None
         return result
 
@@ -521,11 +521,11 @@ class CalibrationDocumentation(common.ElementBase):
 
     @property
     def documentation(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Documentation"))
+        return self.findall_child(f"{{{NAMESPACE}}}Documentation", LocalizedText)
 
     @property
     def calibration_results(self) -> Sequence[CalibrationResult]:
-        return typing.cast("Sequence[CalibrationResult]", self.findall(f"{{{NAMESPACE}}}CalibrationResult"))
+        return self.findall_child(f"{{{NAMESPACE}}}CalibrationResult", CalibrationResult)
 
 
 class CalibrationInfo(common.ElementBase):
@@ -539,9 +539,7 @@ class CalibrationInfo(common.ElementBase):
 
     @property
     def calibration_documentations(self) -> Sequence[CalibrationDocumentation]:
-        return typing.cast(
-            "Sequence[CalibrationDocumentation]", self.findall(f"{{{NAMESPACE}}}CalibrationDocumentation")
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}CalibrationDocumentation", CalibrationDocumentation)
 
     @property
     def component_calibration_state(self) -> CalibrationState | None:
@@ -569,7 +567,7 @@ class ApprovedJurisdictions(common.ElementBase):
 
     @property
     def approved_jurisdictions(self) -> Sequence[InstanceIdentifier]:
-        return typing.cast("Sequence[InstanceIdentifier]", self.findall(f"{{{NAMESPACE}}}ApprovedJurisdiction"))
+        return self.findall_child(f"{{{NAMESPACE}}}ApprovedJurisdiction", InstanceIdentifier)
 
 
 class OperatingJurisdiction(InstanceIdentifier):
@@ -603,7 +601,7 @@ class MetricRelation(common.ElementBase):
 
     @property
     def code(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Code"))
+        return self.find_child(f"{{{NAMESPACE}}}Code", CodedValue)
 
     @property
     def identification(self) -> InstanceIdentifier | None:
@@ -659,7 +657,7 @@ class MdState(common.ElementBase):
 
     @property
     def states(self) -> Sequence[ABSTRACT_STATE]:
-        return typing.cast("Sequence[ABSTRACT_STATE]", self.findall(f"{{{NAMESPACE}}}State"))
+        return self.findall_child(f"{{{NAMESPACE}}}State", ABSTRACT_STATE)
 
     @property
     def state_version(self) -> int | None:
@@ -749,7 +747,7 @@ class AbstractDescriptor(common.ElementBase):
 
     @property
     def type(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+        return self.find_child(f"{{{NAMESPACE}}}Type", CodedValue)
 
 
 class AbstractState(common.ElementBase):
@@ -827,13 +825,14 @@ class UDI(common.ElementBase):
 
     @property
     def issuer(self) -> InstanceIdentifier:
-        node = self.find(f"{{{NAMESPACE}}}Issuer")
-        assert isinstance(node, InstanceIdentifier)
-        return node
+        value = self.find_child(f"{{{NAMESPACE}}}Issuer", InstanceIdentifier)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def jurisdiction(self) -> InstanceIdentifier | None:
-        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}Jurisdiction"))
+        return self.find_child(f"{{{NAMESPACE}}}Jurisdiction", InstanceIdentifier)
 
 
 class MetaData(common.ElementBase):
@@ -847,7 +846,7 @@ class MetaData(common.ElementBase):
 
     @property
     def udis(self) -> Sequence[UDI]:
-        return typing.cast("Sequence[UDI]", self.findall(f"{{{NAMESPACE}}}Udi"))
+        return self.findall_child(f"{{{NAMESPACE}}}Udi", UDI)
 
     @property
     def lot_number(self) -> str | None:
@@ -856,7 +855,7 @@ class MetaData(common.ElementBase):
 
     @property
     def manufacturers(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Manufacturer"))
+        return self.findall_child(f"{{{NAMESPACE}}}Manufacturer", LocalizedText)
 
     @property
     def manufacture_date(self) -> datetime.datetime | None:
@@ -874,7 +873,7 @@ class MetaData(common.ElementBase):
 
     @property
     def model_names(self) -> Sequence[LocalizedText]:
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}ModelName"))
+        return self.findall_child(f"{{{NAMESPACE}}}ModelName", LocalizedText)
 
     @property
     def model_number(self) -> str | None:
@@ -897,10 +896,10 @@ class ProductionSpecification(common.ElementBase):
 
     @property
     def spec_type(self) -> CodedValue:
-        node = self.find(f"{{{NAMESPACE}}}SpecType")
+        value = self.find_child(f"{{{NAMESPACE}}}SpecType", CodedValue)
         # schema enforces presence
-        assert isinstance(node, CodedValue)
-        return node
+        assert value is not None
+        return value
 
     @property
     def production_spec(self) -> str:
@@ -912,7 +911,7 @@ class ProductionSpecification(common.ElementBase):
 
     @property
     def component_id(self) -> InstanceIdentifier | None:
-        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}ComponentId"))
+        return self.find_child(f"{{{NAMESPACE}}}ComponentId", InstanceIdentifier)
 
 
 class AbstractDeviceComponentDescriptor(AbstractDescriptor):
@@ -992,7 +991,7 @@ class ChannelDescriptor(AbstractDeviceComponentDescriptor):
 
     @property
     def metrics(self) -> Sequence[AbstractMetricDescriptor]:
-        return typing.cast("Sequence[AbstractMetricDescriptor]", self.findall(f"{{{NAMESPACE}}}Metric"))
+        return self.findall_child(f"{{{NAMESPACE}}}Metric", AbstractMetricDescriptor)
 
 
 class ClockDescriptor(AbstractDeviceComponentDescriptor):
@@ -1020,7 +1019,7 @@ class ScoDescriptor(AbstractDeviceComponentDescriptor):
         ``xsi:type``, so entries are the concrete subclasses rather than the base class. The base declares no
         ``TAG`` for that reason, so this searches the element name instead of using ``findall_by_element``.
         """
-        return typing.cast("Sequence[AbstractOperationDescriptor]", self.findall(f"{{{NAMESPACE}}}Operation"))
+        return self.findall_child(f"{{{NAMESPACE}}}Operation", AbstractOperationDescriptor)
 
 
 # ── Device component states ───────────────────────────────────────────────────────────────────────
@@ -1052,7 +1051,7 @@ class AbstractDeviceComponentState(AbstractState):
 
     @property
     def next_calibration(self) -> CalibrationInfo | None:
-        return typing.cast("CalibrationInfo | None", self.find(f"{{{NAMESPACE}}}NextCalibration"))
+        return self.find_child(f"{{{NAMESPACE}}}NextCalibration", CalibrationInfo)
 
     @property
     def physical_connector(self) -> PhysicalConnectorInfo | None:
@@ -1167,7 +1166,7 @@ class OperationGroup(common.ElementBase):
 
     @property
     def type(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+        return self.find_child(f"{{{NAMESPACE}}}Type", CodedValue)
 
     @property
     def operating_mode(self) -> OperatingMode | None:
@@ -1542,7 +1541,7 @@ class Annotation(common.ElementBase):
 
     @property
     def type(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+        return self.find_child(f"{{{NAMESPACE}}}Type", CodedValue)
 
     @property
     def extension(self) -> Extension | None:
@@ -1641,17 +1640,18 @@ class AbstractMetricDescriptor(AbstractDescriptor):
 
     @property
     def unit(self) -> CodedValue:
-        node = self.find(f"{{{NAMESPACE}}}Unit")
-        assert node is not None
-        return typing.cast("CodedValue", node)
+        value = self.find_child(f"{{{NAMESPACE}}}Unit", CodedValue)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def body_site(self) -> Sequence[CodedValue]:
-        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}BodySite"))
+        return self.findall_child(f"{{{NAMESPACE}}}BodySite", CodedValue)
 
     @property
     def relation(self) -> Sequence[MetricRelation]:
-        return typing.cast("Sequence[MetricRelation]", self.findall(f"{{{NAMESPACE}}}Relation"))
+        return self.findall_child(f"{{{NAMESPACE}}}Relation", MetricRelation)
 
     @property
     def metric_category(self) -> MetricCategory:
@@ -1726,15 +1726,15 @@ class AllowedValue(common.ElementBase):
 
     @property
     def type(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+        return self.find_child(f"{{{NAMESPACE}}}Type", CodedValue)
 
     @property
     def identification(self) -> InstanceIdentifier | None:
-        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}Identification"))
+        return self.find_child(f"{{{NAMESPACE}}}Identification", InstanceIdentifier)
 
     @property
     def characteristic(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Characteristic"))
+        return self.find_child(f"{{{NAMESPACE}}}Characteristic", Measurement)
 
 
 class EnumStringMetricDescriptor(StringMetricDescriptor):
@@ -1750,7 +1750,7 @@ class RealTimeSampleArrayMetricDescriptor(AbstractMetricDescriptor):
 
     @property
     def technical_ranges(self) -> Sequence[Range]:
-        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}TechnicalRange"))
+        return self.findall_child(f"{{{NAMESPACE}}}TechnicalRange", Range)
 
     @property
     def resolution(self) -> decimal.Decimal:
@@ -1770,19 +1770,21 @@ class DistributionSampleArrayMetricDescriptor(AbstractMetricDescriptor):
 
     @property
     def technical_ranges(self) -> Sequence[Range]:
-        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}TechnicalRange"))
+        return self.findall_child(f"{{{NAMESPACE}}}TechnicalRange", Range)
 
     @property
     def domain_unit(self) -> CodedValue:
-        node = self.find(f"{{{NAMESPACE}}}DomainUnit")
-        assert isinstance(node, CodedValue)
-        return node
+        value = self.find_child(f"{{{NAMESPACE}}}DomainUnit", CodedValue)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def distribution_range(self) -> Range:
-        node = self.find(f"{{{NAMESPACE}}}DistributionRange")
-        assert isinstance(node, Range)
-        return node
+        value = self.find_child(f"{{{NAMESPACE}}}DistributionRange", Range)
+        # schema enforces presence
+        assert value is not None
+        return value
 
     @property
     def resolution(self) -> decimal.Decimal:
@@ -1828,11 +1830,11 @@ class NumericMetricState(AbstractMetricState):
 
     @property
     def metric_value(self) -> NumericMetricValue | None:
-        return typing.cast("NumericMetricValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+        return self.find_child(f"{{{NAMESPACE}}}MetricValue", NumericMetricValue)
 
     @property
     def physiological_range(self) -> Sequence[Range]:
-        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
+        return self.findall_child(f"{{{NAMESPACE}}}PhysiologicalRange", Range)
 
     @property
     def active_averaging_period(self) -> datetime.timedelta | None:
@@ -1847,7 +1849,7 @@ class StringMetricState(AbstractMetricState):
 
     @property
     def metric_value(self) -> StringMetricValue | None:
-        return typing.cast("StringMetricValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+        return self.find_child(f"{{{NAMESPACE}}}MetricValue", StringMetricValue)
 
 
 class EnumStringMetricState(StringMetricState):
@@ -1863,11 +1865,11 @@ class RealTimeSampleArrayMetricState(AbstractMetricState):
 
     @property
     def metric_value(self) -> SampleArrayValue | None:
-        return typing.cast("SampleArrayValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+        return self.find_child(f"{{{NAMESPACE}}}MetricValue", SampleArrayValue)
 
     @property
     def physiological_range(self) -> Sequence[Range]:
-        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
+        return self.findall_child(f"{{{NAMESPACE}}}PhysiologicalRange", Range)
 
 
 class DistributionSampleArrayMetricState(AbstractMetricState):
@@ -1877,11 +1879,11 @@ class DistributionSampleArrayMetricState(AbstractMetricState):
 
     @property
     def metric_value(self) -> SampleArrayValue | None:
-        return typing.cast("SampleArrayValue | None", self.find(f"{{{NAMESPACE}}}MetricValue"))
+        return self.find_child(f"{{{NAMESPACE}}}MetricValue", SampleArrayValue)
 
     @property
     def physiological_range(self) -> Sequence[Range]:
-        return typing.cast("Sequence[Range]", self.findall(f"{{{NAMESPACE}}}PhysiologicalRange"))
+        return self.findall_child(f"{{{NAMESPACE}}}PhysiologicalRange", Range)
 
 
 # ── Operation descriptors ─────────────────────────────────────────────────────────────────────────
@@ -1952,10 +1954,10 @@ class Argument(common.ElementBase):
 
     @property
     def arg_name(self) -> CodedValue:
-        node = self.find(f"{{{NAMESPACE}}}ArgName")
+        value = self.find_child(f"{{{NAMESPACE}}}ArgName", CodedValue)
         # schema enforces presence
-        assert isinstance(node, CodedValue)
-        return node
+        assert value is not None
+        return value
 
     @property
     def arg(self) -> lxml.etree.QName:
@@ -2125,11 +2127,11 @@ class AbstractContextState(AbstractMultiState):
 
     @property
     def validator(self) -> Sequence[InstanceIdentifier]:
-        return typing.cast("Sequence[InstanceIdentifier]", self.findall(f"{{{NAMESPACE}}}Validator"))
+        return self.findall_child(f"{{{NAMESPACE}}}Validator", InstanceIdentifier)
 
     @property
     def identification(self) -> Sequence[InstanceIdentifier]:
-        return typing.cast("Sequence[InstanceIdentifier]", self.findall(f"{{{NAMESPACE}}}Identification"))
+        return self.findall_child(f"{{{NAMESPACE}}}Identification", InstanceIdentifier)
 
     @property
     def context_association(self) -> ContextAssociation | None:
@@ -2204,7 +2206,7 @@ class PersonReference(common.ElementBase):
 
     @property
     def name(self) -> BaseDemographics | None:
-        return typing.cast("BaseDemographics | None", self.find(f"{{{NAMESPACE}}}Name"))
+        return self.find_child(f"{{{NAMESPACE}}}Name", BaseDemographics)
 
 
 class PersonParticipation(PersonReference):
@@ -2212,7 +2214,7 @@ class PersonParticipation(PersonReference):
 
     @property
     def roles(self) -> Sequence[CodedValue]:
-        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}Role"))
+        return self.findall_child(f"{{{NAMESPACE}}}Role", CodedValue)
 
 
 class LocationDetail(common.ElementBase):
@@ -2285,15 +2287,15 @@ class PatientDemographicsCoreData(BaseDemographics):
 
     @property
     def height(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Height"))
+        return self.find_child(f"{{{NAMESPACE}}}Height", Measurement)
 
     @property
     def weight(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Weight"))
+        return self.find_child(f"{{{NAMESPACE}}}Weight", Measurement)
 
     @property
     def race(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Race"))
+        return self.find_child(f"{{{NAMESPACE}}}Race", CodedValue)
 
 
 class NeonatalPatientDemographicsCoreData(PatientDemographicsCoreData):
@@ -2301,23 +2303,23 @@ class NeonatalPatientDemographicsCoreData(PatientDemographicsCoreData):
 
     @property
     def gestational_age(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}GestationalAge"))
+        return self.find_child(f"{{{NAMESPACE}}}GestationalAge", Measurement)
 
     @property
     def birth_length(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}BirthLength"))
+        return self.find_child(f"{{{NAMESPACE}}}BirthLength", Measurement)
 
     @property
     def birth_weight(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}BirthWeight"))
+        return self.find_child(f"{{{NAMESPACE}}}BirthWeight", Measurement)
 
     @property
     def head_circumference(self) -> Measurement | None:
-        return typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}HeadCircumference"))
+        return self.find_child(f"{{{NAMESPACE}}}HeadCircumference", Measurement)
 
     @property
     def mother(self) -> PersonReference | None:
-        return typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}Mother"))
+        return self.find_child(f"{{{NAMESPACE}}}Mother", PersonReference)
 
 
 class PatientContextState(AbstractContextState):
@@ -2384,7 +2386,7 @@ class RemedyInfo(common.ElementBase):
     @property
     def descriptions(self) -> Sequence[LocalizedText]:
         """Textual descriptions of the remedy (``pm:Description``, 0..*)."""
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Description"))
+        return self.findall_child(f"{{{NAMESPACE}}}Description", LocalizedText)
 
 
 class CauseInfo(common.ElementBase):
@@ -2404,7 +2406,7 @@ class CauseInfo(common.ElementBase):
     @property
     def descriptions(self) -> Sequence[LocalizedText]:
         """Textual descriptions of the cause (``pm:Description``, 0..*)."""
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Description"))
+        return self.findall_child(f"{{{NAMESPACE}}}Description", LocalizedText)
 
 
 class ReferenceRange(common.ElementBase):
@@ -2415,14 +2417,14 @@ class ReferenceRange(common.ElementBase):
     @property
     def range(self) -> Range:
         """The range itself (``pm:Range``, required)."""
-        value = typing.cast("Range | None", self.find(f"{{{NAMESPACE}}}Range"))
+        value = self.find_child(f"{{{NAMESPACE}}}Range", Range)
         assert value is not None  # schema enforces presence
         return value
 
     @property
     def meaning(self) -> CodedValue | None:
         """What the range means (``pm:Meaning``, 0..1)."""
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Meaning"))
+        return self.find_child(f"{{{NAMESPACE}}}Meaning", CodedValue)
 
 
 class RelatedMeasurement(common.ElementBase):
@@ -2437,7 +2439,7 @@ class RelatedMeasurement(common.ElementBase):
     @property
     def value(self) -> Measurement:
         """The measured value (``pm:Value``, required)."""
-        value = typing.cast("Measurement | None", self.find(f"{{{NAMESPACE}}}Value"))
+        value = self.find_child(f"{{{NAMESPACE}}}Value", Measurement)
         assert value is not None  # schema enforces presence
         return value
 
@@ -2460,11 +2462,11 @@ class ClinicalInfo(common.ElementBase):
 
     @property
     def type(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Type"))
+        return self.find_child(f"{{{NAMESPACE}}}Type", CodedValue)
 
     @property
     def code(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Code"))
+        return self.find_child(f"{{{NAMESPACE}}}Code", CodedValue)
 
     @property
     def criticality(self) -> Criticality | None:
@@ -2475,7 +2477,7 @@ class ClinicalInfo(common.ElementBase):
     @property
     def descriptions(self) -> Sequence[LocalizedText]:
         """Textual descriptions of the observation (``pm:Description``, 0..*)."""
-        return typing.cast("Sequence[LocalizedText]", self.findall(f"{{{NAMESPACE}}}Description"))
+        return self.findall_child(f"{{{NAMESPACE}}}Description", LocalizedText)
 
     @property
     def related_measurements(self) -> Sequence[RelatedMeasurement]:
@@ -2495,38 +2497,38 @@ class ImagingProcedure(common.ElementBase):
     @property
     def accession_identifier(self) -> InstanceIdentifier:
         """``pm:AccessionIdentifier`` (required)."""
-        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}AccessionIdentifier"))
+        value = self.find_child(f"{{{NAMESPACE}}}AccessionIdentifier", InstanceIdentifier)
         assert value is not None  # schema enforces presence
         return value
 
     @property
     def requested_procedure_id(self) -> InstanceIdentifier:
         """``pm:RequestedProcedureId`` (required)."""
-        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}RequestedProcedureId"))
+        value = self.find_child(f"{{{NAMESPACE}}}RequestedProcedureId", InstanceIdentifier)
         assert value is not None  # schema enforces presence
         return value
 
     @property
     def study_instance_uid(self) -> InstanceIdentifier:
         """``pm:StudyInstanceUid`` (required)."""
-        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}StudyInstanceUid"))
+        value = self.find_child(f"{{{NAMESPACE}}}StudyInstanceUid", InstanceIdentifier)
         assert value is not None  # schema enforces presence
         return value
 
     @property
     def scheduled_procedure_step_id(self) -> InstanceIdentifier:
         """``pm:ScheduledProcedureStepId`` (required)."""
-        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}ScheduledProcedureStepId"))
+        value = self.find_child(f"{{{NAMESPACE}}}ScheduledProcedureStepId", InstanceIdentifier)
         assert value is not None  # schema enforces presence
         return value
 
     @property
     def modality(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}Modality"))
+        return self.find_child(f"{{{NAMESPACE}}}Modality", CodedValue)
 
     @property
     def protocol_code(self) -> CodedValue | None:
-        return typing.cast("CodedValue | None", self.find(f"{{{NAMESPACE}}}ProtocolCode"))
+        return self.find_child(f"{{{NAMESPACE}}}ProtocolCode", CodedValue)
 
 
 class OrderDetail(common.ElementBase):
@@ -2560,12 +2562,12 @@ class OrderDetail(common.ElementBase):
     @property
     def performers(self) -> Sequence[PersonParticipation]:
         """People performing the order (``pm:Performer``, 0..*)."""
-        return typing.cast("Sequence[PersonParticipation]", self.findall(f"{{{NAMESPACE}}}Performer"))
+        return self.findall_child(f"{{{NAMESPACE}}}Performer", PersonParticipation)
 
     @property
     def services(self) -> Sequence[CodedValue]:
         """Services requested or performed (``pm:Service``, 0..*)."""
-        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}Service"))
+        return self.findall_child(f"{{{NAMESPACE}}}Service", CodedValue)
 
     @property
     def imaging_procedures(self) -> Sequence[ImagingProcedure]:
@@ -2580,16 +2582,16 @@ class RequestedOrderDetail(OrderDetail):
 
     @property
     def referring_physician(self) -> PersonReference | None:
-        return typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}ReferringPhysician"))
+        return self.find_child(f"{{{NAMESPACE}}}ReferringPhysician", PersonReference)
 
     @property
     def requesting_physician(self) -> PersonReference | None:
-        return typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}RequestingPhysician"))
+        return self.find_child(f"{{{NAMESPACE}}}RequestingPhysician", PersonReference)
 
     @property
     def placer_order_number(self) -> InstanceIdentifier:
         """``pm:PlacerOrderNumber`` (required)."""
-        value = typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}PlacerOrderNumber"))
+        value = self.find_child(f"{{{NAMESPACE}}}PlacerOrderNumber", InstanceIdentifier)
         assert value is not None  # schema enforces presence
         return value
 
@@ -2601,12 +2603,12 @@ class PerformedOrderDetail(OrderDetail):
 
     @property
     def filler_order_number(self) -> InstanceIdentifier | None:
-        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}FillerOrderNumber"))
+        return self.find_child(f"{{{NAMESPACE}}}FillerOrderNumber", InstanceIdentifier)
 
     @property
     def resulting_clinical_infos(self) -> Sequence[ClinicalInfo]:
         """Clinical information resulting from the order (``pm:ResultingClinicalInfo``, 0..*)."""
-        return typing.cast("Sequence[ClinicalInfo]", self.findall(f"{{{NAMESPACE}}}ResultingClinicalInfo"))
+        return self.findall_child(f"{{{NAMESPACE}}}ResultingClinicalInfo", ClinicalInfo)
 
 
 class WorkflowDetail(common.ElementBase):
@@ -2621,27 +2623,27 @@ class WorkflowDetail(common.ElementBase):
     @property
     def patient(self) -> PersonReference:
         """Subject of the order (``pm:Patient``, required)."""
-        value = typing.cast("PersonReference | None", self.find(f"{{{NAMESPACE}}}Patient"))
+        value = self.find_child(f"{{{NAMESPACE}}}Patient", PersonReference)
         assert value is not None  # schema enforces presence
         return value
 
     @property
     def assigned_location(self) -> LocationReference | None:
-        return typing.cast("LocationReference | None", self.find(f"{{{NAMESPACE}}}AssignedLocation"))
+        return self.find_child(f"{{{NAMESPACE}}}AssignedLocation", LocationReference)
 
     @property
     def visit_number(self) -> InstanceIdentifier | None:
-        return typing.cast("InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}VisitNumber"))
+        return self.find_child(f"{{{NAMESPACE}}}VisitNumber", InstanceIdentifier)
 
     @property
     def danger_codes(self) -> Sequence[CodedValue]:
         """``pm:DangerCode`` (0..*)."""
-        return typing.cast("Sequence[CodedValue]", self.findall(f"{{{NAMESPACE}}}DangerCode"))
+        return self.findall_child(f"{{{NAMESPACE}}}DangerCode", CodedValue)
 
     @property
     def relevant_clinical_infos(self) -> Sequence[ClinicalInfo]:
         """``pm:RelevantClinicalInfo`` (0..*)."""
-        return typing.cast("Sequence[ClinicalInfo]", self.findall(f"{{{NAMESPACE}}}RelevantClinicalInfo"))
+        return self.findall_child(f"{{{NAMESPACE}}}RelevantClinicalInfo", ClinicalInfo)
 
     @property
     def requested_order_detail(self) -> RequestedOrderDetail | None:
@@ -2747,8 +2749,13 @@ def _register_common_elements(ns: lxml.etree._NamespaceRegistry) -> None:
         "Documentation",
         "Manufacturer",
         "ModelName",
+        # pm:InstanceIdentifier/pm:IdentifierName, declared type="pm:LocalizedText". Missing this key made
+        # InstanceIdentifier.identifier_names hand back untyped elements whose .ref raised AttributeError.
+        "IdentifierName",
     ):
         ns[name] = LocalizedText
+    # pm:CodedValue/pm:Translation has an inline anonymous type, so it is reachable only by element name.
+    ns["Translation"] = Translation
     # Common elements -> InstanceIdentifier
     for name in (
         "Identification",

@@ -102,7 +102,7 @@ class InvocationInfo(common.ElementBase):
 
     @property
     def invocation_error_messages(self) -> Sequence[biceps_pm.LocalizedText]:
-        return typing.cast("Sequence[biceps_pm.LocalizedText]", self.findall(f"{{{NAMESPACE}}}InvocationErrorMessage"))
+        return self.findall_child(f"{{{NAMESPACE}}}InvocationErrorMessage", biceps_pm.LocalizedText)
 
 
 class AbstractGet(common.ElementBase):
@@ -292,27 +292,23 @@ class ReportPart(AbstractReportPart):
 
     @property
     def context_states(self) -> Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]", self.findall(f"{{{NAMESPACE}}}ContextState"))
+        return self.findall_child(f"{{{NAMESPACE}}}ContextState", biceps_pm.ABSTRACT_CONTEXT_STATE)
 
     @property
     def metric_states(self) -> Sequence[biceps_pm.ABSTRACT_METRIC_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_METRIC_STATE]", self.findall(f"{{{NAMESPACE}}}MetricState"))
+        return self.findall_child(f"{{{NAMESPACE}}}MetricState", biceps_pm.ABSTRACT_METRIC_STATE)
 
     @property
     def component_states(self) -> Sequence[biceps_pm.ABSTRACT_DEVICE_COMPONENT_STATE]:
-        return typing.cast(
-            "Sequence[biceps_pm.ABSTRACT_DEVICE_COMPONENT_STATE]", self.findall(f"{{{NAMESPACE}}}ComponentState")
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}ComponentState", biceps_pm.ABSTRACT_DEVICE_COMPONENT_STATE)
 
     @property
     def alert_states(self) -> Sequence[biceps_pm.ABSTRACT_ALERT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_ALERT_STATE]", self.findall(f"{{{NAMESPACE}}}AlertState"))
+        return self.findall_child(f"{{{NAMESPACE}}}AlertState", biceps_pm.ABSTRACT_ALERT_STATE)
 
     @property
     def operation_states(self) -> Sequence[biceps_pm.ABSTRACT_OPERATION_STATE]:
-        return typing.cast(
-            "Sequence[biceps_pm.ABSTRACT_OPERATION_STATE]", self.findall(f"{{{NAMESPACE}}}OperationState")
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}OperationState", biceps_pm.ABSTRACT_OPERATION_STATE)
 
     @property
     def invocation_info(self) -> InvocationInfo | None:
@@ -320,23 +316,23 @@ class ReportPart(AbstractReportPart):
 
     @property
     def invocation_source(self) -> biceps_pm.InstanceIdentifier | None:
-        return typing.cast("biceps_pm.InstanceIdentifier | None", self.find(f"{{{NAMESPACE}}}InvocationSource"))
+        return self.find_child(f"{{{NAMESPACE}}}InvocationSource", biceps_pm.InstanceIdentifier)
 
     @property
     def descriptors(self) -> Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]", self.findall(f"{{{NAMESPACE}}}Descriptor"))
+        return self.findall_child(f"{{{NAMESPACE}}}Descriptor", biceps_pm.ABSTRACT_DESCRIPTOR)
 
     @property
     def states(self) -> Sequence[biceps_pm.ABSTRACT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_STATE]", self.findall(f"{{{NAMESPACE}}}State"))
+        return self.findall_child(f"{{{NAMESPACE}}}State", biceps_pm.ABSTRACT_STATE)
 
     @property
     def error_code(self) -> biceps_pm.CodedValue | None:
-        return typing.cast("biceps_pm.CodedValue | None", self.find(f"{{{NAMESPACE}}}ErrorCode"))
+        return self.find_child(f"{{{NAMESPACE}}}ErrorCode", biceps_pm.CodedValue)
 
     @property
     def error_info(self) -> biceps_pm.LocalizedText | None:
-        return typing.cast("biceps_pm.LocalizedText | None", self.find(f"{{{NAMESPACE}}}ErrorInfo"))
+        return self.find_child(f"{{{NAMESPACE}}}ErrorInfo", biceps_pm.LocalizedText)
 
     @property
     def operation_handle_ref(self) -> biceps_pm.HandleRef | None:
@@ -418,7 +414,7 @@ class GetMdibResponse(AbstractGetResponse):
 
     @property
     def mdib(self) -> biceps_pm.Mdib:
-        mdib = typing.cast("biceps_pm.Mdib", self.find(f"{{{NAMESPACE}}}Mdib"))
+        mdib = self.find_child(f"{{{NAMESPACE}}}Mdib", biceps_pm.Mdib)
         assert mdib is not None
         return mdib
 
@@ -442,7 +438,7 @@ class GetMdDescriptionResponse(AbstractGetResponse):
     def md_description(self) -> biceps_pm.MdDescription | None:
         # the schema declares this child locally, so its name is in the message namespace even though its
         # type comes from the participant model; find_by_element would look for {pm}MdDescription
-        return typing.cast("biceps_pm.MdDescription | None", self.find(f"{{{NAMESPACE}}}MdDescription"))
+        return self.find_child(f"{{{NAMESPACE}}}MdDescription", biceps_pm.MdDescription)
 
 
 class GetMdState(AbstractGet):
@@ -463,7 +459,7 @@ class GetMdStateResponse(AbstractGetResponse):
     @property
     def md_state(self) -> biceps_pm.MdState | None:
         # locally declared, so {msg}MdState on the wire — see GetMdDescriptionResponse.md_description
-        return typing.cast("biceps_pm.MdState | None", self.find(f"{{{NAMESPACE}}}MdState"))
+        return self.find_child(f"{{{NAMESPACE}}}MdState", biceps_pm.MdState)
 
 
 # ── Context Section ────────────────────────────────────────────────────────────────────────────────
@@ -486,7 +482,7 @@ class GetContextStatesResponse(AbstractGetResponse):
 
     @property
     def context_states(self) -> Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]", self.findall(f"{{{NAMESPACE}}}ContextState"))
+        return self.findall_child(f"{{{NAMESPACE}}}ContextState", biceps_pm.ABSTRACT_CONTEXT_STATE)
 
 
 class GetContextStatesByIdentification(AbstractGet):
@@ -506,7 +502,7 @@ class GetContextStatesByIdentificationResponse(AbstractGetResponse):
 
     @property
     def context_states(self) -> Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]", self.findall(f"{{{NAMESPACE}}}ContextState"))
+        return self.findall_child(f"{{{NAMESPACE}}}ContextState", biceps_pm.ABSTRACT_CONTEXT_STATE)
 
 
 class GetContextStatesByFilter(AbstractGet):
@@ -527,7 +523,7 @@ class GetContextStatesByFilterResponse(AbstractGetResponse):
 
     @property
     def context_states(self) -> Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]", self.findall(f"{{{NAMESPACE}}}ContextState"))
+        return self.findall_child(f"{{{NAMESPACE}}}ContextState", biceps_pm.ABSTRACT_CONTEXT_STATE)
 
 
 class SetContextState(AbstractSet):
@@ -535,9 +531,7 @@ class SetContextState(AbstractSet):
 
     @property
     def proposed_context_states(self) -> Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]:
-        return typing.cast(
-            "Sequence[biceps_pm.ABSTRACT_CONTEXT_STATE]", self.findall(f"{{{NAMESPACE}}}ProposedContextState")
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}ProposedContextState", biceps_pm.ABSTRACT_CONTEXT_STATE)
 
 
 class SetContextStateResponse(AbstractSetResponse):
@@ -593,7 +587,7 @@ class GetLocalizedTextResponse(AbstractGetResponse):
 
     @property
     def texts(self) -> Sequence[biceps_pm.LocalizedText]:
-        return typing.cast("Sequence[biceps_pm.LocalizedText]", self.findall(f"{{{NAMESPACE}}}Text"))
+        return self.findall_child(f"{{{NAMESPACE}}}Text", biceps_pm.LocalizedText)
 
 
 class GetSupportedLanguages(AbstractGet):
@@ -616,11 +610,11 @@ class GetDescriptorsFromArchive(AbstractGet):
 
     @property
     def descriptor_revisions(self) -> VersionFrame | None:
-        return typing.cast("VersionFrame | None", self.find(f"{{{NAMESPACE}}}DescriptorRevisions"))
+        return self.find_child(f"{{{NAMESPACE}}}DescriptorRevisions", VersionFrame)
 
     @property
     def time_frame(self) -> TimeFrame | None:
-        return typing.cast("TimeFrame | None", self.find(f"{{{NAMESPACE}}}TimeFrame"))
+        return self.find_child(f"{{{NAMESPACE}}}TimeFrame", TimeFrame)
 
     @property
     def handles(self) -> Sequence[biceps_pm.HandleRef]:
@@ -632,7 +626,7 @@ class GetDescriptorsFromArchiveResponse(AbstractGetResponse):
 
     @property
     def descriptors(self) -> Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]", self.findall(f"{{{NAMESPACE}}}Descriptor"))
+        return self.findall_child(f"{{{NAMESPACE}}}Descriptor", biceps_pm.ABSTRACT_DESCRIPTOR)
 
 
 class GetStatesFromArchive(AbstractGet):
@@ -640,11 +634,11 @@ class GetStatesFromArchive(AbstractGet):
 
     @property
     def state_revisions(self) -> VersionFrame | None:
-        return typing.cast("VersionFrame | None", self.find(f"{{{NAMESPACE}}}StateRevisions"))
+        return self.find_child(f"{{{NAMESPACE}}}StateRevisions", VersionFrame)
 
     @property
     def time_frame(self) -> TimeFrame | None:
-        return typing.cast("TimeFrame | None", self.find(f"{{{NAMESPACE}}}TimeFrame"))
+        return self.find_child(f"{{{NAMESPACE}}}TimeFrame", TimeFrame)
 
     @property
     def handles(self) -> Sequence[biceps_pm.HandleRef]:
@@ -656,7 +650,7 @@ class GetStatesFromArchiveResponse(AbstractGetResponse):
 
     @property
     def states(self) -> Sequence[biceps_pm.ABSTRACT_STATE]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_STATE]", self.findall(f"{{{NAMESPACE}}}State"))
+        return self.findall_child(f"{{{NAMESPACE}}}State", biceps_pm.ABSTRACT_STATE)
 
 
 # ── Set Section ────────────────────────────────────────────────────────────────────────────────────
@@ -699,7 +693,7 @@ class Activate(AbstractSet):
     @property
     def arguments(self) -> Sequence[common.ElementBase]:
         # TODO: clarify what "xsd:anySimpleType" is  # noqa: FIX002, TD002, TD003
-        return typing.cast("Sequence[common.ElementBase]", self.findall(f"{{{NAMESPACE}}}Argument"))
+        return self.findall_child(f"{{{NAMESPACE}}}Argument", common.ElementBase)
 
 
 class ActivateResponse(AbstractSetResponse):
@@ -711,10 +705,7 @@ class SetAlertState(AbstractSet):
 
     @property
     def proposed_alert_state(self) -> biceps_pm.ABSTRACT_ALERT_STATE:
-        value = typing.cast(
-            "biceps_pm.ABSTRACT_ALERT_STATE | None",
-            self.find(f"{{{NAMESPACE}}}ProposedAlertState"),
-        )
+        value = self.find_child(f"{{{NAMESPACE}}}ProposedAlertState", biceps_pm.ABSTRACT_ALERT_STATE)
         # schema enforces presence
         assert value is not None
         return value
@@ -729,10 +720,7 @@ class SetComponentState(AbstractSet):
 
     @property
     def proposed_component_states(self) -> Sequence[biceps_pm.ABSTRACT_DEVICE_COMPONENT_STATE]:
-        return typing.cast(
-            "Sequence[biceps_pm.ABSTRACT_DEVICE_COMPONENT_STATE]",
-            self.findall(f"{{{NAMESPACE}}}ProposedComponentState"),
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}ProposedComponentState", biceps_pm.ABSTRACT_DEVICE_COMPONENT_STATE)
 
 
 class SetComponentStateResponse(AbstractSetResponse):
@@ -744,9 +732,7 @@ class SetMetricState(AbstractSet):
 
     @property
     def proposed_metric_states(self) -> Sequence[biceps_pm.ABSTRACT_METRIC_STATE]:
-        return typing.cast(
-            "Sequence[biceps_pm.ABSTRACT_METRIC_STATE]", self.findall(f"{{{NAMESPACE}}}ProposedMetricState")
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}ProposedMetricState", biceps_pm.ABSTRACT_METRIC_STATE)
 
 
 class SetMetricStateResponse(AbstractSetResponse):
@@ -758,7 +744,7 @@ class OperationInvokedReport(AbstractReport):
 
     @property
     def report_parts(self) -> Sequence[ReportPart]:
-        return typing.cast("Sequence[ReportPart]", self.findall(f"{{{NAMESPACE}}}ReportPart"))
+        return self.findall_child(f"{{{NAMESPACE}}}ReportPart", ReportPart)
 
 
 # ── ContainmentTree Section ────────────────────────────────────────────────────────────────────────
@@ -827,7 +813,7 @@ class GetDescriptorResponse(AbstractGetResponse):
 
     @property
     def descriptors(self) -> Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]:
-        return typing.cast("Sequence[biceps_pm.ABSTRACT_DESCRIPTOR]", self.findall(f"{{{NAMESPACE}}}Descriptor"))
+        return self.findall_child(f"{{{NAMESPACE}}}Descriptor", biceps_pm.ABSTRACT_DESCRIPTOR)
 
 
 # ── Report Section (simple extensions) ─────────────────────────────────────────────────────────────
@@ -870,7 +856,7 @@ class SystemErrorReport(AbstractReport):
 
     @property
     def report_parts(self) -> Sequence[ReportPart]:
-        return typing.cast("Sequence[ReportPart]", self.findall(f"{{{NAMESPACE}}}ReportPart"))
+        return self.findall_child(f"{{{NAMESPACE}}}ReportPart", ReportPart)
 
 
 class DescriptionModificationReport(AbstractReport):
@@ -878,7 +864,7 @@ class DescriptionModificationReport(AbstractReport):
 
     @property
     def report_parts(self) -> Sequence[ReportPart]:
-        return typing.cast("Sequence[ReportPart]", self.findall(f"{{{NAMESPACE}}}ReportPart"))
+        return self.findall_child(f"{{{NAMESPACE}}}ReportPart", ReportPart)
 
 
 # ── Waveform Section ──────────────────────────────────────────────────────────────────────────────
@@ -889,10 +875,7 @@ class WaveformStream(AbstractReport):
 
     @property
     def states(self) -> Sequence[biceps_pm.RealTimeSampleArrayMetricState]:
-        return typing.cast(
-            "Sequence[biceps_pm.RealTimeSampleArrayMetricState]",
-            self.findall(f"{{{NAMESPACE}}}State"),
-        )
+        return self.findall_child(f"{{{NAMESPACE}}}State", biceps_pm.RealTimeSampleArrayMetricState)
 
 
 class ObservedValue(common.ElementBase):
@@ -925,7 +908,7 @@ class ObservedValue(common.ElementBase):
     @property
     def value(self) -> biceps_pm.SampleArrayValue | None:
         """The wrapped samples. Shares this element's tag, so it is found as a child, not by element name."""
-        return typing.cast("biceps_pm.SampleArrayValue | None", self.find(f"{{{NAMESPACE}}}Value"))
+        return self.find_child(f"{{{NAMESPACE}}}Value", biceps_pm.SampleArrayValue)
 
 
 class ObservedValueStream(AbstractReport):
@@ -945,7 +928,7 @@ class Retrievability(common.ElementBase):
     @property
     def by(self) -> Sequence[RetrievabilityInfo]:
         # TODO: check correct type  # noqa: FIX002, TD002, TD003
-        return typing.cast("Sequence[RetrievabilityInfo]", self.findall(f"{{{NAMESPACE}}}By"))
+        return self.findall_child(f"{{{NAMESPACE}}}By", RetrievabilityInfo)
 
 
 # ── Namespace lookup registration ─────────────────────────────────────────────────────────────────

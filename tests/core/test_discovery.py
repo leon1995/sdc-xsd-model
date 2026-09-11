@@ -162,3 +162,19 @@ def _make_resolve_match() -> discovery.ResolveMatch:
         _make_xaddrs(),
         _make_metadata_version(),
     )
+
+
+def test_endpoint_reference_comes_back_typed_through_the_module_parser() -> None:
+    """The five ``wsa:EndpointReference`` accessors must be typed by this module's own parser.
+
+    A module-local lookup types only the namespaces it registers, so ``discovery.get_parser`` used to leave
+    ``wsa:EndpointReference`` a plain ``_Element``: the ``assert`` below passed, the annotation said
+    ``addressing.EndpointReference``, and the caller met an ``AttributeError`` on ``.address`` instead. No
+    test read the accessor, so nothing noticed. Reading it through ``Hello.PARSER`` is the point of this test.
+    """
+    element = discovery.Hello(_make_endpoint_reference(), _make_metadata_version())
+    hello = lxml.etree.fromstring(lxml.etree.tostring(element), parser=discovery.Hello.PARSER)
+    assert isinstance(hello, discovery.Hello)
+    endpoint_reference = hello.endpoint_reference
+    assert isinstance(endpoint_reference, addressing.EndpointReference)
+    assert isinstance(endpoint_reference.address, addressing.Address)

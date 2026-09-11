@@ -99,10 +99,16 @@ def _create_eventing_element(  # noqa: C901, PLR0911, PLR0912
 
 
 def test_delivery_notify_to() -> None:
-    """Push delivery names the endpoint notifications go to, and it comes back typed."""
+    """Push delivery names the endpoint notifications go to, and it comes back typed.
+
+    ``notify_to.address`` is asserted to be an ``addressing.Address``, not merely to have text. It used to
+    come back as a plain ``lxml.etree._Element``, because ``eventing.get_parser`` registered only its own
+    namespace -- and this test passed anyway, since ``_Element`` has ``.text`` too.
+    """
     subscribe = lxml.etree.fromstring(lxml.etree.tostring(_make_subscribe()), parser=eventing.Subscribe.PARSER)
     notify_to = subscribe.delivery.notify_to
     assert isinstance(notify_to, eventing.NotifyTo)
+    assert isinstance(notify_to.address, addressing.Address)
     assert notify_to.address.text is not None
 
 
