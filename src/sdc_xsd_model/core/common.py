@@ -29,25 +29,13 @@ class ElementBase(lxml.etree.ElementBase):
             **_extra: str | bytes,
         ) -> None: ...
 
-    @property
-    def text(self) -> str | None:
-        """https://lxml.de/api/lxml.etree._Element-class.html#text."""
-        return super().text
+        @property
+        def text(self) -> str | None:
+            """https://lxml.de/api/lxml.etree._Element-class.html#text."""
 
-    @text.setter
-    def text(self, value: str | None) -> None:
-        """Set the text, delegating to lxml.
-
-        Re-declaring ``text`` as a property to type and document it replaces lxml's own attribute, which is
-        readable *and* writable. Without this setter the class is read-only for text content, so anything
-        building or copying elements has to reach for lxml's descriptor itself.
-        """
-        lxml.etree.ElementBase.text.__set__(self, value)
-
-    @property
-    def nsmap(self) -> Mapping[str | None, str]:
-        """https://lxml.de/api/lxml.etree._Element-class.html#nsmap."""
-        return super().nsmap
+        @property
+        def nsmap(self) -> Mapping[str | None, str]:
+            """https://lxml.de/api/lxml.etree._Element-class.html#nsmap."""
 
     def find_by_element[E: ElementBase](self, element: type[E]) -> E | None:
         return typing.cast("E | None", self.find(element.TAG))
